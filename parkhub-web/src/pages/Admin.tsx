@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChartBar, Buildings, Users, ListChecks, Plus, CheckCircle, TrendUp, CaretRight,
   SpinnerGap, MagnifyingGlass, XCircle, Trash, PencilSimple,
-  Warning, Lightning, Pulse, ShieldCheck, Clock, House, Prohibit,
+  Lightning, Pulse, ShieldCheck, Clock, House, Prohibit,
 } from '@phosphor-icons/react';
 import { api, ParkingLot, ParkingLotDetailed } from '../api/client';
 import { LotLayoutEditor } from '../components/LotLayoutEditor';

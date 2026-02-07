@@ -12,7 +12,6 @@ import {
   TrendUp,
   CaretRight,
   DownloadSimple,
-  X,
 } from '@phosphor-icons/react';
 import { House, Briefcase } from '@phosphor-icons/react';
 import { api, ParkingLot, ParkingLotDetailed, Booking, HomeofficeSettings } from '../api/client';

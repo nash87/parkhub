@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Car, Clock, CheckCircle, Warning, SpinnerGap, MapPin, CalendarBlank, Repeat,
+  Car, Clock, CheckCircle, SpinnerGap, MapPin, CalendarBlank, Repeat,
 } from '@phosphor-icons/react';
 import { api, ParkingLot, ParkingLotDetailed, Vehicle, SlotConfig } from '../api/client';
 import { ParkingLotGrid } from '../components/ParkingLotGrid';
