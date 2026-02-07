@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChartBar, Buildings, Users, ListChecks, Plus, CheckCircle, TrendUp, CaretRight,
   SpinnerGap, MagnifyingGlass, XCircle, Trash, PencilSimple,
-  Lightning, Pulse, ShieldCheck, Clock, House, Prohibit,
+  Lightning, Pulse, ShieldCheck, Clock, House, Prohibit, Palette,
 } from '@phosphor-icons/react';
 import { api, ParkingLot, ParkingLotDetailed } from '../api/client';
 import { LotLayoutEditor } from '../components/LotLayoutEditor';
+import { AdminBrandingPage } from './AdminBranding';
 import { useTranslation } from 'react-i18next';
 
 function AdminNav() {
@@ -18,6 +19,7 @@ function AdminNav() {
     { name: t('admin.tabs.lots'), path: '/admin/lots', icon: Buildings },
     { name: t('admin.tabs.users'), path: '/admin/users', icon: Users },
     { name: t('admin.tabs.bookings'), path: '/admin/bookings', icon: ListChecks },
+    { name: t('admin.tabs.branding', 'Branding'), path: '/admin/branding', icon: Palette },
   ];
   return (
     <div className="border-b border-gray-200 dark:border-gray-800 mb-8">
@@ -268,7 +270,7 @@ export function AdminPage() {
     <div>
       <div className="mb-2"><h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('admin.title')}</h1><p className="text-gray-500 dark:text-gray-400 mt-1">{t('admin.subtitle')}</p></div>
       <AdminNav />
-      <Routes><Route path="/" element={<AdminOverview />} /><Route path="/lots" element={<AdminLots />} /><Route path="/users" element={<AdminUsers />} /><Route path="/bookings" element={<AdminBookings />} /></Routes>
+      <Routes><Route path="/" element={<AdminOverview />} /><Route path="/lots" element={<AdminLots />} /><Route path="/users" element={<AdminUsers />} /><Route path="/bookings" element={<AdminBookings />} /><Route path="/branding" element={<AdminBrandingPage />} /></Routes>
     </div>
   );
 }

@@ -10,9 +10,11 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{delete, get, patch, post, put},
     Extension, Json, Router,
+    extract::Multipart,
 };
 use chrono::{Datelike, Utc};
 use serde::{Deserialize, Serialize};
+use base64::Engine;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tower_http::cors::{Any, CorsLayer};
@@ -147,7 +149,9 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/privacy", get(get_privacy_policy))
         .route("/api/v1/about", get(get_about))
         .route("/api/v1/help", get(get_help))
-        .route("/api/v1/setup/status", get(get_setup_status));
+        .route("/api/v1/setup/status", get(get_setup_status))
+        .route("/api/v1/branding", get(get_branding_public))
+        .route("/api/v1/branding/logo", get(serve_branding_logo));
 
     // Protected routes (auth required)
     let protected_routes = Router::new()
@@ -181,6 +185,8 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/users/me/delete", delete(delete_own_account))
         .route("/api/v1/users/me/password", patch(change_password))
         .route("/api/v1/setup/complete", post(complete_setup))
+        .route("/api/v1/admin/branding", get(get_branding_admin).put(update_branding))
+        .route("/api/v1/admin/branding/logo", post(upload_branding_logo))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
@@ -1939,4 +1945,212 @@ fn verify_password(password: &str, hash: &str) -> bool {
     Argon2::default()
         .verify_password(password.as_bytes(), &parsed_hash)
         .is_ok()
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BRANDING / WHITE-LABEL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Branding configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BrandingConfig {
+    pub company_name: String,
+    pub primary_color: String,
+    pub secondary_color: String,
+    pub logo_url: Option<String>,
+    pub favicon_url: Option<String>,
+    pub login_background_color: String,
+    pub custom_css: Option<String>,
+}
+
+impl Default for BrandingConfig {
+    fn default() -> Self {
+        Self {
+            company_name: std::env::var("PARKHUB_COMPANY_NAME").unwrap_or_else(|_| "ParkHub".to_string()),
+            primary_color: std::env::var("PARKHUB_PRIMARY_COLOR").unwrap_or_else(|_| "#3B82F6".to_string()),
+            secondary_color: std::env::var("PARKHUB_SECONDARY_COLOR").unwrap_or_else(|_| "#1D4ED8".to_string()),
+            logo_url: None,
+            favicon_url: None,
+            login_background_color: "#2563EB".to_string(),
+            custom_css: None,
+        }
+    }
+}
+
+/// GET /api/v1/branding - Public branding config (no auth)
+async fn get_branding_public(
+    State(state): State<SharedState>,
+) -> Json<ApiResponse<BrandingConfig>> {
+    let state = state.read().await;
+    let config = load_branding_config(&state.db).await;
+    Json(ApiResponse::success(config))
+}
+
+/// GET /api/v1/admin/branding - Admin branding config (auth required)
+async fn get_branding_admin(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<BrandingConfig>>) {
+    let state = state.read().await;
+    let user = match state.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+    let config = load_branding_config(&state.db).await;
+    (StatusCode::OK, Json(ApiResponse::success(config)))
+}
+
+/// PUT /api/v1/admin/branding - Update branding config
+async fn update_branding(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(config): Json<BrandingConfig>,
+) -> (StatusCode, Json<ApiResponse<BrandingConfig>>) {
+    let state = state.read().await;
+    let user = match state.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    // Preserve logo_url if not provided (it's set by logo upload)
+    let mut final_config = config;
+    if final_config.logo_url.is_none() {
+        let existing = load_branding_config(&state.db).await;
+        final_config.logo_url = existing.logo_url;
+    }
+
+    let json_data = serde_json::to_vec(&final_config).unwrap();
+    if let Err(e) = state.db.save_branding("config", &json_data).await {
+        tracing::error!("Failed to save branding config: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save branding")));
+    }
+
+    AuditEntry::new(AuditEventType::ConfigChanged)
+        .user(auth_user.user_id, &user.username)
+        .details(serde_json::json!({"action": "branding_updated"}))
+        .log();
+
+    (StatusCode::OK, Json(ApiResponse::success(final_config)))
+}
+
+/// POST /api/v1/admin/branding/logo - Upload branding logo
+async fn upload_branding_logo(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    mut multipart: Multipart,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        let content_type = field.content_type().unwrap_or("application/octet-stream").to_string();
+
+        // Validate content type
+        let ext = match content_type.as_str() {
+            "image/png" => "png",
+            "image/jpeg" | "image/jpg" => "jpg",
+            "image/svg+xml" => "svg",
+            _ => {
+                return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("INVALID_TYPE", "Only PNG, JPEG, and SVG files are accepted")));
+            }
+        };
+
+        let data = match field.bytes().await {
+            Ok(d) => d,
+            Err(e) => {
+                tracing::error!("Failed to read upload: {}", e);
+                return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("UPLOAD_ERROR", "Failed to read file")));
+            }
+        };
+
+        // Check size (2MB max)
+        if data.len() > 2 * 1024 * 1024 {
+            return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("FILE_TOO_LARGE", "Logo must be under 2MB")));
+        }
+
+        // Store logo data in branding table with content type
+        let logo_entry = serde_json::json!({
+            "content_type": content_type,
+            "ext": ext,
+            "data": base64::engine::general_purpose::STANDARD.encode(&data),
+        });
+        let logo_bytes = serde_json::to_vec(&logo_entry).unwrap();
+
+        if let Err(e) = state_guard.db.save_branding("logo", &logo_bytes).await {
+            tracing::error!("Failed to save logo: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save logo")));
+        }
+
+        // Update branding config with logo_url
+        let mut config = load_branding_config(&state_guard.db).await;
+        config.logo_url = Some("/api/v1/branding/logo".to_string());
+        let config_data = serde_json::to_vec(&config).unwrap();
+        let _ = state_guard.db.save_branding("config", &config_data).await;
+
+        AuditEntry::new(AuditEventType::ConfigChanged)
+            .user(auth_user.user_id, &user.username)
+            .details(serde_json::json!({"action": "logo_uploaded", "type": content_type, "size": data.len()}))
+            .log();
+
+        return (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+            "logo_url": "/api/v1/branding/logo",
+            "size": data.len(),
+            "content_type": content_type,
+        }))));
+    }
+
+    (StatusCode::BAD_REQUEST, Json(ApiResponse::error("NO_FILE", "No file uploaded")))
+}
+
+/// GET /api/v1/branding/logo - Serve the uploaded logo (no auth)
+async fn serve_branding_logo(
+    State(state): State<SharedState>,
+) -> impl IntoResponse {
+    let state = state.read().await;
+    match state.db.get_branding("logo").await {
+        Ok(Some(data)) => {
+            let logo: serde_json::Value = match serde_json::from_slice(&data) {
+                Ok(v) => v,
+                Err(_) => return (StatusCode::NOT_FOUND, [(header::CONTENT_TYPE, "text/plain".to_string())], vec![]).into_response(),
+            };
+            let content_type = logo["content_type"].as_str().unwrap_or("image/png").to_string();
+            let b64_data = logo["data"].as_str().unwrap_or("");
+            match base64::engine::general_purpose::STANDARD.decode(b64_data) {
+                Ok(bytes) => {
+                    (
+                        StatusCode::OK,
+                        [
+                            (header::CONTENT_TYPE, content_type),
+                            (header::CACHE_CONTROL, "public, max-age=3600".to_string()),
+                        ],
+                        bytes,
+                    ).into_response()
+                }
+                Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, [(header::CONTENT_TYPE, "text/plain".to_string())], vec![]).into_response(),
+            }
+        }
+        _ => (StatusCode::NOT_FOUND, [(header::CONTENT_TYPE, "text/plain".to_string())], vec![]).into_response(),
+    }
+}
+
+/// Load branding config from DB, falling back to defaults
+async fn load_branding_config(db: &crate::db::Database) -> BrandingConfig {
+    match db.get_branding("config").await {
+        Ok(Some(data)) => {
+            serde_json::from_slice(&data).unwrap_or_default()
+        }
+        _ => BrandingConfig::default(),
+    }
 }

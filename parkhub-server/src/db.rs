@@ -43,6 +43,7 @@ const HOMEOFFICE: TableDefinition<&str, &[u8]> = TableDefinition::new("homeoffic
 const LOT_LAYOUTS: TableDefinition<&str, &[u8]> = TableDefinition::new("lot_layouts");
 const WAITLIST: TableDefinition<&str, &[u8]> = TableDefinition::new("waitlist");
 const PUSH_SUBSCRIPTIONS: TableDefinition<&str, &[u8]> = TableDefinition::new("push_subscriptions");
+const BRANDING: TableDefinition<&str, &[u8]> = TableDefinition::new("branding");
 
 // Settings keys
 const SETTING_SETUP_COMPLETED: &str = "setup_completed";
@@ -909,6 +910,43 @@ impl Database {
         Ok(count)
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // BRANDING OPERATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    pub async fn save_branding(&self, key: &str, data: &[u8]) -> Result<()> {
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        {
+            let mut table = write_txn.open_table(BRANDING)?;
+            table.insert(key, data)?;
+        }
+        write_txn.commit()?;
+        debug!("Saved branding: {}", key);
+        Ok(())
+    }
+
+    pub async fn get_branding(&self, key: &str) -> Result<Option<Vec<u8>>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(BRANDING)?;
+        match table.get(key)? {
+            Some(value) => Ok(Some(value.value().to_vec())),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn delete_branding(&self, key: &str) -> Result<bool> {
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        let existed;
+        {
+            let mut table = write_txn.open_table(BRANDING)?;
+            existed = table.remove(key)?.is_some();
+        }
+        write_txn.commit()?;
+        Ok(existed)
+    }
 }
 
 
@@ -980,3 +1018,4 @@ mod tests {
         assert_eq!(stats.bookings, 0);
     }
 }
+

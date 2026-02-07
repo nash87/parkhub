@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { BrandingProvider } from './context/BrandingContext';
 import { useTheme, applyTheme } from './stores/theme';
 import { useAccessibility, applyAccessibility } from './stores/accessibility';
 import { useTranslation } from 'react-i18next';
@@ -114,7 +115,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ThemeInitializer>
-          <AuthProvider>
+          <BrandingProvider>
+            <AuthProvider>
             <AppRoutes />
             <OnboardingGuard />
             <ConsentBanner />
@@ -133,6 +135,7 @@ function App() {
               }}
             />
           </AuthProvider>
+          </BrandingProvider>
         </ThemeInitializer>
       </BrowserRouter>
     </QueryClientProvider>

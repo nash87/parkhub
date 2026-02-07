@@ -36,7 +36,7 @@ rand = "0.8"
 zeroize = { version = "1", features = ["derive"] }
 
 # HTTP/API
-axum = { version = "0.7", features = ["tokio", "json"] }
+axum = { version = "0.7", features = ["tokio", "json", "multipart"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }

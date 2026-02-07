@@ -633,3 +633,65 @@ export interface AdminStats {
   active_bookings: number;
   total_vehicles: number;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BRANDING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface BrandingConfig {
+  company_name: string;
+  primary_color: string;
+  secondary_color: string;
+  logo_url: string | null;
+  favicon_url: string | null;
+  login_background_color: string;
+  custom_css: string | null;
+}
+
+// Add branding methods to ApiClient (standalone functions using api instance)
+export async function getBranding(): Promise<ApiResponse<BrandingConfig>> {
+  // Direct fetch without auth (public endpoint)
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/branding`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return await response.json();
+  } catch {
+    return { success: false, error: { code: 'NETWORK_ERROR', message: 'Failed to fetch branding' } };
+  }
+}
+
+export async function updateBranding(config: BrandingConfig): Promise<ApiResponse<BrandingConfig>> {
+  const token = api.getToken();
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/admin/branding`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(config),
+    });
+    return await response.json();
+  } catch {
+    return { success: false, error: { code: 'NETWORK_ERROR', message: 'Failed to update branding' } };
+  }
+}
+
+export async function uploadBrandingLogo(file: File): Promise<ApiResponse<{ logo_url: string }>> {
+  const token = api.getToken();
+  const formData = new FormData();
+  formData.append('logo', file);
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/admin/branding/logo`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+    return await response.json();
+  } catch {
+    return { success: false, error: { code: 'NETWORK_ERROR', message: 'Failed to upload logo' } };
+  }
+}
