@@ -23,6 +23,7 @@ use uuid::Uuid;
 
 use crate::metrics;
 use crate::rate_limit::{EndpointRateLimiters, per_ip};
+use axum::extract::Query;
 use std::net::IpAddr;
 use crate::openapi::ApiDoc;
 use crate::static_files;
@@ -91,6 +92,8 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/admin/users", get(admin_list_users))
         .route("/api/v1/admin/bookings", get(admin_list_bookings))
         .route("/api/v1/admin/stats", get(admin_stats))
+        .route("/api/v1/admin/reports", get(admin_reports))
+        .route("/api/v1/lots/:lot_id/slots/:slot_id/qr", get(slot_qr_code))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
@@ -993,6 +996,115 @@ async fn checkin_booking(
     }
 
     (StatusCode::OK, Json(ApiResponse::success(updated_booking)))
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN REPORTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, serde::Deserialize)]
+struct ReportParams {
+    format: Option<String>,  // "json" or "csv"
+    from: Option<String>,
+    to: Option<String>,
+}
+
+async fn admin_reports(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Query(params): Query<ReportParams>,
+) -> impl IntoResponse {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, [(header::CONTENT_TYPE, "application/json")], 
+            r#"{"success":false,"error":{"code":"FORBIDDEN","message":"Access denied"}}"#.to_string()),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, [(header::CONTENT_TYPE, "application/json")],
+            r#"{"success":false,"error":{"code":"FORBIDDEN","message":"Admin access required"}}"#.to_string());
+    }
+
+    let bookings = state_guard.db.list_bookings().await.unwrap_or_default();
+    let lots = state_guard.db.list_parking_lots().await.unwrap_or_default();
+    let db_stats = state_guard.db.stats().await.unwrap_or_default();
+
+    let now = Utc::now();
+    let today = now.date_naive();
+    let active = bookings.iter().filter(|b| b.status == BookingStatus::Active || b.status == BookingStatus::Confirmed).count();
+    let today_count = bookings.iter().filter(|b| b.start_time.date_naive() == today).count();
+    let total_slots: i32 = lots.iter().map(|l| l.total_slots).sum();
+    let occupancy_pct = if total_slots > 0 { (active as f64 / total_slots as f64 * 100.0) } else { 0.0 };
+
+    let format = params.format.as_deref().unwrap_or("json");
+    if format == "csv" {
+        let mut csv = String::from("metric,value\n");
+        csv.push_str(&format!("total_users,{}\n", db_stats.users));
+        csv.push_str(&format!("total_bookings,{}\n", db_stats.bookings));
+        csv.push_str(&format!("active_bookings,{}\n", active));
+        csv.push_str(&format!("bookings_today,{}\n", today_count));
+        csv.push_str(&format!("total_lots,{}\n", db_stats.parking_lots));
+        csv.push_str(&format!("total_slots,{}\n", total_slots));
+        csv.push_str(&format!("occupancy_percent,{:.1}\n", occupancy_pct));
+        return (StatusCode::OK, [(header::CONTENT_TYPE, "text/csv")], csv);
+    }
+
+    let report = serde_json::json!({
+        "generated_at": now.to_rfc3339(),
+        "total_users": db_stats.users,
+        "total_bookings": db_stats.bookings,
+        "active_bookings": active,
+        "bookings_today": today_count,
+        "total_lots": db_stats.parking_lots,
+        "total_slots": total_slots,
+        "occupancy_percent": format!("{:.1}", occupancy_pct),
+        "lots": lots.iter().map(|l| serde_json::json!({
+            "id": l.id,
+            "name": l.name,
+            "total_slots": l.total_slots,
+            "available_slots": l.available_slots,
+        })).collect::<Vec<_>>(),
+    });
+
+    (StatusCode::OK, [(header::CONTENT_TYPE, "application/json")],
+        serde_json::json!({"success": true, "data": report}).to_string())
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// QR CODE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn slot_qr_code(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path((lot_id, slot_id)): Path<(String, String)>,
+) -> impl IntoResponse {
+    let state_guard = state.read().await;
+
+    // Verify lot and slot exist
+    match state_guard.db.get_parking_lot(&lot_id).await {
+        Ok(Some(_)) => {},
+        _ => return (StatusCode::NOT_FOUND, [(header::CONTENT_TYPE, "application/json")],
+            r#"{"success":false,"error":{"code":"NOT_FOUND","message":"Lot not found"}}"#.to_string()),
+    };
+
+    match state_guard.db.get_parking_slot(&slot_id).await {
+        Ok(Some(_)) => {},
+        _ => return (StatusCode::NOT_FOUND, [(header::CONTENT_TYPE, "application/json")],
+            r#"{"success":false,"error":{"code":"NOT_FOUND","message":"Slot not found"}}"#.to_string()),
+    };
+
+    // Generate QR code pointing to booking page as SVG
+    let booking_url = format!("/book?lot={}&slot={}", lot_id, slot_id);
+    let qr: qrcode::QrCode = match qrcode::QrCode::new(booking_url.as_bytes()) {
+        Ok(q) => q,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, [(header::CONTENT_TYPE, "application/json")],
+            r#"{"success":false,"error":{"code":"SERVER_ERROR","message":"Failed to generate QR code"}}"#.to_string()),
+    };
+
+    let svg = qr.render::<qrcode::render::svg::Color>().quiet_zone(true).min_dimensions(256, 256).build();
+    (StatusCode::OK, [(header::CONTENT_TYPE, "image/svg+xml")], svg)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

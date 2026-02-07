@@ -12,6 +12,12 @@ name = "parkhub-server"
 path = "src/main.rs"
 
 [dependencies]
+
+# Email (SMTP)
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "rustls-tls", "tokio1", "tokio1-rustls-tls"] }
+
+# QR Code generation
+qrcode = { version = "0.14", features = ["svg"] }
 parkhub-common.workspace = true
 
 # Async runtime
