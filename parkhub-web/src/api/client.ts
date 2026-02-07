@@ -73,11 +73,10 @@ class ApiClient {
           if (retryResponse.status === 204) return { success: true } as ApiResponse<T>;
           return await retryResponse.json();
         }
-        this.clearAuth();
-        window.location.href = '/login';
+        // Don't force redirect - let the component handle auth errors gracefully
         return {
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Session expired. Please log in again.' },
+          error: { code: 'UNAUTHORIZED', message: 'Session expired' },
         };
       }
 
@@ -130,11 +129,7 @@ class ApiClient {
     return result;
   }
 
-  private clearAuth() {
-    this.token = null;
-    localStorage.removeItem('parkhub_token');
-    localStorage.removeItem('parkhub_refresh_token');
-  }
+
 
   // Auth
   async login(username: string, password: string): Promise<ApiResponse<{ user: User; tokens: AuthTokens }>> {

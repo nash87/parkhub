@@ -91,6 +91,20 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       });
       const data = await res.json();
       if (data.success) {
+        // Re-login with new password to get fresh token
+        try {
+          const loginRes = await fetch('/api/v1/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: 'admin', password: newPassword }),
+          });
+          const loginData = await loginRes.json();
+          if (loginData.success && loginData.data?.tokens?.access_token) {
+            localStorage.setItem('parkhub_token', loginData.data.tokens.access_token);
+            if (loginData.data.tokens.refresh_token)
+              localStorage.setItem('parkhub_refresh_token', loginData.data.tokens.refresh_token);
+          }
+        } catch { /* best effort */ }
         setPasswordChanged(true);
         toast.success('Passwort erfolgreich geändert');
         return true;
