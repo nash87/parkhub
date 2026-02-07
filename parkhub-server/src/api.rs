@@ -22,6 +22,8 @@ use utoipa_swagger_ui::SwaggerUi;
 use uuid::Uuid;
 
 use crate::metrics;
+use crate::rate_limit::{EndpointRateLimiters, per_ip};
+use std::net::IpAddr;
 use crate::openapi::ApiDoc;
 use crate::static_files;
 
@@ -47,6 +49,7 @@ pub struct AuthUser {
 
 /// Create the API router with OpenAPI docs and metrics
 pub fn create_router(state: SharedState) -> Router {
+    let rate_limiters = Arc::new(EndpointRateLimiters::new());
     let metrics_handle = metrics::init_metrics();
 
     // Public routes (no auth required)
@@ -57,6 +60,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/handshake", post(handshake))
         .route("/status", get(server_status))
         .route("/api/v1/auth/login", post(login))
+        // Rate limiters are applied inside login/register handlers
         .route("/api/v1/auth/register", post(register))
         .route("/api/v1/auth/refresh", post(refresh_token));
 
@@ -73,6 +77,8 @@ pub fn create_router(state: SharedState) -> Router {
             "/api/v1/bookings/:id",
             get(get_booking).delete(cancel_booking),
         )
+        .route("/api/v1/bookings/ical", get(export_ical))
+        .route("/api/v1/bookings/:id/checkin", post(checkin_booking))
         .route("/api/v1/vehicles", get(list_vehicles).post(create_vehicle))
         .route("/api/v1/vehicles/:id", delete(delete_vehicle))
         .route("/api/v1/vehicles/:id/photo", post(upload_vehicle_photo))
@@ -890,6 +896,103 @@ async fn admin_stats(
         active_bookings: active_bookings as i32,
         bookings_today: bookings_today as i32,
     })))
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ICAL EXPORT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn export_ical(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> impl IntoResponse {
+    let state = state.read().await;
+    let bookings = match state.db.list_bookings_by_user(&auth_user.user_id.to_string()).await {
+        Ok(b) => b,
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                [(header::CONTENT_TYPE, "text/plain")],
+                "Internal server error".to_string(),
+            );
+        }
+    };
+
+    let mut ical = String::from("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//ParkHub//Bookings//EN\r\nCALSCALE:GREGORIAN\r\n");
+
+    for booking in &bookings {
+        if booking.status == BookingStatus::Cancelled {
+            continue;
+        }
+        let dtstart = booking.start_time.format("%Y%m%dT%H%M%SZ");
+        let dtend = booking.end_time.format("%Y%m%dT%H%M%SZ");
+        let created = booking.created_at.format("%Y%m%dT%H%M%SZ");
+        let summary = format!("Parking: {}", booking.slot_number.as_deref().unwrap_or("Unknown"));
+        let location = booking.lot_name.as_deref().unwrap_or("Parking Lot");
+        let description = format!("Booking ID: {}\\nStatus: {:?}", booking.id, booking.status);
+
+        ical.push_str(&format!(
+            "BEGIN:VEVENT\r\nUID:{}@parkhub\r\nDTSTAMP:{}\r\nDTSTART:{}\r\nDTEND:{}\r\nSUMMARY:{}\r\nLOCATION:{}\r\nDESCRIPTION:{}\r\nEND:VEVENT\r\n",
+            booking.id, created, dtstart, dtend, summary, location, description
+        ));
+    }
+
+    ical.push_str("END:VCALENDAR\r\n");
+
+    (
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, "text/calendar; charset=utf-8"),
+        ],
+        ical,
+    )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHECK-IN
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn checkin_booking(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<Booking>>) {
+    let state_guard = state.read().await;
+    let booking = match state_guard.db.get_booking(&id).await {
+        Ok(Some(b)) => b,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Booking not found"))),
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
+        }
+    };
+
+    if booking.user_id != auth_user.user_id {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied")));
+    }
+
+    if booking.status != BookingStatus::Confirmed {
+        return (StatusCode::CONFLICT, Json(ApiResponse::error("INVALID_STATUS", "Booking is not in confirmed status")));
+    }
+
+    let mut updated_booking = booking;
+    updated_booking.status = BookingStatus::Active;
+    updated_booking.updated_at = Utc::now();
+
+    if let Err(e) = state_guard.db.save_booking(&updated_booking).await {
+        tracing::error!("Failed to update booking: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to check in")));
+    }
+
+    // Update slot to occupied
+    if let Ok(Some(mut slot)) = state_guard.db.get_parking_slot(&updated_booking.slot_id.to_string()).await {
+        slot.status = SlotStatus::Occupied;
+        let _ = state_guard.db.save_parking_slot(&slot).await;
+    }
+
+    (StatusCode::OK, Json(ApiResponse::success(updated_booking)))
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
