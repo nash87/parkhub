@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useTheme, applyTheme } from './stores/theme';
+import { useTranslation } from 'react-i18next';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/Login';
 import { RegisterPage } from './pages/Register';
@@ -11,10 +12,11 @@ import { DashboardPage } from './pages/Dashboard';
 import { BookPage } from './pages/Book';
 import { BookingsPage } from './pages/Bookings';
 import { VehiclesPage } from './pages/Vehicles';
-import { AdminPage } from './pages/Admin';
-import { HomeofficePage } from './pages/Homeoffice';
-import { ProfilePage } from './pages/Profile';
 import { SpinnerGap } from '@phosphor-icons/react';
+
+const AdminPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminPage })));
+const HomeofficePage = lazy(() => import('./pages/Homeoffice').then(m => ({ default: m.HomeofficePage })));
+const ProfilePage = lazy(() => import('./pages/Profile').then(m => ({ default: m.ProfilePage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,10 +58,16 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
 function ThemeInitializer({ children }: { children: React.ReactNode }) {
   const { isDark } = useTheme();
+  const { i18n } = useTranslation();
 
   useEffect(() => {
     applyTheme(isDark);
   }, [isDark]);
+
+  // Sync html lang attribute with i18n language
+  useEffect(() => {
+    document.documentElement.lang = i18n.language?.startsWith('en') ? 'en' : 'de';
+  }, [i18n.language]);
 
   return <>{children}</>;
 }
@@ -76,11 +84,11 @@ function AppRoutes() {
       <Route path="/book" element={<ProtectedRoute><BookPage /></ProtectedRoute>} />
       <Route path="/bookings" element={<ProtectedRoute><BookingsPage /></ProtectedRoute>} />
       <Route path="/vehicles" element={<ProtectedRoute><VehiclesPage /></ProtectedRoute>} />
-      <Route path="/homeoffice" element={<ProtectedRoute><HomeofficePage /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      <Route path="/homeoffice" element={<ProtectedRoute><Suspense fallback={<LoadingScreen />}><HomeofficePage /></Suspense></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Suspense fallback={<LoadingScreen />}><ProfilePage /></Suspense></ProtectedRoute>} />
 
       {/* Admin */}
-      <Route path="/admin/*" element={<AdminRoute><AdminPage /></AdminRoute>} />
+      <Route path="/admin/*" element={<AdminRoute><Suspense fallback={<LoadingScreen />}><AdminPage /></Suspense></AdminRoute>} />
 
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/" replace />} />

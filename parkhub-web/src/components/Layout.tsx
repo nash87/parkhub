@@ -115,7 +115,7 @@ export function Layout({ children }: LayoutProps) {
               <span className="text-lg font-bold text-gray-900 dark:text-white">ParkHub</span>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-1">
+            <nav role="navigation" aria-label="Main navigation" className="hidden md:flex items-center gap-1">
               {navigationKeys.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.href;
@@ -158,6 +158,7 @@ export function Layout({ children }: LayoutProps) {
                 <button
                   onClick={() => setNotifOpen(!notifOpen)}
                   className="btn btn-ghost btn-icon relative"
+                  aria-label={t('notifications.title')}
                 >
                   <Bell weight={notifOpen ? 'fill' : 'regular'} className="w-5 h-5" />
                   {unreadCount > 0 && (
@@ -246,7 +247,7 @@ export function Layout({ children }: LayoutProps) {
                 </AnimatePresence>
               </div>
 
-              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden btn btn-ghost btn-icon">
+              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden btn btn-ghost btn-icon" aria-label="Toggle menu">
                 {mobileMenuOpen ? <X weight="bold" className="w-5 h-5" /> : <List weight="bold" className="w-5 h-5" />}
               </button>
             </div>
@@ -288,7 +289,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main Content */}
       <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-4 md:py-8">
           <motion.div key={location.pathname} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
             {children}
           </motion.div>
@@ -374,7 +375,7 @@ function MobileBottomBar({ isAdmin }: { isAdmin: boolean }) {
         )}
       </AnimatePresence>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 safe-area-bottom">
+      <nav role="navigation" aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 safe-area-bottom">
         <div className="flex items-center justify-around h-16">
           {mobileTabKeys.map((item) => {
             const Icon = item.icon;

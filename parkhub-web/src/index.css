@@ -13,6 +13,10 @@
   html {
     @apply scroll-smooth antialiased;
   }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-gray-900;
+  }
   
   body {
     @apply bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100;

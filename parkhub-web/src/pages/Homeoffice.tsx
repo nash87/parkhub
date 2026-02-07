@@ -94,7 +94,9 @@ export function HomeofficePage() {
     }
     while (days.length % 7 !== 0) { const d = new Date(year, month + 1, days.length - startDow - lastDay.getDate() + 1); days.push({ date: d, inMonth: false, isHo: false, isToday: false }); }
     return days;
-  }, [settings]);
+  }, [settings, calMonth, calYear]);
+
+  const calMonthLabel = new Date(calYear, calMonth, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
   const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
   const itemVariants = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
@@ -169,7 +171,13 @@ export function HomeofficePage() {
         </div>
 
         <motion.div variants={itemVariants} className="card p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Calendar weight="fill" className="w-5 h-5 text-primary-600" />{today.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Calendar weight="fill" className="w-5 h-5 text-primary-600" />{calMonthLabel}</h2>
+            <div className="flex items-center gap-1">
+              <button onClick={prevMonth} className="btn btn-ghost btn-icon" aria-label="Previous month"><CaretLeft weight="bold" className="w-5 h-5" /></button>
+              <button onClick={nextMonth} className="btn btn-ghost btn-icon" aria-label="Next month"><CaretRight weight="bold" className="w-5 h-5" /></button>
+            </div>
+          </div>
           <div className="grid grid-cols-7 gap-1">
             {WEEKDAY_SHORT.map(d => <div key={d} className="text-center text-xs font-semibold text-gray-400 dark:text-gray-500 py-2">{d}</div>)}
             <div className="text-center text-xs font-semibold text-gray-400 dark:text-gray-500 py-2">{t('homeoffice.weekdaysShort.sat')}</div>
