@@ -9,20 +9,64 @@ permissions:
   contents: write
   packages: write
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
-  build-linux:
-    name: Build Linux (x86_64)
-    runs-on: ubuntu-latest
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x86_64
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            os: linux
+            arch: x86_64
+            ext: tar.gz
+            cross: false
+
+          - name: Linux aarch64
+            runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            os: linux
+            arch: aarch64
+            ext: tar.gz
+            cross: true
+
+          - name: macOS x86_64
+            runner: macos-13
+            target: x86_64-apple-darwin
+            os: macos
+            arch: x86_64
+            ext: tar.gz
+            cross: false
+
+          - name: macOS aarch64
+            runner: macos-latest
+            target: aarch64-apple-darwin
+            os: macos
+            arch: aarch64
+            ext: tar.gz
+            cross: false
+
+          - name: Windows x86_64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            os: windows
+            arch: x86_64
+            ext: zip
+            cross: false
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libglib2.0-dev libpango1.0-dev libcairo2-dev libgdk-pixbuf-2.0-dev libgtk-3-dev libgraphene-1.0-dev
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Build frontend
         run: |
@@ -30,28 +74,62 @@ jobs:
           npm ci
           npm run build
 
-      - name: Build server
-        run: cargo build --release -p parkhub-server
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
-      - name: Package
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'linux' && !matrix.cross
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libglib2.0-dev libpango1.0-dev libcairo2-dev libgdk-pixbuf-2.0-dev libgtk-3-dev libgraphene-1.0-dev
+
+      - name: Build (native)
+        if: "!matrix.cross"
+        run: cargo build --release --target ${{ matrix.target }} -p parkhub-server
+
+      - name: Build (cross)
+        if: matrix.cross
+        run: cross build --release --target ${{ matrix.target }} -p parkhub-server
+
+      - name: Package (Unix)
+        if: matrix.os != 'windows'
         run: |
           mkdir -p release
-          cp target/release/parkhub-server release/parkhub-server-linux-x86_64
-          chmod +x release/parkhub-server-linux-x86_64
-          tar czf release/parkhub-linux-x86_64.tar.gz -C release parkhub-server-linux-x86_64
+          cp target/${{ matrix.target }}/release/parkhub-server release/parkhub-server
+          chmod +x release/parkhub-server
+          tar czf parkhub-${{ matrix.os }}-${{ matrix.arch }}.tar.gz -C release parkhub-server
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          Copy-Item "target/${{ matrix.target }}/release/parkhub-server.exe" "release/parkhub-server.exe"
+          Compress-Archive -Path "release/parkhub-server.exe" -DestinationPath "parkhub-${{ matrix.os }}-${{ matrix.arch }}.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-x86_64
-          path: release/parkhub-linux-x86_64.tar.gz
+          name: parkhub-${{ matrix.os }}-${{ matrix.arch }}
+          path: parkhub-${{ matrix.os }}-${{ matrix.arch }}.${{ matrix.ext }}
 
   docker:
-    name: Docker Image
+    name: Docker Image (multi-arch)
     runs-on: ubuntu-latest
-    needs: [build-linux]
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -65,18 +143,21 @@ jobs:
         with:
           context: .
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build-linux, docker]
+    needs: [build, docker]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -86,4 +167,8 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            artifacts/linux-x86_64/parkhub-linux-x86_64.tar.gz
+            artifacts/parkhub-linux-x86_64/parkhub-linux-x86_64.tar.gz
+            artifacts/parkhub-linux-aarch64/parkhub-linux-aarch64.tar.gz
+            artifacts/parkhub-macos-x86_64/parkhub-macos-x86_64.tar.gz
+            artifacts/parkhub-macos-aarch64/parkhub-macos-aarch64.tar.gz
+            artifacts/parkhub-windows-x86_64/parkhub-windows-x86_64.zip

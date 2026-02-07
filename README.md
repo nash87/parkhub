@@ -47,6 +47,10 @@ docker run -d \
 ```
 Open http://localhost:8080 — done!
 
+
+> ⚠️ **Default credentials: `admin` / `admin` — Change your admin password immediately after first login!**
+
+
 ### Docker Compose
 ```bash
 git clone https://github.com/nash87/parkhub.git
@@ -54,15 +58,35 @@ cd parkhub
 docker compose up -d
 ```
 
-### Binary (Portable)
-Download from [Releases](https://github.com/nash87/parkhub/releases):
+### One-Liner Install
+
 ```bash
 # Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/nash87/parkhub/main/install.sh | bash
+
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/nash87/parkhub/main/install.ps1 | iex
+```
+
+### Binary (Manual)
+Download from [Releases](https://github.com/nash87/parkhub/releases):
+
+| Platform | Download |
+|---|---|
+| Linux x86_64 | `parkhub-linux-x86_64.tar.gz` |
+| Linux aarch64 | `parkhub-linux-aarch64.tar.gz` |
+| macOS x86_64 | `parkhub-macos-x86_64.tar.gz` |
+| macOS Apple Silicon | `parkhub-macos-aarch64.tar.gz` |
+| Windows x86_64 | `parkhub-windows-x86_64.zip` |
+
+```bash
+# Linux/macOS
+tar xzf parkhub-*.tar.gz
 chmod +x parkhub-server
 ./parkhub-server
 
 # Windows
-parkhub-server.exe
+# Extract zip, then run parkhub-server.exe
 ```
 Data is stored in `./parkhub-data/` (portable) or system dirs.
 
@@ -81,6 +105,14 @@ Data is stored in `./parkhub-data/` (portable) or system dirs.
 | `PARKHUB_TLS_ENABLED` | `false` | Enable HTTPS |
 | `PARKHUB_TLS_CERT` | — | TLS certificate path |
 | `PARKHUB_TLS_KEY` | — | TLS private key path |
+| `PARKHUB_SMTP_HOST` | — | SMTP server hostname |
+| `PARKHUB_SMTP_PORT` | `587` | SMTP server port |
+| `PARKHUB_SMTP_USER` | — | SMTP username |
+| `PARKHUB_SMTP_PASS` | — | SMTP password |
+| `PARKHUB_SMTP_FROM` | — | Sender email address |
+| `PARKHUB_AUTO_RELEASE_MINUTES` | `30` | Auto-release unconfirmed bookings after N minutes |
+| `PARKHUB_VAPID_PRIVATE_KEY` | — | VAPID private key for push notifications |
+| `PARKHUB_VAPID_PUBLIC_KEY` | — | VAPID public key for push notifications |
 | `RUST_LOG` | `info` | Log level |
 
 ### config.toml
@@ -98,6 +130,97 @@ homeoffice = true
 vehicle_photos = true
 multi_day_booking = true
 ```
+
+---
+
+## 📱 PWA Installation (Add to Home Screen)
+
+ParkHub is a Progressive Web App — install it for a native app experience:
+
+**iOS (Safari):**
+1. Open ParkHub in Safari
+2. Tap the Share button (↑)
+3. Scroll down and tap **"Add to Home Screen"**
+4. Tap **Add**
+
+**Android (Chrome):**
+1. Open ParkHub in Chrome
+2. Tap the three-dot menu (⋮)
+3. Tap **"Add to Home Screen"** or **"Install app"**
+4. Confirm
+
+**Desktop (Chrome/Edge):**
+1. Open ParkHub in your browser
+2. Click the install icon (⊕) in the address bar
+3. Click **Install**
+
+---
+
+## 🐧 Systemd Service (Permanent Installation)
+
+For running ParkHub as a system service on Linux:
+
+```ini
+[Unit]
+Description=ParkHub - Parking Management
+After=network.target
+
+[Service]
+Type=simple
+User=parkhub
+Group=parkhub
+ExecStart=/usr/local/bin/parkhub-server
+WorkingDirectory=/var/lib/parkhub
+Environment=PARKHUB_DATA_DIR=/var/lib/parkhub
+Environment=PARKHUB_PORT=8080
+Environment=RUST_LOG=info
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+# Create user and data directory
+sudo useradd -r -s /usr/sbin/nologin -d /var/lib/parkhub parkhub
+sudo mkdir -p /var/lib/parkhub
+sudo chown parkhub:parkhub /var/lib/parkhub
+
+# Install service
+sudo cp parkhub.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now parkhub
+
+# Check status
+sudo systemctl status parkhub
+sudo journalctl -u parkhub -f
+```
+
+> 💡 **Tip:** The install script (`install.sh`) can set this up automatically!
+
+---
+
+## 🔄 Upgrading
+
+ParkHub stores all data in the data directory (default: `./parkhub-data/`). Upgrading is simple:
+
+1. **Stop** the running instance
+2. **Replace** the binary with the new version
+3. **Start** again — data persists automatically
+
+```bash
+# If using systemd
+sudo systemctl stop parkhub
+curl -fsSL https://raw.githubusercontent.com/nash87/parkhub/main/install.sh | bash
+sudo systemctl start parkhub
+
+# If using Docker
+docker pull ghcr.io/nash87/parkhub:latest
+docker compose up -d
+```
+
+> ✅ Database migrations run automatically on startup. No manual steps needed.
 
 ---
 
