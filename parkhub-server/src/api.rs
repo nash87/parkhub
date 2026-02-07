@@ -4,15 +4,15 @@
 
 use axum::{
     body::Body,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{header, Request, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
     Extension, Json, Router,
 };
-use chrono::{Datelike, Duration, Utc};
-use metrics_exporter_prometheus::PrometheusHandle;
+use chrono::{Datelike, Utc};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tower_http::cors::{Any, CorsLayer};
@@ -21,19 +21,18 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 use uuid::Uuid;
 
+use crate::audit::{AuditEntry, AuditEventType};
 use crate::metrics;
-use crate::rate_limit::{EndpointRateLimiters, per_ip};
-use axum::extract::Query;
-use std::net::IpAddr;
 use crate::openapi::ApiDoc;
+use crate::rate_limit::EndpointRateLimiters;
 use crate::static_files;
 
 use parkhub_common::{
-    ApiResponse, AuthTokens, Booking, BookingStatus, BookingType,
+    ApiResponse, AuthTokens, Booking, BookingStatus,
     CreateBookingRequest, HandshakeRequest, HandshakeResponse, HomeofficeDay,
-    HomeofficePattern, HomeofficeSettings, LoginRequest, LoginResponse, LotLayout,
+    HomeofficePattern, HomeofficeSettings, LoginRequest,
     ParkingLot, ParkingSlot, RefreshTokenRequest, RegisterRequest, ServerStatus,
-    SlotStatus, User, UserPreferences, UserRole, Vehicle, AdminStats,
+    SlotStatus, User, UserRole, Vehicle, AdminStats,
     WaitlistEntry, PushSubscription, RecurrenceRule,
     PROTOCOL_VERSION,
 };
@@ -49,9 +48,89 @@ pub struct AuthUser {
     pub user_id: Uuid,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// RESPONSE DTOs (exclude password_hash)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// User response DTO - never exposes password_hash
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserResponse {
+    pub id: Uuid,
+    pub username: String,
+    pub email: String,
+    pub name: String,
+    pub picture: Option<String>,
+    pub phone: Option<String>,
+    pub role: UserRole,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub last_login: Option<chrono::DateTime<chrono::Utc>>,
+    pub preferences: parkhub_common::UserPreferences,
+    pub is_active: bool,
+    pub department: Option<String>,
+}
+
+impl From<User> for UserResponse {
+    fn from(u: User) -> Self {
+        Self {
+            id: u.id,
+            username: u.username,
+            email: u.email,
+            name: u.name,
+            picture: u.picture,
+            phone: u.phone,
+            role: u.role,
+            created_at: u.created_at,
+            updated_at: u.updated_at,
+            last_login: u.last_login,
+            preferences: u.preferences,
+            is_active: u.is_active,
+            department: u.department,
+        }
+    }
+}
+
+/// Login response with safe user DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SafeLoginResponse {
+    pub user: UserResponse,
+    pub tokens: AuthTokens,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// REQUEST DTOs
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Create vehicle request - client only provides these fields
+#[derive(Debug, Deserialize)]
+pub struct CreateVehicleRequest {
+    pub license_plate: String,
+    pub make: Option<String>,
+    pub model: Option<String>,
+    pub color: Option<String>,
+}
+
+/// Push subscription request - client only provides these fields
+#[derive(Debug, Deserialize)]
+pub struct CreatePushSubscriptionRequest {
+    pub endpoint: String,
+    pub p256dh: String,
+    pub auth: String,
+}
+
+/// Update booking request
+#[derive(Debug, Deserialize)]
+pub struct UpdateBookingRequest {
+    pub start_time: Option<chrono::DateTime<chrono::Utc>>,
+    pub end_time: Option<chrono::DateTime<chrono::Utc>>,
+    pub notes: Option<String>,
+    pub vehicle_id: Option<Uuid>,
+    pub license_plate: Option<String>,
+}
+
 /// Create the API router with OpenAPI docs and metrics
 pub fn create_router(state: SharedState) -> Router {
-    let rate_limiters = Arc::new(EndpointRateLimiters::new());
+    let _rate_limiters = Arc::new(EndpointRateLimiters::new());
     let metrics_handle = metrics::init_metrics();
 
     // Public routes (no auth required)
@@ -62,7 +141,6 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/handshake", post(handshake))
         .route("/status", get(server_status))
         .route("/api/v1/auth/login", post(login))
-        // Rate limiters are applied inside login/register handlers
         .route("/api/v1/auth/register", post(register))
         .route("/api/v1/auth/refresh", post(refresh_token));
 
@@ -75,21 +153,16 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/lots/:id/slots", get(get_lot_slots))
         .route("/api/v1/lots/:id/layout", get(get_lot_layout).put(update_lot_layout))
         .route("/api/v1/bookings", get(list_bookings).post(create_booking))
-        .route(
-            "/api/v1/bookings/:id",
-            get(get_booking).delete(cancel_booking),
-        )
+        .route("/api/v1/bookings/:id", get(get_booking).delete(cancel_booking).patch(update_booking))
         .route("/api/v1/bookings/ical", get(export_ical))
         .route("/api/v1/bookings/:id/checkin", post(checkin_booking))
         .route("/api/v1/vehicles", get(list_vehicles).post(create_vehicle))
         .route("/api/v1/vehicles/:id", delete(delete_vehicle))
         .route("/api/v1/vehicles/:id/photo", post(upload_vehicle_photo))
-        // Homeoffice routes
         .route("/api/v1/homeoffice", get(get_homeoffice_settings))
         .route("/api/v1/homeoffice/pattern", put(update_homeoffice_pattern))
         .route("/api/v1/homeoffice/days", post(add_homeoffice_day))
         .route("/api/v1/homeoffice/days/:id", delete(remove_homeoffice_day))
-        // Admin routes
         .route("/api/v1/admin/users", get(admin_list_users))
         .route("/api/v1/admin/bookings", get(admin_list_bookings))
         .route("/api/v1/admin/stats", get(admin_stats))
@@ -97,14 +170,18 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/lots/:lot_id/slots/:slot_id/qr", get(slot_qr_code))
         .route("/api/v1/lots/:id/waitlist", get(get_waitlist).post(join_waitlist))
         .route("/api/v1/push/subscribe", post(push_subscribe))
-        .route("/api/v1/admin/users/:id", axum::routing::patch(admin_update_user))
-        .route("/api/v1/admin/slots/:id", axum::routing::patch(admin_update_slot))
+        .route("/api/v1/admin/users/:id", patch(admin_update_user))
+        .route("/api/v1/admin/slots/:id", patch(admin_update_slot))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
         ));
 
     let metrics_handle_clone = metrics_handle.clone();
+
+    // API catch-all: return 404 JSON for unknown /api/* routes
+    let api_fallback = Router::new()
+        .route("/api/*rest", get(api_not_found).post(api_not_found).put(api_not_found).delete(api_not_found).patch(api_not_found));
 
     Router::new()
         .merge(public_routes)
@@ -116,7 +193,8 @@ pub fn create_router(state: SharedState) -> Router {
                 metrics_handle_clone.render(),
             )
         }))
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(SwaggerUi::new("/swagger-ui").url("/api/openapi.json", ApiDoc::openapi()))
+        .merge(api_fallback)
         .fallback(static_files::static_handler)
         .with_state(state)
         .layer(TraceLayer::new_for_http())
@@ -126,6 +204,14 @@ pub fn create_router(state: SharedState) -> Router {
                 .allow_methods(Any)
                 .allow_headers(Any),
         )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// API CATCH-ALL (returns JSON 404 for /api/* routes)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn api_not_found() -> (StatusCode, Json<ApiResponse<()>>) {
+    (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "API endpoint not found")))
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -216,9 +302,7 @@ async fn handshake(
 
 async fn server_status(State(state): State<SharedState>) -> Json<ApiResponse<ServerStatus>> {
     let state = state.read().await;
-    let db_stats = state.db.stats().await.unwrap_or_else(|_| crate::db::DatabaseStats {
-        users: 0, bookings: 0, parking_lots: 0, slots: 0, sessions: 0, vehicles: 0,
-    });
+    let db_stats = state.db.stats().await.unwrap_or_default();
     Json(ApiResponse::success(ServerStatus {
         uptime_seconds: 0,
         connected_clients: 0,
@@ -235,7 +319,7 @@ async fn server_status(State(state): State<SharedState>) -> Json<ApiResponse<Ser
 async fn login(
     State(state): State<SharedState>,
     Json(request): Json<LoginRequest>,
-) -> (StatusCode, Json<ApiResponse<LoginResponse>>) {
+) -> (StatusCode, Json<ApiResponse<SafeLoginResponse>>) {
     let state_guard = state.read().await;
 
     let user = match state_guard.db.get_user_by_username(&request.username).await {
@@ -243,7 +327,13 @@ async fn login(
         Ok(None) => {
             match state_guard.db.get_user_by_email(&request.username).await {
                 Ok(Some(u)) => u,
-                _ => return (StatusCode::UNAUTHORIZED, Json(ApiResponse::error("INVALID_CREDENTIALS", "Invalid username or password"))),
+                _ => {
+                    AuditEntry::new(AuditEventType::LoginFailed)
+                        .details(serde_json::json!({"username": &request.username}))
+                        .error("Invalid credentials")
+                        .log();
+                    return (StatusCode::UNAUTHORIZED, Json(ApiResponse::error("INVALID_CREDENTIALS", "Invalid username or password")));
+                }
             }
         }
         Err(e) => {
@@ -253,6 +343,10 @@ async fn login(
     };
 
     if !verify_password(&request.password, &user.password_hash) {
+        AuditEntry::new(AuditEventType::LoginFailed)
+            .user(user.id, &user.username)
+            .error("Invalid password")
+            .log();
         return (StatusCode::UNAUTHORIZED, Json(ApiResponse::error("INVALID_CREDENTIALS", "Invalid username or password")));
     }
 
@@ -268,13 +362,16 @@ async fn login(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to create session")));
     }
 
-    let mut response_user = user.clone();
-    response_user.password_hash = String::new();
+    AuditEntry::new(AuditEventType::LoginSuccess)
+        .user(user.id, &user.username)
+        .log();
+
+    metrics::record_auth_event("login", true);
 
     (
         StatusCode::OK,
-        Json(ApiResponse::success(LoginResponse {
-            user: response_user,
+        Json(ApiResponse::success(SafeLoginResponse {
+            user: UserResponse::from(user),
             tokens: AuthTokens {
                 access_token,
                 refresh_token: session.refresh_token,
@@ -288,25 +385,22 @@ async fn login(
 async fn register(
     State(state): State<SharedState>,
     Json(request): Json<RegisterRequest>,
-) -> (StatusCode, Json<ApiResponse<LoginResponse>>) {
+) -> (StatusCode, Json<ApiResponse<SafeLoginResponse>>) {
     let state_guard = state.read().await;
 
     if let Ok(Some(_)) = state_guard.db.get_user_by_email(&request.email).await {
         return (StatusCode::CONFLICT, Json(ApiResponse::error("EMAIL_EXISTS", "An account with this email already exists")));
     }
 
-    // Check if username is already taken
     if let Ok(Some(_)) = state_guard.db.get_user_by_username(&request.username).await {
         return (StatusCode::CONFLICT, Json(ApiResponse::error("USERNAME_EXISTS", "This username is already taken")));
     }
-
-    let final_username = request.username.clone();
 
     let password_hash = hash_password(&request.password);
     let now = Utc::now();
     let user = User {
         id: Uuid::new_v4(),
-        username: final_username,
+        username: request.username,
         email: request.email,
         password_hash,
         name: request.name,
@@ -316,7 +410,7 @@ async fn register(
         created_at: now,
         updated_at: now,
         last_login: Some(now),
-        preferences: UserPreferences::default(),
+        preferences: parkhub_common::UserPreferences::default(),
         is_active: true,
         department: None,
     };
@@ -334,13 +428,16 @@ async fn register(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to create session")));
     }
 
-    let mut response_user = user.clone();
-    response_user.password_hash = String::new();
+    AuditEntry::new(AuditEventType::UserCreated)
+        .user(user.id, &user.username)
+        .log();
+
+    metrics::record_auth_event("register", true);
 
     (
         StatusCode::CREATED,
-        Json(ApiResponse::success(LoginResponse {
-            user: response_user,
+        Json(ApiResponse::success(SafeLoginResponse {
+            user: UserResponse::from(user),
             tokens: AuthTokens {
                 access_token,
                 refresh_token: session.refresh_token,
@@ -365,13 +462,10 @@ async fn refresh_token(
 async fn get_current_user(
     State(state): State<SharedState>,
     Extension(auth_user): Extension<AuthUser>,
-) -> (StatusCode, Json<ApiResponse<User>>) {
+) -> (StatusCode, Json<ApiResponse<UserResponse>>) {
     let state = state.read().await;
     match state.db.get_user(&auth_user.user_id.to_string()).await {
-        Ok(Some(mut user)) => {
-            user.password_hash = String::new();
-            (StatusCode::OK, Json(ApiResponse::success(user)))
-        }
+        Ok(Some(user)) => (StatusCode::OK, Json(ApiResponse::success(UserResponse::from(user)))),
         Ok(None) => (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "User not found"))),
         Err(e) => {
             tracing::error!("Database error: {}", e);
@@ -383,13 +477,10 @@ async fn get_current_user(
 async fn get_user(
     State(state): State<SharedState>,
     Path(id): Path<String>,
-) -> (StatusCode, Json<ApiResponse<User>>) {
+) -> (StatusCode, Json<ApiResponse<UserResponse>>) {
     let state = state.read().await;
     match state.db.get_user(&id).await {
-        Ok(Some(mut user)) => {
-            user.password_hash = String::new();
-            (StatusCode::OK, Json(ApiResponse::success(user)))
-        }
+        Ok(Some(user)) => (StatusCode::OK, Json(ApiResponse::success(UserResponse::from(user)))),
         Ok(None) => (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "User not found"))),
         Err(e) => {
             tracing::error!("Database error: {}", e);
@@ -430,6 +521,10 @@ async fn create_lot(
         tracing::error!("Failed to save parking lot: {}", e);
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to create parking lot")));
     }
+    AuditEntry::new(AuditEventType::LotCreated)
+        .user(auth_user.user_id, &user.username)
+        .resource("lot", &lot.id.to_string())
+        .log();
     (StatusCode::CREATED, Json(ApiResponse::success(lot)))
 }
 
@@ -469,9 +564,8 @@ async fn get_lot_slots(
 async fn get_lot_layout(
     State(state): State<SharedState>,
     Path(id): Path<String>,
-) -> (StatusCode, Json<ApiResponse<Option<LotLayout>>>) {
+) -> (StatusCode, Json<ApiResponse<Option<parkhub_common::LotLayout>>>) {
     let state = state.read().await;
-    // First check the lot's own layout field
     match state.db.get_parking_lot(&id).await {
         Ok(Some(lot)) => {
             if lot.layout.is_some() {
@@ -484,7 +578,6 @@ async fn get_lot_layout(
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
         }
     }
-    // Fall back to separate layout table
     match state.db.get_lot_layout(&id).await {
         Ok(layout) => (StatusCode::OK, Json(ApiResponse::success(layout))),
         Err(e) => {
@@ -498,10 +591,9 @@ async fn update_lot_layout(
     State(state): State<SharedState>,
     Extension(auth_user): Extension<AuthUser>,
     Path(id): Path<String>,
-    Json(layout): Json<LotLayout>,
-) -> (StatusCode, Json<ApiResponse<LotLayout>>) {
+    Json(layout): Json<parkhub_common::LotLayout>,
+) -> (StatusCode, Json<ApiResponse<parkhub_common::LotLayout>>) {
     let state_guard = state.read().await;
-    // Check admin
     let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
         Ok(Some(u)) => u,
         _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
@@ -509,7 +601,6 @@ async fn update_lot_layout(
     if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
         return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
     }
-    // Update lot layout field
     match state_guard.db.get_parking_lot(&id).await {
         Ok(Some(mut lot)) => {
             lot.layout = Some(layout.clone());
@@ -525,7 +616,6 @@ async fn update_lot_layout(
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
         }
     }
-    // Also save to separate layout table
     let _ = state_guard.db.save_lot_layout(&id, &layout).await;
     (StatusCode::OK, Json(ApiResponse::success(layout)))
 }
@@ -555,7 +645,6 @@ async fn create_booking(
 ) -> (StatusCode, Json<ApiResponse<Booking>>) {
     let state_guard = state.read().await;
 
-    // Check if slot exists and is available
     let slot = match state_guard.db.get_parking_slot(&req.slot_id.to_string()).await {
         Ok(Some(s)) => s,
         Ok(None) => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Slot not found"))),
@@ -569,7 +658,6 @@ async fn create_booking(
         return (StatusCode::CONFLICT, Json(ApiResponse::error("SLOT_UNAVAILABLE", "This slot is not available")));
     }
 
-    // Department check
     if let Some(ref dept) = slot.reserved_for_department {
         let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
             Ok(Some(u)) => u,
@@ -582,13 +670,11 @@ async fn create_booking(
         }
     }
 
-    // Get lot name
     let lot_name = match state_guard.db.get_parking_lot(&req.lot_id.to_string()).await {
         Ok(Some(lot)) => Some(lot.name),
         _ => None,
     };
 
-    // Get vehicle plate
     let vehicle_plate = if let Some(plate) = &req.license_plate {
         Some(plate.clone())
     } else if let Some(vid) = &req.vehicle_id {
@@ -600,13 +686,12 @@ async fn create_booking(
         None
     };
 
-    // Calculate end time
     let end_time = if let Some(end) = req.end_time {
         end
     } else if let Some(mins) = req.duration_minutes {
-        req.start_time + Duration::minutes(mins as i64)
+        req.start_time + chrono::Duration::minutes(mins as i64)
     } else {
-        req.start_time + Duration::hours(1) // Default 1 hour
+        req.start_time + chrono::Duration::hours(1)
     };
 
     let now = Utc::now();
@@ -635,12 +720,18 @@ async fn create_booking(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to create booking")));
     }
 
-    // Update slot status
     let mut updated_slot = slot;
     updated_slot.status = SlotStatus::Reserved;
     let _ = state_guard.db.save_parking_slot(&updated_slot).await;
 
-    // Send confirmation email if configured
+    // Audit log
+    AuditEntry::new(AuditEventType::BookingCreated)
+        .user(auth_user.user_id, "")
+        .resource("booking", &booking.id.to_string())
+        .log();
+    metrics::record_booking_event("created");
+
+    // Email confirmation
     if let Some(ref email_svc) = state_guard.email {
         if let Ok(Some(user)) = state_guard.db.get_user(&auth_user.user_id.to_string()).await {
             let _ = email_svc.send_booking_confirmation(
@@ -714,6 +805,62 @@ async fn get_booking(
     }
 }
 
+/// PATCH /api/v1/bookings/:id - Update a booking
+async fn update_booking(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(id): Path<String>,
+    Json(req): Json<UpdateBookingRequest>,
+) -> (StatusCode, Json<ApiResponse<Booking>>) {
+    let state_guard = state.read().await;
+    let mut booking = match state_guard.db.get_booking(&id).await {
+        Ok(Some(b)) => b,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Booking not found"))),
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
+        }
+    };
+
+    if booking.user_id != auth_user.user_id {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied")));
+    }
+
+    if booking.status == BookingStatus::Cancelled || booking.status == BookingStatus::Completed {
+        return (StatusCode::CONFLICT, Json(ApiResponse::error("BOOKING_NOT_MODIFIABLE", "Cannot modify a cancelled or completed booking")));
+    }
+
+    if let Some(start) = req.start_time {
+        booking.start_time = start;
+    }
+    if let Some(end) = req.end_time {
+        booking.end_time = end;
+    }
+    if let Some(notes) = req.notes {
+        booking.notes = Some(notes);
+    }
+    if let Some(plate) = req.license_plate {
+        booking.vehicle_plate = Some(plate);
+    } else if let Some(vid) = req.vehicle_id {
+        if let Ok(Some(v)) = state_guard.db.get_vehicle(&vid.to_string()).await {
+            booking.vehicle_plate = Some(v.plate);
+        }
+    }
+    booking.updated_at = Utc::now();
+
+    if let Err(e) = state_guard.db.save_booking(&booking).await {
+        tracing::error!("Failed to update booking: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to update booking")));
+    }
+
+    AuditEntry::new(AuditEventType::BookingUpdated)
+        .user(auth_user.user_id, "")
+        .resource("booking", &booking.id.to_string())
+        .log();
+
+    (StatusCode::OK, Json(ApiResponse::success(booking)))
+}
+
 async fn cancel_booking(
     State(state): State<SharedState>,
     Extension(auth_user): Extension<AuthUser>,
@@ -742,13 +889,29 @@ async fn cancel_booking(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to cancel booking")));
     }
 
-    // Free up the slot
     if let Ok(Some(mut slot)) = state_guard.db.get_parking_slot(&booking.slot_id.to_string()).await {
         slot.status = SlotStatus::Available;
         let _ = state_guard.db.save_parking_slot(&slot).await;
     }
 
-    // Notify first person on waitlist
+    AuditEntry::new(AuditEventType::BookingCancelled)
+        .user(auth_user.user_id, "")
+        .resource("booking", &booking.id.to_string())
+        .log();
+    metrics::record_booking_event("cancelled");
+
+    // Send cancellation email
+    if let Some(ref email_svc) = state_guard.email {
+        if let Ok(Some(user)) = state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+            let _ = email_svc.send_auto_release_notification(
+                &user.email, &user.name,
+                booking.slot_number.as_deref().unwrap_or("?"),
+                booking.lot_name.as_deref().unwrap_or("Lot"),
+            ).await;
+        }
+    }
+
+    // Notify waitlist
     let date = booking.start_time.format("%Y-%m-%d").to_string();
     if let Ok(waitlist) = state_guard.db.list_waitlist_by_lot(&booking.lot_id.to_string(), Some(&date)).await {
         if let Some(first) = waitlist.first() {
@@ -769,7 +932,7 @@ async fn cancel_booking(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// VEHICLES
+// VEHICLES (with proper CreateVehicleRequest DTO)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async fn list_vehicles(
@@ -789,11 +952,19 @@ async fn list_vehicles(
 async fn create_vehicle(
     State(state): State<SharedState>,
     Extension(auth_user): Extension<AuthUser>,
-    Json(mut vehicle): Json<Vehicle>,
+    Json(req): Json<CreateVehicleRequest>,
 ) -> (StatusCode, Json<ApiResponse<Vehicle>>) {
-    vehicle.user_id = auth_user.user_id;
-    vehicle.id = Uuid::new_v4();
-    vehicle.created_at = Utc::now();
+    let vehicle = Vehicle {
+        id: Uuid::new_v4(),
+        user_id: auth_user.user_id,
+        plate: req.license_plate,
+        make: req.make,
+        model: req.model,
+        color: req.color,
+        is_default: false,
+        photo_url: None,
+        created_at: Utc::now(),
+    };
 
     let state_guard = state.read().await;
     if let Err(e) = state_guard.db.save_vehicle(&vehicle).await {
@@ -804,11 +975,29 @@ async fn create_vehicle(
 }
 
 async fn delete_vehicle(
-    State(_state): State<SharedState>,
-    Extension(_auth_user): Extension<AuthUser>,
-    Path(_id): Path<String>,
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(id): Path<String>,
 ) -> (StatusCode, Json<ApiResponse<()>>) {
-    (StatusCode::OK, Json(ApiResponse::success(())))
+    let state_guard = state.read().await;
+    // Verify ownership
+    match state_guard.db.get_vehicle(&id).await {
+        Ok(Some(v)) if v.user_id == auth_user.user_id => {}
+        Ok(Some(_)) => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Vehicle not found"))),
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
+        }
+    }
+    match state_guard.db.delete_vehicle(&id).await {
+        Ok(true) => (StatusCode::OK, Json(ApiResponse::success(()))),
+        Ok(false) => (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Vehicle not found"))),
+        Err(e) => {
+            tracing::error!("Failed to delete vehicle: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to delete vehicle")))
+        }
+    }
 }
 
 async fn upload_vehicle_photo(
@@ -816,7 +1005,6 @@ async fn upload_vehicle_photo(
     Extension(_auth_user): Extension<AuthUser>,
     Path(_id): Path<String>,
 ) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
-    // TODO: Implement file upload
     (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({"photo_url": null}))))
 }
 
@@ -832,7 +1020,6 @@ async fn get_homeoffice_settings(
     match state.db.get_homeoffice_settings(&auth_user.user_id.to_string()).await {
         Ok(Some(settings)) => (StatusCode::OK, Json(ApiResponse::success(settings))),
         Ok(None) => {
-            // Return default empty settings
             let settings = HomeofficeSettings {
                 user_id: auth_user.user_id,
                 pattern: HomeofficePattern { weekdays: vec![] },
@@ -916,7 +1103,7 @@ async fn remove_homeoffice_day(
 async fn admin_list_users(
     State(state): State<SharedState>,
     Extension(auth_user): Extension<AuthUser>,
-) -> (StatusCode, Json<ApiResponse<Vec<User>>>) {
+) -> (StatusCode, Json<ApiResponse<Vec<UserResponse>>>) {
     let state_guard = state.read().await;
     let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
         Ok(Some(u)) => u,
@@ -926,11 +1113,9 @@ async fn admin_list_users(
         return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
     }
     match state_guard.db.list_users().await {
-        Ok(mut users) => {
-            for u in &mut users {
-                u.password_hash = String::new();
-            }
-            (StatusCode::OK, Json(ApiResponse::success(users)))
+        Ok(users) => {
+            let safe_users: Vec<UserResponse> = users.into_iter().map(UserResponse::from).collect();
+            (StatusCode::OK, Json(ApiResponse::success(safe_users)))
         }
         Err(e) => {
             tracing::error!("Database error: {}", e);
@@ -988,7 +1173,6 @@ async fn admin_stats(
     })))
 }
 
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // ICAL EXPORT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1033,9 +1217,7 @@ async fn export_ical(
 
     (
         StatusCode::OK,
-        [
-            (header::CONTENT_TYPE, "text/calendar; charset=utf-8"),
-        ],
+        [(header::CONTENT_TYPE, "text/calendar; charset=utf-8")],
         ical,
     )
 }
@@ -1077,25 +1259,26 @@ async fn checkin_booking(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to check in")));
     }
 
-    // Update slot to occupied
     if let Ok(Some(mut slot)) = state_guard.db.get_parking_slot(&updated_booking.slot_id.to_string()).await {
         slot.status = SlotStatus::Occupied;
         let _ = state_guard.db.save_parking_slot(&slot).await;
     }
 
+    AuditEntry::new(AuditEventType::CheckIn)
+        .user(auth_user.user_id, "")
+        .resource("booking", &updated_booking.id.to_string())
+        .log();
+
     (StatusCode::OK, Json(ApiResponse::success(updated_booking)))
 }
-
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ADMIN REPORTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Deserialize)]
 struct ReportParams {
-    format: Option<String>,  // "json" or "csv"
-    from: Option<String>,
-    to: Option<String>,
+    format: Option<String>,
 }
 
 async fn admin_reports(
@@ -1106,7 +1289,7 @@ async fn admin_reports(
     let state_guard = state.read().await;
     let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
         Ok(Some(u)) => u,
-        _ => return (StatusCode::FORBIDDEN, [(header::CONTENT_TYPE, "application/json")], 
+        _ => return (StatusCode::FORBIDDEN, [(header::CONTENT_TYPE, "application/json")],
             r#"{"success":false,"error":{"code":"FORBIDDEN","message":"Access denied"}}"#.to_string()),
     };
     if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
@@ -1123,7 +1306,7 @@ async fn admin_reports(
     let active = bookings.iter().filter(|b| b.status == BookingStatus::Active || b.status == BookingStatus::Confirmed).count();
     let today_count = bookings.iter().filter(|b| b.start_time.date_naive() == today).count();
     let total_slots: i32 = lots.iter().map(|l| l.total_slots).sum();
-    let occupancy_pct = if total_slots > 0 { (active as f64 / total_slots as f64 * 100.0) } else { 0.0 };
+    let occupancy_pct = if total_slots > 0 { active as f64 / total_slots as f64 * 100.0 } else { 0.0 };
 
     let format = params.format.as_deref().unwrap_or("json");
     if format == "csv" {
@@ -1170,22 +1353,20 @@ async fn slot_qr_code(
 ) -> impl IntoResponse {
     let state_guard = state.read().await;
 
-    // Verify lot and slot exist
     match state_guard.db.get_parking_lot(&lot_id).await {
-        Ok(Some(_)) => {},
+        Ok(Some(_)) => {}
         _ => return (StatusCode::NOT_FOUND, [(header::CONTENT_TYPE, "application/json")],
             r#"{"success":false,"error":{"code":"NOT_FOUND","message":"Lot not found"}}"#.to_string()),
     };
 
     match state_guard.db.get_parking_slot(&slot_id).await {
-        Ok(Some(_)) => {},
+        Ok(Some(_)) => {}
         _ => return (StatusCode::NOT_FOUND, [(header::CONTENT_TYPE, "application/json")],
             r#"{"success":false,"error":{"code":"NOT_FOUND","message":"Slot not found"}}"#.to_string()),
     };
 
-    // Generate QR code pointing to booking page as SVG
     let booking_url = format!("/book?lot={}&slot={}", lot_id, slot_id);
-    let qr: qrcode::QrCode = match qrcode::QrCode::new(booking_url.as_bytes()) {
+    let qr = match qrcode::QrCode::new(booking_url.as_bytes()) {
         Ok(q) => q,
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, [(header::CONTENT_TYPE, "application/json")],
             r#"{"success":false,"error":{"code":"SERVER_ERROR","message":"Failed to generate QR code"}}"#.to_string()),
@@ -1195,12 +1376,11 @@ async fn slot_qr_code(
     (StatusCode::OK, [(header::CONTENT_TYPE, "image/svg+xml")], svg)
 }
 
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // WAITLIST
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Deserialize)]
 struct WaitlistParams {
     date: Option<String>,
 }
@@ -1214,7 +1394,7 @@ async fn join_waitlist(
     let date = params.date.unwrap_or_else(|| Utc::now().format("%Y-%m-%d").to_string());
     let state_guard = state.read().await;
     match state_guard.db.get_parking_lot(&lot_id).await {
-        Ok(Some(_)) => {},
+        Ok(Some(_)) => {}
         _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Lot not found"))),
     };
     let entry = WaitlistEntry {
@@ -1248,20 +1428,13 @@ async fn get_waitlist(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PUSH SUBSCRIBE
+// PUSH SUBSCRIBE (with proper DTO)
 // ═══════════════════════════════════════════════════════════════════════════════
-
-#[derive(Debug, serde::Deserialize)]
-struct PushSubscribeRequest {
-    endpoint: String,
-    p256dh: String,
-    auth: String,
-}
 
 async fn push_subscribe(
     State(state): State<SharedState>,
     Extension(auth_user): Extension<AuthUser>,
-    Json(req): Json<PushSubscribeRequest>,
+    Json(req): Json<CreatePushSubscriptionRequest>,
 ) -> (StatusCode, Json<ApiResponse<()>>) {
     let sub = PushSubscription {
         user_id: auth_user.user_id,
@@ -1279,21 +1452,15 @@ async fn push_subscribe(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ADMIN SLOT UPDATE (Department reservation)
+// ADMIN USER/SLOT UPDATE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, serde::Deserialize)]
-struct AdminUpdateSlotRequest {
-    reserved_for_department: Option<String>,
-}
-
-/// Admin: update user (department, role, active status)
 async fn admin_update_user(
     State(state): State<SharedState>,
     Extension(auth_user): Extension<AuthUser>,
     Path(user_id): Path<String>,
     Json(body): Json<serde_json::Value>,
-) -> (StatusCode, Json<ApiResponse<User>>) {
+) -> (StatusCode, Json<ApiResponse<UserResponse>>) {
     let state_guard = state.read().await;
     let admin = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
         Ok(Some(u)) => u,
@@ -1330,9 +1497,17 @@ async fn admin_update_user(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to update user")));
     }
 
-    let mut response_user = user;
-    response_user.password_hash = String::new();
-    (StatusCode::OK, Json(ApiResponse::success(response_user)))
+    AuditEntry::new(AuditEventType::UserUpdated)
+        .user(auth_user.user_id, &admin.username)
+        .resource("user", &user_id)
+        .log();
+
+    (StatusCode::OK, Json(ApiResponse::success(UserResponse::from(user))))
+}
+
+#[derive(Debug, Deserialize)]
+struct AdminUpdateSlotRequest {
+    reserved_for_department: Option<String>,
 }
 
 async fn admin_update_slot(

@@ -846,7 +846,24 @@ impl Database {
         Ok(subs)
     }
 
+
+    /// Delete a vehicle by ID
+    pub async fn delete_vehicle(&self, id: &str) -> Result<bool> {
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        let existed = {
+            let mut table = write_txn.open_table(VEHICLES)?;
+            let result = table.remove(id)?.is_some();
+            result
+        };
+        write_txn.commit()?;
+        if existed {
+            tracing::debug!("Deleted vehicle: {}", id);
+        }
+        Ok(existed)
+    }
 }
+
 
 #[cfg(test)]
 mod tests {

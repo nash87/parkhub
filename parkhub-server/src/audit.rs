@@ -115,6 +115,7 @@ pub struct AuditEntryBuilder {
     error: Option<String>,
 }
 
+#[allow(dead_code)]
 impl AuditEntryBuilder {
     pub fn user(mut self, user_id: Uuid, username: &str) -> Self {
         self.user_id = Some(user_id);
@@ -200,6 +201,7 @@ impl AuditEntryBuilder {
 }
 
 /// Convenience functions for common audit events
+#[allow(dead_code)]
 pub mod events {
     use super::*;
 

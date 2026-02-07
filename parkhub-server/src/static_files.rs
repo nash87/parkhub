@@ -4,7 +4,7 @@
 
 use axum::{
     body::Body,
-    http::{header, Request, StatusCode, Uri},
+    http::{header, StatusCode, Uri},
     response::{IntoResponse, Response},
 };
 use rust_embed::Embed;
@@ -55,13 +55,4 @@ fn serve_file(path: &str, file: rust_embed::EmbeddedFile) -> Response {
         .unwrap()
 }
 
-/// Check if web assets are available
-pub fn has_web_assets() -> bool {
-    WebAssets::get("index.html").is_some()
-}
 
-/// List all embedded assets (for debugging)
-#[allow(dead_code)]
-pub fn list_assets() -> Vec<String> {
-    WebAssets::iter().map(|s| s.to_string()).collect()
-}

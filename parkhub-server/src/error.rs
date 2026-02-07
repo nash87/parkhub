@@ -34,6 +34,7 @@ pub struct FieldError {
 
 /// Application errors
 #[derive(Debug, Error)]
+#[allow(dead_code)]
 pub enum AppError {
     // === Authentication Errors ===
     #[error("Invalid credentials")]
@@ -185,6 +186,7 @@ impl From<validator::ValidationErrors> for AppError {
 }
 
 /// Result type alias for API handlers
+#[allow(dead_code)]
 pub type ApiResult<T> = Result<T, AppError>;
 
 #[cfg(test)]

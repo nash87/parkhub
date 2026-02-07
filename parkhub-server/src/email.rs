@@ -9,7 +9,7 @@ use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 use std::sync::Arc;
-use tracing::{info, warn};
+use tracing::info;
 
 #[derive(Debug, Clone)]
 pub struct SmtpConfig {

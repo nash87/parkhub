@@ -11,7 +11,9 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn};
+use tracing::info;
+#[allow(unused_imports)]
+use tracing::warn;
 
 mod api;
 mod audit;
@@ -20,10 +22,12 @@ mod db;
 mod discovery;
 mod error;
 mod health;
+#[allow(dead_code)]
 mod jwt;
 mod metrics;
 mod openapi;
 mod rate_limit;
+#[allow(dead_code)]
 mod requests;
 mod static_files;
 mod tls;

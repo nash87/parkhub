@@ -71,19 +71,3 @@ fn generate_self_signed_cert() -> Result<(String, String)> {
     Ok((cert.pem(), key_pair.serialize_pem()))
 }
 
-/// Calculate SHA256 fingerprint of a certificate
-pub fn certificate_fingerprint(cert_der: &[u8]) -> String {
-    use std::fmt::Write;
-
-    let digest = ring::digest::digest(&ring::digest::SHA256, cert_der);
-    let mut fingerprint = String::new();
-
-    for (i, byte) in digest.as_ref().iter().enumerate() {
-        if i > 0 {
-            fingerprint.push(':');
-        }
-        write!(fingerprint, "{:02X}", byte).unwrap();
-    }
-
-    fingerprint
-}
