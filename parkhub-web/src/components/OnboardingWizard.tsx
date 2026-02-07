@@ -3,9 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Buildings, Car, Users, CheckCircle, ArrowRight, ArrowLeft, Database, Sparkle } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../api/client';
+
 // Auth context available via provider
 import toast from 'react-hot-toast';
+
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('parkhub_token');
+  return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+}
 
 interface OnboardingWizardProps {
   onComplete: () => void;
@@ -73,13 +78,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     }
 
     try {
-      const token = api.getToken();
       const res = await fetch('/api/v1/users/me/password', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           current_password: currentPassword,
           new_password: newPassword,
@@ -103,13 +104,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   async function handleCompanySave() {
     if (!companyName.trim()) return true; // Skip if empty
     try {
-      const token = api.getToken();
       await fetch('/api/v1/admin/branding', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           company_name: companyName,
           primary_color: '#3B82F6',
@@ -128,7 +125,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     // The server already has create_sample_parking_lot function
     // We need to trigger it via API - create a lot manually
     try {
-      const token = api.getToken();
+      
       const lotId = crypto.randomUUID();
       const slots = Array.from({ length: 10 }, (_, i) => {
         const slotId = crypto.randomUUID();
@@ -157,10 +154,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       };
       await fetch('/api/v1/lots', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(lot),
       });
       toast.success('Beispieldaten geladen');
@@ -172,13 +166,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
   async function completeSetup() {
     try {
-      const token = api.getToken();
       await fetch('/api/v1/setup/complete', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
+        headers: getAuthHeaders(),
       });
     } catch { /* ignore */ }
     localStorage.setItem('parkhub_onboarding_done', 'true');
@@ -276,6 +266,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     Das Standard-Passwort muss aus Sicherheitsgründen geändert werden.
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
+                    📋 Standard-Login: Benutzername <strong>admin</strong> / Passwort <strong>admin</strong>
                   </p>
                 </div>
                 {passwordChanged ? (
