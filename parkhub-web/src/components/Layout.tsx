@@ -301,7 +301,7 @@ export function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {t('footer.tagline')} · <span className="text-gray-400 dark:text-gray-500">v0.1.0</span>
+              {t('footer.tagline')} · <span className="text-gray-400 dark:text-gray-500">v{__APP_VERSION__}</span>
             </p>
             <div className="flex items-center gap-4 text-sm text-gray-400 dark:text-gray-500">
               <a href="#" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.help')}</a>
