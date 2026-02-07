@@ -12,7 +12,8 @@ import {
   TrendUp,
   CaretRight,
 } from '@phosphor-icons/react';
-import { api, ParkingLot, ParkingLotDetailed, Booking } from '../api/client';
+import { House, Briefcase } from '@phosphor-icons/react';
+import { api, ParkingLot, ParkingLotDetailed, Booking, HomeofficeSettings } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { ParkingLotGrid } from '../components/ParkingLotGrid';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -23,6 +24,7 @@ export function DashboardPage() {
   const [lots, setLots] = useState<ParkingLot[]>([]);
   const [detailedLots, setDetailedLots] = useState<ParkingLotDetailed[]>([]);
   const [activeBookings, setActiveBookings] = useState<Booking[]>([]);
+  const [hoSettings, setHoSettings] = useState<HomeofficeSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,10 +33,12 @@ export function DashboardPage() {
 
   async function loadData() {
     try {
-      const [lotsRes, bookingsRes] = await Promise.all([
+      const [lotsRes, bookingsRes, hoRes] = await Promise.all([
         api.getLots(),
         api.getBookings(),
+        api.getHomeofficeSettings(),
       ]);
+      if (hoRes.success && hoRes.data) setHoSettings(hoRes.data);
 
       if (lotsRes.success && lotsRes.data) {
         setLots(lotsRes.data);
@@ -54,6 +58,13 @@ export function DashboardPage() {
       setLoading(false);
     }
   }
+
+  const todayDow = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isHoToday = hoSettings ? (
+    hoSettings.pattern.weekdays.includes(todayDow) ||
+    hoSettings.singleDays.some(d => d.date === todayStr)
+  ) : false;
 
   const totalSlots = lots.reduce((sum, lot) => sum + lot.total_slots, 0);
   const availableSlots = lots.reduce((sum, lot) => sum + lot.available_slots, 0);
@@ -102,6 +113,26 @@ export function DashboardPage() {
           {format(new Date(), "EEEE, d. MMMM yyyy", { locale: de })}
         </p>
       </motion.div>
+
+      {/* Homeoffice Banner */}
+      {isHoToday && hoSettings?.parkingSlot && (
+        <motion.div variants={itemVariants} className="card bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 p-4">
+          <div className="flex items-center gap-3">
+            <House weight="fill" className="w-6 h-6 text-sky-600 dark:text-sky-400 flex-shrink-0" />
+            <p className="font-medium text-sky-800 dark:text-sky-200">
+              🏠 Heute Homeoffice — Ihr Stellplatz {hoSettings.parkingSlot.number} ist für Kollegen freigegeben
+            </p>
+          </div>
+        </motion.div>
+      )}
+      {!isHoToday && (
+        <motion.div variants={itemVariants}>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-400">
+            <Briefcase weight="fill" className="w-3.5 h-3.5" />
+            Im Büro
+          </span>
+        </motion.div>
+      )}
 
       {/* Stats Grid */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -245,6 +276,35 @@ export function DashboardPage() {
         </motion.div>
       )}
 
+      {/* Schnellbuchung */}
+      <motion.div variants={itemVariants} className="card p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Schnellbuchung
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Häufig genutzte Stellplätze</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { slot: '47', lot: 'Firmenparkplatz', lotId: 'lot-1' },
+            { slot: '2', lot: 'Tiefgarage Nord', lotId: 'lot-2' },
+            { slot: '51', lot: 'Firmenparkplatz', lotId: 'lot-1' },
+          ].map((item, i) => (
+            <Link
+              key={i}
+              to={`/book?lot=${item.lotId}`}
+              className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:shadow-md transition-all group"
+            >
+              <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center group-hover:bg-primary-200 dark:group-hover:bg-primary-800/40 transition-colors">
+                <span className="text-lg font-bold text-primary-600 dark:text-primary-400">{item.slot}</span>
+              </div>
+              <div>
+                <p className="font-medium text-sm text-gray-900 dark:text-white">{item.lot}</p>
+                <p className="text-xs text-gray-400">Stellplatz {item.slot}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </motion.div>
+
       {/* Parking Lot Grid Overview */}
       {detailedLots.length > 0 && (
         <motion.div variants={itemVariants} className="space-y-4">
@@ -252,7 +312,7 @@ export function DashboardPage() {
             Parkplatz-Übersicht
           </h2>
           {detailedLots.filter((l) => l.layout).map((lot) => (
-            <div key={lot.id} className="card p-6">
+            <div key={lot.id} className="card p-6 shadow-md dark:shadow-gray-900/50">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
                 {lot.name}
               </h3>

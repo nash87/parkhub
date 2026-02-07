@@ -12,6 +12,8 @@ import { BookPage } from './pages/Book';
 import { BookingsPage } from './pages/Bookings';
 import { VehiclesPage } from './pages/Vehicles';
 import { AdminPage } from './pages/Admin';
+import { HomeofficePage } from './pages/Homeoffice';
+import { ProfilePage } from './pages/Profile';
 import { SpinnerGap } from '@phosphor-icons/react';
 
 const queryClient = new QueryClient({
@@ -74,6 +76,8 @@ function AppRoutes() {
       <Route path="/book" element={<ProtectedRoute><BookPage /></ProtectedRoute>} />
       <Route path="/bookings" element={<ProtectedRoute><BookingsPage /></ProtectedRoute>} />
       <Route path="/vehicles" element={<ProtectedRoute><VehiclesPage /></ProtectedRoute>} />
+      <Route path="/homeoffice" element={<ProtectedRoute><HomeofficePage /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
       {/* Admin */}
       <Route path="/admin/*" element={<AdminRoute><AdminPage /></AdminRoute>} />

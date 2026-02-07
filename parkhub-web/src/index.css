@@ -171,7 +171,18 @@
 
   /* Skeleton Loading */
   .skeleton {
-    @apply bg-gray-200 dark:bg-gray-800 rounded-lg animate-pulse;
+    @apply bg-gray-200 dark:bg-gray-800 rounded-lg relative overflow-hidden;
+  }
+  
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 1.5s infinite;
+  }
+  
+  :is(.dark) .skeleton::after {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
   }
 
   /* Divider */
@@ -252,4 +263,14 @@
 
 .animate-slide-down {
   animation: slideDown 0.3s ease-out;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Safe area for mobile bottom bar */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
