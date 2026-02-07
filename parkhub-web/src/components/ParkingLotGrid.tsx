@@ -42,12 +42,14 @@ function SlotBox({ slot, side, selected, interactive, onSelect, vehiclePhoto }: 
         )}
       </AnimatePresence>
       <button disabled={!clickable} onClick={() => clickable && onSelect?.(slot)} title={tooltip}
+        aria-label={t(`gridAria.${slot.status}`, { number: slot.number, plate: slot.vehiclePlate || '' })}
         className={`w-20 h-24 sm:w-24 sm:h-28 rounded-xl border-2 flex flex-col items-center justify-center gap-0.5 transition-all shadow-sm ${colors.bg} ${colors.border} ${colors.text} ${clickable ? 'cursor-pointer hover:shadow-md hover:brightness-105' : 'cursor-default'} ${selected ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-gray-900 shadow-lg shadow-primary-500/20' : ''} ${slot.status === 'disabled' ? 'opacity-60' : ''}`}>
-        {slot.status === 'occupied' && <Car weight="fill" className={`w-6 h-6 sm:w-7 sm:h-7 ${side === 'top' ? 'rotate-180' : ''}`} />}
+        {slot.status === 'occupied' && <><Car weight="fill" className={`w-6 h-6 sm:w-7 sm:h-7 ${side === 'top' ? 'rotate-180' : ''}`} /><span className="absolute top-1 right-1 w-3 h-3 opacity-40" aria-hidden="true"><svg viewBox="0 0 12 12"><line x1="0" y1="12" x2="12" y2="0" stroke="currentColor" strokeWidth="2"/><line x1="0" y1="6" x2="6" y2="0" stroke="currentColor" strokeWidth="1.5"/></svg></span></>}
         {slot.status === 'homeoffice' && <House weight="fill" className="w-6 h-6 sm:w-7 sm:h-7" />}
         {slot.status === 'disabled' && <Prohibit weight="bold" className="w-5 h-5" />}
         {slot.status === 'blocked' && <Lock weight="fill" className="w-5 h-5" />}
-        {(slot.status === 'available' || slot.status === 'reserved') && <Car weight="regular" className={`w-6 h-6 sm:w-7 sm:h-7 opacity-30 ${side === 'top' ? 'rotate-180' : ''}`} />}
+        {(slot.status === 'available') && <><Car weight="regular" className={`w-6 h-6 sm:w-7 sm:h-7 opacity-30 ${side === 'top' ? 'rotate-180' : ''}`} /><span className="absolute top-1 right-1 w-3 h-3 rounded-full border-2 border-current opacity-40" aria-hidden="true" /></>}
+        {slot.status === 'reserved' && <><Car weight="regular" className={`w-6 h-6 sm:w-7 sm:h-7 opacity-30 ${side === 'top' ? 'rotate-180' : ''}`} /><span className="absolute top-1 right-1 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-current opacity-40" aria-hidden="true" /></>}
         <span className="text-base sm:text-lg font-extrabold leading-tight">{slot.number}</span>
         {slot.status === 'occupied' && slot.vehiclePlate && <span className="text-[9px] sm:text-[10px] font-mono opacity-75 leading-none truncate max-w-[4.5rem] sm:max-w-[5.5rem]">{slot.vehiclePlate}</span>}
         {slot.status === 'homeoffice' && <span className="text-[9px] sm:text-[10px] font-semibold opacity-75 leading-none">HO</span>}
@@ -83,7 +85,7 @@ export function ParkingLotGrid({ layout, selectedSlotId, onSlotSelect, interacti
           {bottomRows.map((row) => <RowSlots key={row.id} row={row} selectedSlotId={selectedSlotId} interactive={interactive} onSlotSelect={onSlotSelect} vehiclePhotos={vehiclePhotos} />)}
         </div>
       </div>
-      <div className="flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-800">
+      <div className="flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-800" role="list" aria-label="Parking slot status legend">
         {[
           { status: 'available' as const, label: t('grid.free') },
           { status: 'occupied' as const, label: t('grid.occupied') },

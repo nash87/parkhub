@@ -278,3 +278,61 @@
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* Colorblind palettes */
+[data-color-mode="protanopia"] {
+  --slot-available-bg: #0072B2;
+  --slot-occupied-bg: #D55E00;
+  --slot-reserved-bg: #F0E442;
+}
+[data-color-mode="protanopia"] .slot-available, [data-color-mode="protanopia"] .bg-emerald-100 { background-color: #d0e8f5 !important; border-color: #0072B2 !important; }
+[data-color-mode="protanopia"] .slot-occupied, [data-color-mode="protanopia"] .bg-red-100 { background-color: #f5d5c0 !important; border-color: #D55E00 !important; }
+[data-color-mode="protanopia"] .slot-reserved, [data-color-mode="protanopia"] .bg-amber-100 { background-color: #f5f0c0 !important; border-color: #F0E442 !important; }
+
+[data-color-mode="deuteranopia"] {
+  --slot-available-bg: #0072B2;
+  --slot-occupied-bg: #CC79A7;
+  --slot-reserved-bg: #F0E442;
+}
+[data-color-mode="deuteranopia"] .slot-available, [data-color-mode="deuteranopia"] .bg-emerald-100 { background-color: #d0e8f5 !important; border-color: #0072B2 !important; }
+[data-color-mode="deuteranopia"] .slot-occupied, [data-color-mode="deuteranopia"] .bg-red-100 { background-color: #f0d5e5 !important; border-color: #CC79A7 !important; }
+[data-color-mode="deuteranopia"] .slot-reserved, [data-color-mode="deuteranopia"] .bg-amber-100 { background-color: #f5f0c0 !important; border-color: #F0E442 !important; }
+
+[data-color-mode="tritanopia"] {
+  --slot-available-bg: #009E73;
+  --slot-occupied-bg: #D55E00;
+  --slot-reserved-bg: #CC79A7;
+}
+[data-color-mode="tritanopia"] .slot-available, [data-color-mode="tritanopia"] .bg-emerald-100 { background-color: #c0f0e0 !important; border-color: #009E73 !important; }
+[data-color-mode="tritanopia"] .slot-occupied, [data-color-mode="tritanopia"] .bg-red-100 { background-color: #f5d5c0 !important; border-color: #D55E00 !important; }
+[data-color-mode="tritanopia"] .slot-reserved, [data-color-mode="tritanopia"] .bg-amber-100 { background-color: #f0d5e5 !important; border-color: #CC79A7 !important; }
+
+/* High contrast mode */
+.high-contrast {
+  --contrast-text: #000;
+  --contrast-bg: #fff;
+}
+.high-contrast.dark {
+  --contrast-text: #fff;
+  --contrast-bg: #000;
+}
+.high-contrast body { background: var(--contrast-bg) !important; color: var(--contrast-text) !important; }
+.high-contrast .card { border-width: 2px !important; border-color: currentColor !important; }
+.high-contrast .btn { border: 2px solid currentColor !important; }
+.high-contrast .input { border-width: 2px !important; }
+.high-contrast *:focus-visible { ring-width: 3px !important; }
+
+/* Reduced motion */
+.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :not(.reduce-motion-override) *, :not(.reduce-motion-override) *::before, :not(.reduce-motion-override) *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

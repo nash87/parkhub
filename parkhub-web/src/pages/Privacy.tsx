@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
-import { Shield, Database, Lock, Eye, Server } from '@phosphor-icons/react';
+import { Shield, Database, Lock, Eye, HardDrives } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 
 export function PrivacyPage() {
   const { t } = useTranslation();
   const sections = [
     { icon: Database, key: 'dataCollected' },
-    { icon: Server, key: 'storage' },
+    { icon: HardDrives, key: 'storage' },
     { icon: Lock, key: 'security' },
     { icon: Eye, key: 'access' },
   ];

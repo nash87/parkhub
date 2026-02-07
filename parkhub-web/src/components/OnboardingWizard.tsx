@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Buildings, ParkingSquare, SquaresFour, Users, CheckCircle, ArrowRight, ArrowLeft, X } from '@phosphor-icons/react';
+import { Lock, Buildings, Car, SquaresFour, Users, CheckCircle, ArrowRight, ArrowLeft, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 
 interface OnboardingWizardProps {
@@ -10,7 +10,7 @@ interface OnboardingWizardProps {
 const steps = [
   { icon: Lock, key: 'password' },
   { icon: Buildings, key: 'company' },
-  { icon: ParkingSquare, key: 'lot' },
+  { icon: Car, key: 'lot' },
   { icon: SquaresFour, key: 'slots' },
   { icon: Users, key: 'users' },
   { icon: CheckCircle, key: 'done' },

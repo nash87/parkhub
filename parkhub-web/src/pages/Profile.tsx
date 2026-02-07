@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Envelope, Shield, MapPin, CalendarCheck, House, PencilSimple, FloppyDisk, ChartBar, Eye, TextAa, HandSwipeRight, CircleHalf, DownloadSimple, Trash, Warning } from '@phosphor-icons/react';
+import { User, Envelope, Shield, MapPin, CalendarCheck, House, PencilSimple, FloppyDisk, ChartBar, Eye, TextAa, HandSwipeRight, CircleHalf, DownloadSimple, Trash } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useAccessibility, ColorMode, FontScale } from '../stores/accessibility';
 import { useTranslation } from 'react-i18next';
@@ -197,11 +197,11 @@ export function ProfilePage() {
 
       <ConfirmDialog
         open={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
+        onCancel={() => setShowDeleteConfirm(false)}
         onConfirm={handleDeleteAccount}
         title={t('gdpr.deleteConfirmTitle')}
         message={t('gdpr.deleteConfirmMessage')}
-        confirmText={t('gdpr.deleteConfirmBtn')}
+        confirmLabel={t('gdpr.deleteConfirmBtn')}
         variant="danger"
       />
     </motion.div>

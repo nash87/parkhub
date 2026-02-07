@@ -356,7 +356,9 @@ export const en = {
   footer: {
     tagline: 'ParkHub — Open Source Parking Management',
     help: 'Help',
+    about: 'About',
     privacy: 'Privacy',
+    terms: 'Terms',
     imprint: 'Imprint',
   },
   pwa: {
