@@ -1,117 +1,218 @@
-# ParkHub
+# 🅿️ ParkHub
 
-Open source parking lot management system with client-server architecture.
+**Open-source parking management for companies.** Simple. Self-hosted. Zero dependencies.
 
-## Features
+One binary. Embedded database. Modern web UI. Just start and go.
 
-- **Server Application** - Database server with HTTP API and LAN autodiscovery
-  - Setup wizard for easy configuration
-  - TLS encryption with self-signed certificates
-  - mDNS/DNS-SD for automatic network discovery
-  - Embedded database (redb) - no external database required
-  - Headless and GUI modes
+<!-- Screenshot placeholder -->
 
-- **Client Application** - Desktop application for parking management
-  - Automatic server discovery on local network
-  - Manual server connection option
-  - Modern Slint UI
+---
 
-## Installation
+## ✨ Features
 
-### Portable Mode
+### For Employees
+- 📅 **Smart Booking** — Book parking spots: one-time, multi-day, or permanent
+- 🗺️ **Visual Parking Map** — Interactive top-down grid with real-time availability
+- 🏠 **Home Office Integration** — Set home office days, auto-release your spot for colleagues
+- 🚗 **Vehicle Management** — Register vehicles with photos for easy identification
+- 🔔 **Notifications** — Get reminded before your booking expires
+- 📱 **PWA** — Install as app on any device
 
-Both server and client support portable mode - just extract and run:
+### For Admins
+- ⚙️ **Lot Designer** — Visual editor to configure parking lots, rows, and slots
+- 👥 **User Management** — Roles, permissions, account status
+- 📊 **Dashboard** — Real-time occupancy, statistics, activity log
+- 📋 **Booking Overview** — Filter, search, bulk actions across all users
 
-1. Download the release for your platform
-2. Extract to any folder
-3. Create a `parkhub-data` folder next to the executable (for server)
-4. Run the application
+### Technical
+- 🦀 **Rust Backend** — Fast, safe, single binary (~30MB)
+- ⚡ **Embedded Database** — redb, no PostgreSQL/MySQL needed
+- 🌐 **React Frontend** — TypeScript, Tailwind CSS, Framer Motion
+- 🌍 **i18n** — German & English (extensible)
+- 🌙 **Dark Mode** — Full dark theme support
+- 🐳 **Docker Ready** — Multi-stage build, ~20MB image
+- 📡 **REST API** — Swagger/OpenAPI documented
 
-Data will be stored in the `parkhub-data` folder, making it easy to move or backup.
+---
 
-### Standard Installation
+## 🚀 Quick Start
 
-If no `parkhub-data` folder exists, the application uses system directories:
-- Windows: `%APPDATA%\parkhub\ParkHub Server`
-- Linux: `~/.local/share/ParkHub Server`
-- macOS: `~/Library/Application Support/com.parkhub.ParkHub-Server`
+### Docker (Recommended)
+```bash
+docker run -d \
+  --name parkhub \
+  -p 8080:8080 \
+  -v parkhub-data:/data \
+  ghcr.io/nash87/parkhub:latest
+```
+Open http://localhost:8080 — done!
 
-## Building from Source
+### Docker Compose
+```bash
+git clone https://github.com/nash87/parkhub.git
+cd parkhub
+docker compose up -d
+```
+
+### Binary (Portable)
+Download from [Releases](https://github.com/nash87/parkhub/releases):
+```bash
+# Linux/macOS
+chmod +x parkhub-server
+./parkhub-server
+
+# Windows
+parkhub-server.exe
+```
+Data is stored in `./parkhub-data/` (portable) or system dirs.
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
+| Variable | Default | Description |
+|---|---|---|
+| `PARKHUB_HOST` | `0.0.0.0` | Listen address |
+| `PARKHUB_PORT` | `8080` | Listen port |
+| `PARKHUB_DATA_DIR` | `./parkhub-data` | Data directory |
+| `PARKHUB_ADMIN_USER` | `admin` | Initial admin username |
+| `PARKHUB_ADMIN_PASS` | `admin` | Initial admin password |
+| `PARKHUB_TLS_ENABLED` | `false` | Enable HTTPS |
+| `PARKHUB_TLS_CERT` | — | TLS certificate path |
+| `PARKHUB_TLS_KEY` | — | TLS private key path |
+| `RUST_LOG` | `info` | Log level |
+
+### config.toml
+```toml
+[server]
+name = "Company Parking"
+port = 8080
+
+[auth]
+jwt_secret = "change-me"
+session_duration = "24h"
+
+[features]
+homeoffice = true
+vehicle_photos = true
+multi_day_booking = true
+```
+
+---
+
+## 🏗️ Building from Source
 
 ### Prerequisites
+- Rust 1.75+
+- Node.js 20+
+- npm
 
-- Rust 1.75 or later
-- For GUI builds: CMake and system dependencies for Slint
-
-### Build Commands
-
+### Build
 ```bash
-# Build everything
-cargo build --release --workspace
+# Clone
+git clone https://github.com/nash87/parkhub.git
+cd parkhub
 
-# Build server only (headless mode)
-cargo build --release --package parkhub-server --no-default-features --features headless
+# Build frontend
+cd parkhub-web && npm install && npm run build && cd ..
 
-# Build server with GUI
-cargo build --release --package parkhub-server --features gui
+# Build backend (embeds frontend)
+cargo build --release
 
-# Build client
-cargo build --release --package parkhub-client
+# Binary at target/release/parkhub-server
 ```
 
-## Configuration
+---
 
-### Server Configuration
+## 📖 API
 
-On first run, the server will:
-1. Show setup wizard (GUI mode) or use defaults (headless mode)
-2. Create configuration in `config.toml`
-3. Generate TLS certificates
+REST API at `/api/v1/`:
 
-Configuration options in `config.toml`:
-```toml
-server_name = "ParkHub Server"
-port = 7878
-enable_tls = true
-enable_mdns = true
-admin_username = "admin"
-admin_password_hash = "..."
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | /api/v1/auth/login | Login |
+| POST | /api/v1/auth/register | Register |
+| GET | /api/v1/users/me | Current user |
+| GET | /api/v1/lots | List parking lots |
+| GET | /api/v1/lots/:id | Lot details with layout |
+| GET | /api/v1/lots/:id/slots | Slots with status |
+| GET | /api/v1/bookings | My bookings |
+| POST | /api/v1/bookings | Create booking |
+| DELETE | /api/v1/bookings/:id | Cancel booking |
+| GET | /api/v1/vehicles | My vehicles |
+| POST | /api/v1/vehicles | Add vehicle |
+| POST | /api/v1/vehicles/:id/photo | Upload photo |
+| GET | /api/v1/homeoffice | HO settings |
+| PUT | /api/v1/homeoffice/pattern | Update HO pattern |
+| GET | /api/v1/admin/users | List users (admin) |
+| GET | /api/v1/admin/bookings | All bookings (admin) |
+
+Full OpenAPI spec at `/api/docs` when running.
+
+---
+
+## 🐳 Kubernetes / Helm
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parkhub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parkhub
+  template:
+    metadata:
+      labels:
+        app: parkhub
+    spec:
+      containers:
+        - name: parkhub
+          image: ghcr.io/nash87/parkhub:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PARKHUB_ADMIN_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: parkhub-secrets
+                  key: admin-password
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: parkhub-data
 ```
 
-### Client Configuration
+---
 
-The client automatically discovers servers on the local network via mDNS.
-For remote servers, use the manual connection option with the server's IP address.
+## 📸 Screenshots
 
-## Architecture
+<!-- Screenshots will be added here -->
 
-```
-parkhub/
-  parkhub-common/     # Shared types and protocol definitions
-  parkhub-server/     # Server application
-  parkhub-client/     # Client application
-```
+---
 
-## API
+## 🤝 Contributing
 
-The server provides a REST API at `http(s)://host:port/api/v1/`:
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-- `POST /handshake` - Protocol handshake
-- `POST /api/v1/auth/login` - User authentication
-- `GET /api/v1/users/me` - Current user info
-- `GET /api/v1/lots` - List parking lots
-- `GET /api/v1/lots/{id}/slots` - List slots in a lot
-- `GET /api/v1/bookings` - List bookings
-- `POST /api/v1/bookings` - Create booking
-- `DELETE /api/v1/bookings/{id}` - Cancel booking
+1. Fork the repo
+2. Create your feature branch (`git checkout -b feat/amazing-feature`)
+3. Commit (`git commit -m 'feat: add amazing feature'`)
+4. Push (`git push origin feat/amazing-feature`)
+5. Open a Pull Request
 
-## License
+---
 
-MIT License - see [LICENSE](LICENSE) for details.
+## 📄 License
 
-## Contributing
+MIT — see [LICENSE](LICENSE) for details.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-  
-  
-#  
+---
+
+**Made with 🦀 Rust + ⚛️ React**

@@ -28,7 +28,12 @@ export function LoginPage() {
     e.preventDefault();
     setLoading(true);
     const success = await login(username, password);
-    if (success) { toast.success(t('login.welcomeBack')); }
+    if (success) {
+      if (!sessionStorage.getItem('parkhub_welcomed')) {
+        toast.success(t('login.welcomeBack'));
+        sessionStorage.setItem('parkhub_welcomed', '1');
+      }
+    }
     else { toast.error(t('login.invalidCredentials')); }
     setLoading(false);
   }

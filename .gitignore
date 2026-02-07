@@ -52,3 +52,8 @@ parkhub-web/package-lock.json
 # Screenshots (generated)
 screenshots-new/
 screenshots-win/
+screenshots-all/
+
+# Data
+parkhub-data/
+*.db

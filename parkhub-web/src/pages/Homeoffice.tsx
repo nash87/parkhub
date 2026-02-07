@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { House, Calendar, CalendarCheck, Briefcase, Trash, Plus, CalendarBlank } from '@phosphor-icons/react';
+import { House, Calendar, CalendarCheck, Briefcase, Trash, Plus, CalendarBlank, CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { api, HomeofficeSettings } from '../api/client';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
@@ -73,9 +73,15 @@ export function HomeofficePage() {
     toast.success(t('homeoffice.nextWeekMarked'));
   }
 
+  const [calMonth, setCalMonth] = useState(today.getMonth());
+  const [calYear, setCalYear] = useState(today.getFullYear());
+
+  function prevMonth() { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); }
+  function nextMonth() { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); }
+
   const calendarDays = useMemo(() => {
     if (!settings) return [];
-    const year = today.getFullYear(); const month = today.getMonth();
+    const year = calYear; const month = calMonth;
     const firstDay = new Date(year, month, 1); const lastDay = new Date(year, month + 1, 0);
     const startDow = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
     const days: { date: Date; inMonth: boolean; isHo: boolean; hoType?: 'pattern' | 'single'; isToday: boolean }[] = [];
