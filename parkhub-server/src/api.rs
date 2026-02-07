@@ -22,6 +22,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use uuid::Uuid;
 
 use crate::audit::{AuditEntry, AuditEventType};
+use axum::http::HeaderMap;
 use crate::metrics;
 use crate::openapi::ApiDoc;
 use crate::rate_limit::EndpointRateLimiters;
@@ -142,7 +143,11 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/status", get(server_status))
         .route("/api/v1/auth/login", post(login))
         .route("/api/v1/auth/register", post(register))
-        .route("/api/v1/auth/refresh", post(refresh_token));
+        .route("/api/v1/auth/refresh", post(refresh_token))
+        .route("/api/v1/privacy", get(get_privacy_policy))
+        .route("/api/v1/about", get(get_about))
+        .route("/api/v1/help", get(get_help))
+        .route("/api/v1/setup/status", get(get_setup_status));
 
     // Protected routes (auth required)
     let protected_routes = Router::new()
@@ -172,6 +177,10 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/push/subscribe", post(push_subscribe))
         .route("/api/v1/admin/users/:id", patch(admin_update_user))
         .route("/api/v1/admin/slots/:id", patch(admin_update_slot))
+        .route("/api/v1/users/me/export", get(export_user_data))
+        .route("/api/v1/users/me/delete", delete(delete_own_account))
+        .route("/api/v1/users/me/password", patch(change_password))
+        .route("/api/v1/setup/complete", post(complete_setup))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
@@ -1538,6 +1547,367 @@ async fn admin_update_slot(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to update slot")));
     }
     (StatusCode::OK, Json(ApiResponse::success(slot)))
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GDPR / DSGVO ENDPOINTS (Art. 15, 17)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// GET /api/v1/users/me/export - Export all user data (DSGVO Art. 15)
+async fn export_user_data(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state = state.read().await;
+    let uid = auth_user.user_id.to_string();
+
+    let user = match state.db.get_user(&uid).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "User not found"))),
+    };
+
+    let bookings = state.db.list_bookings_by_user(&uid).await.unwrap_or_default();
+    let vehicles = state.db.list_vehicles_by_user(&uid).await.unwrap_or_default();
+    let homeoffice = state.db.get_homeoffice_settings(&uid).await.ok().flatten();
+    let push_subs = state.db.list_push_subscriptions_by_user(&uid).await.unwrap_or_default();
+
+    let export = serde_json::json!({
+        "exported_at": Utc::now().to_rfc3339(),
+        "gdpr_article": "Art. 15 DSGVO - Right of access",
+        "profile": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "name": user.name,
+            "phone": user.phone,
+            "role": user.role,
+            "department": user.department,
+            "created_at": user.created_at,
+            "updated_at": user.updated_at,
+            "last_login": user.last_login,
+            "is_active": user.is_active,
+        },
+        "preferences": user.preferences,
+        "bookings": bookings,
+        "vehicles": vehicles,
+        "homeoffice_settings": homeoffice,
+        "push_subscriptions": push_subs.iter().map(|s| serde_json::json!({
+            "endpoint": s.endpoint,
+            "created_at": s.created_at,
+        })).collect::<Vec<_>>(),
+    });
+
+    AuditEntry::new(AuditEventType::UserUpdated)
+        .user(auth_user.user_id, &user.username)
+        .details(serde_json::json!({"action": "gdpr_data_export"}))
+        .log();
+
+    (StatusCode::OK, Json(ApiResponse::success(export)))
+}
+
+/// DELETE /api/v1/users/me/delete - Delete own account and all data (DSGVO Art. 17)
+async fn delete_own_account(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state = state.read().await;
+    let uid = auth_user.user_id.to_string();
+
+    let user = match state.db.get_user(&uid).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "User not found"))),
+    };
+
+    // Prevent SuperAdmin self-deletion
+    if user.role == UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "SuperAdmin accounts cannot be self-deleted. Contact another admin.")));
+    }
+
+    let mut deleted = serde_json::Map::new();
+
+    // Delete bookings
+    let bookings = state.db.list_bookings_by_user(&uid).await.unwrap_or_default();
+    for b in &bookings {
+        let _ = state.db.delete_booking(&b.id.to_string()).await;
+    }
+    deleted.insert("bookings".into(), serde_json::json!(bookings.len()));
+
+    // Delete vehicles
+    let vehicles = state.db.list_vehicles_by_user(&uid).await.unwrap_or_default();
+    for v in &vehicles {
+        let _ = state.db.delete_vehicle(&v.id.to_string()).await;
+    }
+    deleted.insert("vehicles".into(), serde_json::json!(vehicles.len()));
+
+    // Delete homeoffice settings
+    let _ = state.db.delete_homeoffice_settings(&uid).await;
+    deleted.insert("homeoffice_settings".into(), serde_json::json!(true));
+
+    // Delete push subscriptions
+    let push_count = state.db.delete_push_subscriptions_by_user(&uid).await.unwrap_or(0);
+    deleted.insert("push_subscriptions".into(), serde_json::json!(push_count));
+
+    // Delete waitlist entries
+    let waitlist_count = state.db.delete_waitlist_entries_by_user(&uid).await.unwrap_or(0);
+    deleted.insert("waitlist_entries".into(), serde_json::json!(waitlist_count));
+
+    // Finally delete the user
+    let _ = state.db.delete_user(&uid).await;
+    deleted.insert("user_account".into(), serde_json::json!(true));
+
+    AuditEntry::new(AuditEventType::UserDeleted)
+        .user(auth_user.user_id, &user.username)
+        .details(serde_json::json!({"action": "gdpr_account_deletion", "deleted": deleted.clone()}))
+        .log();
+
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+        "message": "Account and all associated data have been permanently deleted (DSGVO Art. 17)",
+        "deleted": deleted,
+    }))))
+}
+
+/// GET /api/v1/privacy - Return privacy policy info
+async fn get_privacy_policy(
+    State(state): State<SharedState>,
+) -> Json<ApiResponse<serde_json::Value>> {
+    let state = state.read().await;
+    let policy_url = if state.config.privacy_policy_url.is_empty() {
+        std::env::var("PARKHUB_PRIVACY_POLICY_URL").unwrap_or_default()
+    } else {
+        state.config.privacy_policy_url.clone()
+    };
+
+    Json(ApiResponse::success(serde_json::json!({
+        "privacy_policy_url": if policy_url.is_empty() { None } else { Some(&policy_url) },
+        "data_processing": {
+            "purpose": "Parking space management for employees",
+            "legal_basis": "Art. 6(1)(b) DSGVO - Contract fulfillment / Art. 6(1)(f) - Legitimate interest",
+            "data_categories": [
+                "Name, email, phone (profile)",
+                "Vehicle license plates",
+                "Booking history",
+                "Home office schedule",
+            ],
+            "retention": "Data is stored until account deletion or as required by law",
+            "your_rights": [
+                "Art. 15 - Right of access (GET /api/v1/users/me/export)",
+                "Art. 16 - Right to rectification (PATCH /api/v1/users/me)",
+                "Art. 17 - Right to erasure (DELETE /api/v1/users/me)",
+                "Art. 20 - Right to data portability (GET /api/v1/users/me/export)",
+            ],
+        },
+        "self_hosted": true,
+        "third_party_sharing": false,
+        "encryption_at_rest": true,
+    })))
+}
+
+/// GET /api/v1/about - Return app info
+async fn get_about() -> Json<ApiResponse<serde_json::Value>> {
+    Json(ApiResponse::success(serde_json::json!({
+        "name": "ParkHub",
+        "version": env!("CARGO_PKG_VERSION"),
+        "description": "Open-source parking management for companies",
+        "license": "MIT",
+        "repository": "https://github.com/nash87/parkhub",
+        "tech_stack": {
+            "backend": "Rust (Axum)",
+            "frontend": "React (TypeScript, Tailwind CSS)",
+            "database": "redb (embedded, pure Rust)",
+            "discovery": "mDNS/DNS-SD",
+        },
+        "data_storage": {
+            "type": "Embedded database (redb)",
+            "location": "Local filesystem",
+            "encryption": "Optional AES-256-GCM at rest",
+            "backup": "Automatic daily backups",
+        },
+        "features": [
+            "Self-hosted / on-premise",
+            "Single binary deployment",
+            "GDPR/DSGVO compliant",
+            "End-to-end encryption",
+            "LAN autodiscovery (mDNS)",
+            "PWA support",
+        ],
+    })))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SETUP / ONBOARDING ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// GET /api/v1/setup/status - Check if initial setup is complete
+async fn get_setup_status(
+    State(state): State<SharedState>,
+) -> Json<ApiResponse<serde_json::Value>> {
+    let state = state.read().await;
+    let is_fresh = state.db.is_fresh().await.unwrap_or(true);
+    let has_lots = state.db.list_parking_lots().await.map(|l| !l.is_empty()).unwrap_or(false);
+    let stats = state.db.stats().await.unwrap_or_default();
+
+    Json(ApiResponse::success(serde_json::json!({
+        "setup_complete": !is_fresh,
+        "has_parking_lots": has_lots,
+        "has_users": stats.users > 0,
+        "total_users": stats.users,
+        "total_lots": stats.parking_lots,
+    })))
+}
+
+/// POST /api/v1/setup/complete - Mark setup as complete (admin only)
+async fn complete_setup(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state = state.read().await;
+    let user = match state.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    if let Err(e) = state.db.mark_setup_completed().await {
+        tracing::error!("Failed to mark setup complete: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to complete setup")));
+    }
+
+    AuditEntry::new(AuditEventType::ConfigChanged)
+        .user(auth_user.user_id, &user.username)
+        .details(serde_json::json!({"action": "setup_completed"}))
+        .log();
+
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+        "message": "Setup marked as complete",
+    }))))
+}
+
+/// PATCH /api/v1/users/me/password - Change own password
+#[derive(Debug, Deserialize)]
+struct ChangePasswordRequest {
+    current_password: String,
+    new_password: String,
+}
+
+async fn change_password(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<ChangePasswordRequest>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state = state.read().await;
+    let mut user = match state.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "User not found"))),
+    };
+
+    if !verify_password(&req.current_password, &user.password_hash) {
+        AuditEntry::new(AuditEventType::PasswordChanged)
+            .user(auth_user.user_id, &user.username)
+            .error("Invalid current password")
+            .log();
+        return (StatusCode::UNAUTHORIZED, Json(ApiResponse::error("INVALID_PASSWORD", "Current password is incorrect")));
+    }
+
+    if req.new_password.len() < 8 {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("WEAK_PASSWORD", "Password must be at least 8 characters")));
+    }
+
+    user.password_hash = hash_password(&req.new_password);
+    user.updated_at = Utc::now();
+
+    if let Err(e) = state.db.save_user(&user).await {
+        tracing::error!("Failed to update password: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to update password")));
+    }
+
+    AuditEntry::new(AuditEventType::PasswordChanged)
+        .user(auth_user.user_id, &user.username)
+        .log();
+
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+        "message": "Password changed successfully",
+    }))))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELP / FAQ ENDPOINT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// GET /api/v1/help - Return help content based on Accept-Language
+async fn get_help(headers: HeaderMap) -> Json<ApiResponse<serde_json::Value>> {
+    let lang = headers
+        .get(header::ACCEPT_LANGUAGE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("en");
+
+    let is_german = lang.starts_with("de");
+
+    if is_german {
+        Json(ApiResponse::success(serde_json::json!({
+            "language": "de",
+            "title": "Hilfe & FAQ",
+            "sections": [
+                {
+                    "title": "Erste Schritte",
+                    "items": [
+                        {"q": "Wie buche ich einen Parkplatz?", "a": "Öffnen Sie die App, wählen Sie ein Parkhaus und einen freien Platz. Wählen Sie Datum und Uhrzeit und bestätigen Sie die Buchung."},
+                        {"q": "Wie registriere ich mein Fahrzeug?", "a": "Gehen Sie zu 'Meine Fahrzeuge' und tippen Sie auf '+'. Geben Sie das Kennzeichen und optional Marke/Modell ein."},
+                        {"q": "Was ist der Home-Office-Modus?", "a": "Unter 'Home Office' können Sie Ihre regelmäßigen Home-Office-Tage einstellen. An diesen Tagen wird Ihr Parkplatz automatisch für Kollegen freigegeben."},
+                    ]
+                },
+                {
+                    "title": "Buchungen",
+                    "items": [
+                        {"q": "Kann ich eine Buchung stornieren?", "a": "Ja, öffnen Sie die Buchung und tippen Sie auf 'Stornieren'. Der Platz wird sofort freigegeben."},
+                        {"q": "Was ist eine Dauerbuchung?", "a": "Eine Dauerbuchung reserviert einen Platz für wiederkehrende Tage (z.B. jeden Mo-Fr). Ideal für regelmäßige Bürotage."},
+                        {"q": "Wie funktioniert die Warteliste?", "a": "Wenn alle Plätze belegt sind, können Sie sich auf die Warteliste setzen. Sie werden per E-Mail benachrichtigt, sobald ein Platz frei wird."},
+                    ]
+                },
+                {
+                    "title": "Datenschutz (DSGVO)",
+                    "items": [
+                        {"q": "Welche Daten werden gespeichert?", "a": "Name, E-Mail, Fahrzeugkennzeichen, Buchungshistorie und Home-Office-Einstellungen. Alle Daten werden lokal auf dem Firmenserver gespeichert."},
+                        {"q": "Wie kann ich meine Daten exportieren?", "a": "Unter 'Profil' > 'Daten exportieren' können Sie alle Ihre Daten als JSON herunterladen (Art. 15 DSGVO)."},
+                        {"q": "Wie lösche ich mein Konto?", "a": "Unter 'Profil' > 'Konto löschen' werden alle Ihre Daten unwiderruflich gelöscht (Art. 17 DSGVO)."},
+                    ]
+                },
+            ]
+        })))
+    } else {
+        Json(ApiResponse::success(serde_json::json!({
+            "language": "en",
+            "title": "Help & FAQ",
+            "sections": [
+                {
+                    "title": "Getting Started",
+                    "items": [
+                        {"q": "How do I book a parking spot?", "a": "Open the app, select a parking lot and an available slot. Choose your date and time, then confirm the booking."},
+                        {"q": "How do I register my vehicle?", "a": "Go to 'My Vehicles' and tap '+'. Enter your license plate and optionally the make/model."},
+                        {"q": "What is Home Office mode?", "a": "Under 'Home Office', set your regular work-from-home days. On those days, your parking spot is automatically released for colleagues."},
+                    ]
+                },
+                {
+                    "title": "Bookings",
+                    "items": [
+                        {"q": "Can I cancel a booking?", "a": "Yes, open the booking and tap 'Cancel'. The spot will be released immediately."},
+                        {"q": "What is a permanent booking?", "a": "A permanent booking reserves a spot for recurring days (e.g., Mon-Fri every week). Ideal for regular office days."},
+                        {"q": "How does the waitlist work?", "a": "When all spots are taken, you can join the waitlist. You'll be notified by email when a spot becomes available."},
+                    ]
+                },
+                {
+                    "title": "Privacy (GDPR)",
+                    "items": [
+                        {"q": "What data is stored?", "a": "Name, email, vehicle plates, booking history, and home office settings. All data is stored locally on your company server."},
+                        {"q": "How can I export my data?", "a": "Under 'Profile' > 'Export Data', you can download all your data as JSON (GDPR Art. 15)."},
+                        {"q": "How do I delete my account?", "a": "Under 'Profile' > 'Delete Account', all your data will be permanently erased (GDPR Art. 17)."},
+                    ]
+                },
+            ]
+        })))
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

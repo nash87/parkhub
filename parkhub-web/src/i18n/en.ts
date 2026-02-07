@@ -365,4 +365,212 @@ export const en = {
     dismiss: 'Later',
   },
   dayNamesShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+
+  // Accessibility
+  accessibility: {
+    title: 'Accessibility',
+    colorMode: 'Color Mode',
+    colorModes: {
+      normal: 'Normal',
+      protanopia: 'Protanopia (Red-blind)',
+      deuteranopia: 'Deuteranopia (Green-blind)',
+      tritanopia: 'Tritanopia (Blue-blind)',
+    },
+    fontScale: 'Font Size',
+    fontScales: {
+      small: 'Small',
+      normal: 'Normal',
+      large: 'Large',
+      xlarge: 'Extra Large',
+    },
+    reducedMotion: 'Reduced Motion',
+    reducedMotionDesc: 'Disable animations and transitions',
+    highContrast: 'High Contrast',
+    highContrastDesc: 'Increase contrast for better readability',
+  },
+
+  // Consent Banner
+  consent: {
+    title: 'Privacy & Storage Consent',
+    message: 'ParkHub uses localStorage to save your preferences (theme, language, accessibility settings). No cookies are used. Your data stays on your device and our server — no third-party services involved.',
+    accept: 'Accept',
+    decline: 'Decline',
+  },
+
+  // GDPR
+  gdpr: {
+    dataExport: 'Export My Data',
+    dataExportDesc: 'Download all your personal data as JSON (DSGVO Art. 15)',
+    deleteAccount: 'Delete Account',
+    deleteAccountDesc: 'Permanently delete your account and all associated data (DSGVO Art. 17)',
+    deleteConfirmTitle: 'Delete your account?',
+    deleteConfirmMessage: 'This will permanently delete your profile, all bookings, vehicles, and preferences. This action cannot be undone.',
+    deleteConfirmBtn: 'Delete Permanently',
+    exporting: 'Exporting data...',
+    exported: 'Data exported successfully',
+  },
+
+  // Privacy Page
+  privacy: {
+    title: 'Privacy Policy',
+    subtitle: 'How we handle your data — transparently and DSGVO-compliant.',
+    dataCollected: {
+      title: 'Data We Collect',
+      content: 'We collect only the data necessary for parking management:\n\n• Account data (name, email, username)\n• Vehicle information (license plate, make, model)\n• Booking history (slot, time, duration)\n• Home office schedule\n• Preferences (theme, language, accessibility)\n\nNo tracking, no analytics, no third-party scripts.',
+    },
+    storage: {
+      title: 'How Data Is Stored',
+      content: 'All data is stored in an embedded database (redb) directly on your server. ParkHub is 100% self-hosted — your data never leaves your infrastructure.\n\nNo cloud services, no external databases, no data transfers to third parties.',
+    },
+    security: {
+      title: 'Security',
+      content: 'Passwords are hashed with bcrypt. API access is secured via JWT tokens. All communication should be served over HTTPS.\n\nThe embedded database file is stored on the server filesystem.',
+    },
+    access: {
+      title: 'Who Has Access',
+      content: 'Only administrators of your ParkHub instance have access to user data. Since ParkHub is self-hosted, your IT department controls all access.',
+    },
+    rights: {
+      title: 'Your Rights (DSGVO)',
+      access: 'Right of access — Download all your data via your profile page (Art. 15 DSGVO)',
+      rectification: 'Right to rectification — Edit your profile data at any time (Art. 16 DSGVO)',
+      erasure: 'Right to erasure — Delete your account and all data via profile page (Art. 17 DSGVO)',
+      portability: 'Right to data portability — Export your data as JSON (Art. 20 DSGVO)',
+    },
+  },
+
+  // Terms
+  terms: {
+    title: 'Terms of Service',
+    usage: {
+      title: 'Usage',
+      content: 'ParkHub is provided for managing parking spaces within your organization. By using ParkHub, you agree to use it responsibly and in accordance with your company policies.',
+    },
+    accounts: {
+      title: 'Accounts',
+      content: 'You are responsible for maintaining the security of your account credentials. Do not share your password. Administrators may create, modify, or delete accounts as needed.',
+    },
+    liability: {
+      title: 'Liability',
+      content: 'ParkHub is provided "as is" without warranty of any kind. The software is open source (MIT License). The operator of this instance is responsible for proper operation and data protection.',
+    },
+    changes: {
+      title: 'Changes',
+      content: 'These terms may be updated at any time. Continued use of ParkHub constitutes acceptance of any changes.',
+    },
+  },
+
+  // Legal/Imprint
+  legal: {
+    title: 'Legal Notice / Impressum',
+    content: '[Company Name]\n[Street Address]\n[Postal Code, City]\n[Country]\n\nRepresented by: [Name]\nEmail: [email]\nPhone: [phone]\n\nResponsible for content according to § 55 Abs. 2 RStV:\n[Name, Address]\n\nPlease update this page with your actual company information.',
+  },
+
+  // About
+  about: {
+    title: 'About ParkHub',
+    subtitle: 'Open Source Parking Management for your organization.',
+    techStack: {
+      title: 'Tech Stack',
+      frontend: 'Frontend',
+      backend: 'Backend',
+    },
+    architecture: {
+      title: 'Architecture',
+    },
+    version: {
+      title: 'Version',
+      current: 'Version',
+      license: 'License',
+    },
+    data: {
+      title: 'Data Transparency',
+      content: 'All data is stored locally in a single redb database file on your server.\n\nStored data: User accounts, vehicles, bookings, home office schedules, parking lot configurations.\n\nRetention: Data is kept as long as the account exists. Deleted accounts are permanently removed.\n\nEncryption: Passwords are bcrypt-hashed. Database file inherits server filesystem encryption if configured.',
+    },
+  },
+
+  // Help
+  help: {
+    title: 'Help & FAQ',
+    subtitle: 'Find answers to common questions.',
+    searchPlaceholder: 'Search help topics...',
+    userFaq: 'General Questions',
+    adminFaq: 'Administrator Questions',
+    faq: {
+      bookSpot: {
+        q: 'How do I book a parking spot?',
+        a: 'Go to "Book" in the navigation. Select a parking lot, choose an available slot (shown in green), select your booking duration and vehicle, then confirm. You can make one-time, multi-day, or recurring bookings.',
+      },
+      homeOffice: {
+        q: 'How do I set up home office days?',
+        a: 'Navigate to "Home Office" in the menu. You can set regular weekly patterns (e.g., every Wednesday and Friday) or add individual days. When you mark a day as home office, your parking slot becomes available for colleagues.',
+      },
+      vehicles: {
+        q: 'How do I manage my vehicles?',
+        a: 'Go to "Vehicles" to add, edit, or remove your registered vehicles. You can upload a photo, set a default vehicle for quick booking, and manage license plate information.',
+      },
+      recurring: {
+        q: 'How do recurring bookings work?',
+        a: 'When booking, select "Recurring" as the booking type. Choose weekly or monthly intervals and the desired weekdays. The system will automatically reserve the slot for all matching dates in the selected period.',
+      },
+      waitlist: {
+        q: 'How does the waitlist work?',
+        a: 'If all slots are occupied, you can join the waitlist. When a slot becomes available (e.g., someone marks a home office day), you will be notified automatically and the slot can be assigned to you.',
+      },
+      checkin: {
+        q: 'How does check-in work?',
+        a: 'When you arrive at the parking lot, your booking will be automatically activated based on the scheduled time. If check-in confirmation is enabled by your admin, you may need to confirm your arrival in the app.',
+      },
+      configureLots: {
+        q: 'How do I configure parking lots?',
+        a: 'Go to Admin → Parking Lots. You can create new lots, edit their layout (add rows and slots), set labels, and configure slot properties. Use the visual layout editor to arrange slots.',
+      },
+      manageUsers: {
+        q: 'How do I manage users?',
+        a: 'Go to Admin → Users. You can view all registered users, change roles (user/admin), block or delete accounts. If self-registration is enabled, new users can sign up themselves.',
+      },
+    },
+  },
+
+  // Onboarding
+  onboarding: {
+    title: 'Welcome to ParkHub!',
+    finish: 'Get Started',
+    steps: {
+      password: {
+        title: 'Secure Your Account',
+        desc: 'Change the default admin password to keep your instance secure.',
+      },
+      company: {
+        title: 'Company Setup',
+        desc: 'Configure your company name and basic settings.',
+      },
+      lot: {
+        title: 'Create a Parking Lot',
+        desc: 'Set up your first parking lot with name and address.',
+      },
+      slots: {
+        title: 'Add Parking Slots',
+        desc: 'Use the layout editor to add rows and individual parking spaces.',
+      },
+      users: {
+        title: 'Add Users',
+        desc: 'Enable self-registration or create user accounts manually.',
+      },
+      done: {
+        title: 'All Set!',
+        desc: 'Your ParkHub instance is ready. Users can now book parking spaces.',
+      },
+    },
+  },
+
+  // Grid patterns (for screen readers)
+  gridAria: {
+    available: 'Slot {{number}}, available',
+    occupied: 'Slot {{number}}, occupied by {{plate}}',
+    reserved: 'Slot {{number}}, reserved',
+    disabled: 'Slot {{number}}, disabled',
+    homeoffice: 'Slot {{number}}, available via home office',
+    blocked: 'Slot {{number}}, blocked',
+  },
 };

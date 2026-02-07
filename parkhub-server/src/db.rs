@@ -862,6 +862,53 @@ impl Database {
         }
         Ok(existed)
     }
+
+    /// Delete homeoffice settings for a user (GDPR Art. 17)
+    pub async fn delete_homeoffice_settings(&self, user_id: &str) -> Result<bool> {
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        {
+            let mut table = write_txn.open_table(HOMEOFFICE)?;
+            let existed = table.remove(user_id)?.is_some();
+            if !existed {
+                return Ok(false);
+            }
+        }
+        write_txn.commit()?;
+        debug!("Deleted homeoffice settings for user: {}", user_id);
+        Ok(true)
+    }
+
+    /// Delete all push subscriptions for a user (GDPR Art. 17)
+    pub async fn delete_push_subscriptions_by_user(&self, user_id: &str) -> Result<u64> {
+        let subs = self.list_push_subscriptions_by_user(user_id).await?;
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        let count = subs.len() as u64;
+        {
+            let mut table = write_txn.open_table(PUSH_SUBSCRIPTIONS)?;
+            for sub in &subs {
+                let key = format!("{}:{}", sub.user_id, sub.endpoint);
+                table.remove(key.as_str())?;
+            }
+        }
+        write_txn.commit()?;
+        debug!("Deleted {} push subscriptions for user: {}", count, user_id);
+        Ok(count)
+    }
+
+    /// Delete all waitlist entries for a user (GDPR Art. 17)
+    pub async fn delete_waitlist_entries_by_user(&self, user_id: &str) -> Result<u64> {
+        let all = self.list_all_waitlist().await?;
+        let user_entries: Vec<_> = all.into_iter().filter(|e| e.user_id.to_string() == user_id).collect();
+        let count = user_entries.len() as u64;
+        for entry in &user_entries {
+            self.delete_waitlist_entry(&entry.id.to_string()).await?;
+        }
+        debug!("Deleted {} waitlist entries for user: {}", count, user_id);
+        Ok(count)
+    }
+
 }
 
 

@@ -1,23 +1,54 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Envelope, Shield, MapPin, CalendarCheck, House, PencilSimple, FloppyDisk, ChartBar } from '@phosphor-icons/react';
+import { User, Envelope, Shield, MapPin, CalendarCheck, House, PencilSimple, FloppyDisk, ChartBar, Eye, TextAa, HandSwipeRight, CircleHalf, DownloadSimple, Trash, Warning } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
+import { useAccessibility, ColorMode, FontScale } from '../stores/accessibility';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export function ProfilePage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const a11y = useAccessibility();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({ name: user?.name || '', email: user?.email || '' });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   function handleSave() { setEditing(false); toast.success(t('profile.updated')); }
+
+  function handleExportData() {
+    const data = {
+      profile: { name: user?.name, email: user?.email, username: user?.username, role: user?.role },
+      preferences: {
+        colorMode: a11y.colorMode,
+        fontScale: a11y.fontScale,
+        reducedMotion: a11y.reducedMotion,
+        highContrast: a11y.highContrast,
+      },
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'parkhub-data-export.json'; a.click();
+    URL.revokeObjectURL(url);
+    toast.success(t('gdpr.exported'));
+  }
+
+  function handleDeleteAccount() {
+    toast.success('Account deletion requested');
+    setShowDeleteConfirm(false);
+  }
 
   const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
   const roleLabels: Record<string, string> = { user: t('profile.roles.user'), admin: t('profile.roles.admin'), superadmin: t('profile.roles.superadmin') };
 
   const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+
+  const colorModes: ColorMode[] = ['normal', 'protanopia', 'deuteranopia', 'tritanopia'];
+  const fontScales: FontScale[] = ['small', 'normal', 'large', 'xlarge'];
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-3xl mx-auto space-y-8">
@@ -26,6 +57,7 @@ export function ProfilePage() {
         <p className="text-gray-500 dark:text-gray-400 mt-1">{t('profile.subtitle')}</p>
       </motion.div>
 
+      {/* Profile Card */}
       <motion.div variants={itemVariants} className="card p-8">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <div className="w-24 h-24 rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
@@ -34,8 +66,8 @@ export function ProfilePage() {
           <div className="flex-1 text-center sm:text-left">
             {editing ? (
               <div className="space-y-3">
-                <div><label className="label">{t('profile.name')}</label><input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="input" /></div>
-                <div><label className="label">{t('profile.email')}</label><input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="input" /></div>
+                <div><label className="label" htmlFor="profile-name">{t('profile.name')}</label><input id="profile-name" type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="input" /></div>
+                <div><label className="label" htmlFor="profile-email">{t('profile.email')}</label><input id="profile-email" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="input" /></div>
                 <div className="flex gap-2">
                   <button onClick={handleSave} className="btn btn-primary btn-sm"><FloppyDisk weight="bold" className="w-4 h-4" />{t('common.save')}</button>
                   <button onClick={() => setEditing(false)} className="btn btn-secondary btn-sm">{t('common.cancel')}</button>
@@ -58,6 +90,7 @@ export function ProfilePage() {
         </div>
       </motion.div>
 
+      {/* My Slot */}
       <motion.div variants={itemVariants} className="card p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MapPin weight="fill" className="w-5 h-5 text-primary-600" />{t('profile.mySlot')}</h3>
         <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
@@ -66,11 +99,111 @@ export function ProfilePage() {
         </div>
       </motion.div>
 
+      {/* Stats */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.bookingsThisMonth')}</p><p className="stat-value text-primary-600 dark:text-primary-400 mt-1">12</p></div><CalendarCheck weight="fill" className="w-8 h-8 text-primary-200 dark:text-primary-800" /></div></div>
         <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.homeOfficeDays')}</p><p className="stat-value text-sky-600 dark:text-sky-400 mt-1">8</p></div><House weight="fill" className="w-8 h-8 text-sky-200 dark:text-sky-800" /></div></div>
         <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.avgDuration')}</p><p className="stat-value text-amber-600 dark:text-amber-400 mt-1">6.2h</p></div><ChartBar weight="fill" className="w-8 h-8 text-amber-200 dark:text-amber-800" /></div></div>
       </motion.div>
+
+      {/* Accessibility Settings */}
+      <motion.div variants={itemVariants} className="card p-6 space-y-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Eye weight="fill" className="w-5 h-5 text-primary-600" />{t('accessibility.title')}</h3>
+
+        {/* Color Mode */}
+        <div>
+          <label className="label flex items-center gap-2"><Eye weight="regular" className="w-4 h-4" />{t('accessibility.colorMode')}</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {colorModes.map(mode => (
+              <button key={mode} onClick={() => a11y.setColorMode(mode)}
+                className={`px-3 py-2 rounded-xl text-xs font-medium transition-all ${a11y.colorMode === mode ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 ring-2 ring-primary-500' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                aria-pressed={a11y.colorMode === mode}
+              >
+                {t(`accessibility.colorModes.${mode}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Font Scale */}
+        <div>
+          <label className="label flex items-center gap-2"><TextAa weight="regular" className="w-4 h-4" />{t('accessibility.fontScale')}</label>
+          <div className="grid grid-cols-4 gap-2">
+            {fontScales.map(scale => (
+              <button key={scale} onClick={() => a11y.setFontScale(scale)}
+                className={`px-3 py-2 rounded-xl text-xs font-medium transition-all ${a11y.fontScale === scale ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 ring-2 ring-primary-500' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                aria-pressed={a11y.fontScale === scale}
+              >
+                {t(`accessibility.fontScales.${scale}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Reduced Motion */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <HandSwipeRight weight="regular" className="w-4 h-4 text-gray-500" />
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{t('accessibility.reducedMotion')}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('accessibility.reducedMotionDesc')}</p>
+            </div>
+          </div>
+          <button onClick={() => a11y.setReducedMotion(!a11y.reducedMotion)}
+            role="switch" aria-checked={a11y.reducedMotion}
+            className={`relative w-11 h-6 rounded-full transition-colors ${a11y.reducedMotion ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${a11y.reducedMotion ? 'translate-x-5' : ''}`} />
+          </button>
+        </div>
+
+        {/* High Contrast */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CircleHalf weight="regular" className="w-4 h-4 text-gray-500" />
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{t('accessibility.highContrast')}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('accessibility.highContrastDesc')}</p>
+            </div>
+          </div>
+          <button onClick={() => a11y.setHighContrast(!a11y.highContrast)}
+            role="switch" aria-checked={a11y.highContrast}
+            className={`relative w-11 h-6 rounded-full transition-colors ${a11y.highContrast ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${a11y.highContrast ? 'translate-x-5' : ''}`} />
+          </button>
+        </div>
+      </motion.div>
+
+      {/* GDPR Section */}
+      <motion.div variants={itemVariants} className="card p-6 space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Shield weight="fill" className="w-5 h-5 text-primary-600" />DSGVO / GDPR</h3>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button onClick={handleExportData} className="btn btn-secondary flex-1">
+            <DownloadSimple weight="bold" className="w-4 h-4" />
+            <div className="text-left">
+              <div className="font-medium">{t('gdpr.dataExport')}</div>
+              <div className="text-xs opacity-60">{t('gdpr.dataExportDesc')}</div>
+            </div>
+          </button>
+          <button onClick={() => setShowDeleteConfirm(true)} className="btn btn-danger flex-1">
+            <Trash weight="bold" className="w-4 h-4" />
+            <div className="text-left">
+              <div className="font-medium">{t('gdpr.deleteAccount')}</div>
+              <div className="text-xs opacity-60">{t('gdpr.deleteAccountDesc')}</div>
+            </div>
+          </button>
+        </div>
+      </motion.div>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteAccount}
+        title={t('gdpr.deleteConfirmTitle')}
+        message={t('gdpr.deleteConfirmMessage')}
+        confirmText={t('gdpr.deleteConfirmBtn')}
+        variant="danger"
+      />
     </motion.div>
   );
 }

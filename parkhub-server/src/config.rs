@@ -85,6 +85,10 @@ pub struct ServerConfig {
     #[serde(default)]
     pub organization_name: String,
 
+
+    /// Privacy policy URL (GDPR/DSGVO compliance)
+    #[serde(default)]
+    pub privacy_policy_url: String,
     /// Close behavior: "ask", "minimize", "exit"
     #[serde(default = "default_close_behavior")]
     pub close_behavior: String,
@@ -150,6 +154,7 @@ impl Default for ServerConfig {
             audit_logging_enabled: true,
             default_language: "en".to_string(),
             organization_name: String::new(),
+            privacy_policy_url: String::new(),
             close_behavior: "ask".to_string(),
             theme_mode: 0, // Dark by default
             font_scale: 1.0,

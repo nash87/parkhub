@@ -366,3 +366,104 @@ MIT — see [LICENSE](LICENSE) for details.
 ---
 
 **Made with 🦀 Rust + ⚛️ React**
+
+---
+
+## 🔒 DSGVO / GDPR Compliance
+
+ParkHub is designed with **data protection by design** (Art. 25 DSGVO):
+
+- **Data Export (Art. 15)** — `GET /api/v1/users/me/export` returns all user data (profile, bookings, vehicles, preferences) as JSON
+- **Right to Erasure (Art. 17)** — `DELETE /api/v1/users/me` permanently deletes account and ALL associated data (bookings, vehicles, push subscriptions, waitlist entries, home office settings)
+- **Privacy Policy** — `GET /api/v1/privacy` returns structured privacy information, configurable via `privacy_policy_url` in config.toml or `PARKHUB_PRIVACY_POLICY_URL` env var
+- **Self-hosted = Data Sovereignty** — All data stays on your infrastructure. No cloud, no third-party data sharing
+- **Encryption at Rest** — Optional AES-256-GCM database encryption
+- **Audit Logging** — All security-relevant actions are logged for compliance
+
+---
+
+## ♿ Accessibility
+
+ParkHub includes comprehensive accessibility features:
+
+- **Colorblind Modes** — Deuteranopia, Protanopia, Tritanopia themes (theme modes 3-5)
+- **High Contrast Mode** — Enhanced visibility theme (mode 2)
+- **Font Scaling** — Configurable font scale: 1.0 (normal), 1.25 (large), 1.5 (extra large)
+- **Reduce Motion** — Disable animations for vestibular sensitivity
+- **Screen Reader Support** — Semantic HTML, ARIA labels, proper heading hierarchy
+- **Keyboard Navigation** — Full keyboard support throughout the application
+- **Focus Indicators** — Visible focus rings on all interactive elements
+
+Settings are persisted server-side and can be configured via the admin GUI or `config.toml`.
+
+---
+
+## 🧙 Admin Onboarding / Setup Wizard
+
+First-time setup is guided:
+
+1. **GUI Mode** — A setup wizard walks through server name, admin credentials, TLS, encryption, and parking lot creation
+2. **Headless/Unattended** — Use `--unattended` flag for auto-configuration with defaults (admin/admin)
+3. **Setup Status** — `GET /api/v1/setup/status` checks if initial setup is complete
+4. **Mark Complete** — `POST /api/v1/setup/complete` (admin only) marks onboarding as done
+5. **Password Change** — `PATCH /api/v1/users/me/password` for changing the default admin password
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Clients                              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
+│  │ React    │  │ PWA      │  │ Desktop  │  │ API Client │  │
+│  │ Web App  │  │ (Mobile) │  │ Client   │  │ (curl etc) │  │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └─────┬──────┘  │
+└───────┼──────────────┼─────────────┼──────────────┼─────────┘
+        │              │             │              │
+        └──────────────┼─────────────┼──────────────┘
+                       │  HTTPS/REST │
+                       ▼             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   ParkHub Server (Rust)                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
+│  │ Axum     │  │ Auth     │  │ mDNS     │  │ Background │  │
+│  │ HTTP API │  │ (Argon2) │  │ Discovery│  │ Jobs       │  │
+│  └────┬─────┘  └──────────┘  └──────────┘  └────────────┘  │
+│       │                                                     │
+│  ┌────▼───────────────────────────────────────────────────┐ │
+│  │               redb (Embedded Database)                 │ │
+│  │           Optional AES-256-GCM encryption              │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
+│  │ Audit    │  │ Email    │  │ Metrics  │  │ Rate       │  │
+│  │ Logging  │  │ (SMTP)   │  │ Prom.    │  │ Limiting   │  │
+│  └──────────┘  └──────────┘  └──────────┘  └────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## ❓ FAQ
+
+**Q: Do I need a database server (PostgreSQL, MySQL)?**
+A: No! ParkHub uses redb, an embedded database. Everything runs in a single binary.
+
+**Q: Can I run it on a Raspberry Pi?**
+A: Yes, compile for ARM. The server is lightweight and runs fine on minimal hardware.
+
+**Q: Is the data encrypted?**
+A: Optionally. Enable AES-256-GCM encryption at rest with a passphrase via config or `PARKHUB_DB_PASSPHRASE` env var.
+
+**Q: How do clients find the server?**
+A: Via mDNS/DNS-SD autodiscovery on the LAN, or by entering the server URL manually.
+
+**Q: Is it GDPR/DSGVO compliant?**
+A: Yes. Data export (Art. 15), account deletion (Art. 17), self-hosted data sovereignty, encryption at rest, and audit logging are all built in.
+
+**Q: Can I use it without TLS?**
+A: Yes, but not recommended for production. Start with `--unattended` or set `enable_tls = false` in config.toml.
+
+**Q: How do I back up the data?**
+A: The database is a single file (`parkhub.redb`) in the data directory. Automatic daily backups are enabled by default.

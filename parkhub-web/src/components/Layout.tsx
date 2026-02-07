@@ -304,9 +304,11 @@ export function Layout({ children }: LayoutProps) {
               {t('footer.tagline')} · <span className="text-gray-400 dark:text-gray-500">v{__APP_VERSION__}</span>
             </p>
             <div className="flex items-center gap-4 text-sm text-gray-400 dark:text-gray-500">
-              <a href="#" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.help')}</a>
-              <a href="#" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.privacy')}</a>
-              <a href="#" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.imprint')}</a>
+              <Link to="/help" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.help')}</Link>
+              <Link to="/about" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.about')}</Link>
+              <Link to="/privacy" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.privacy')}</Link>
+              <Link to="/terms" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.terms')}</Link>
+              <Link to="/legal" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.imprint')}</Link>
             </div>
           </div>
         </div>
