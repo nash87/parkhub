@@ -94,16 +94,15 @@ export function ProfilePage() {
       <motion.div variants={itemVariants} className="card p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MapPin weight="fill" className="w-5 h-5 text-primary-600" />{t('profile.mySlot')}</h3>
         <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-          <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center"><span className="text-2xl font-bold text-primary-600 dark:text-primary-400">47</span></div>
-          <div><p className="font-semibold text-gray-900 dark:text-white">Firmenparkplatz</p><p className="text-sm text-gray-500 dark:text-gray-400">Hauptstraße 1 · Reihe A</p><p className="text-xs text-gray-400 mt-1">{t('profile.fixedSlot')}</p></div>
+          <p className="text-sm text-gray-400 dark:text-gray-500">{t('profile.noSlotAssigned', 'No parking slot assigned')}</p>
         </div>
       </motion.div>
 
       {/* Stats */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.bookingsThisMonth')}</p><p className="stat-value text-primary-600 dark:text-primary-400 mt-1">12</p></div><CalendarCheck weight="fill" className="w-8 h-8 text-primary-200 dark:text-primary-800" /></div></div>
-        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.homeOfficeDays')}</p><p className="stat-value text-sky-600 dark:text-sky-400 mt-1">8</p></div><House weight="fill" className="w-8 h-8 text-sky-200 dark:text-sky-800" /></div></div>
-        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.avgDuration')}</p><p className="stat-value text-amber-600 dark:text-amber-400 mt-1">6.2h</p></div><ChartBar weight="fill" className="w-8 h-8 text-amber-200 dark:text-amber-800" /></div></div>
+        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.bookingsThisMonth')}</p><p className="stat-value text-primary-600 dark:text-primary-400 mt-1">-</p></div><CalendarCheck weight="fill" className="w-8 h-8 text-primary-200 dark:text-primary-800" /></div></div>
+        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.homeOfficeDays')}</p><p className="stat-value text-sky-600 dark:text-sky-400 mt-1">-</p></div><House weight="fill" className="w-8 h-8 text-sky-200 dark:text-sky-800" /></div></div>
+        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.avgDuration')}</p><p className="stat-value text-amber-600 dark:text-amber-400 mt-1">-</p></div><ChartBar weight="fill" className="w-8 h-8 text-amber-200 dark:text-amber-800" /></div></div>
       </motion.div>
 
       {/* Accessibility Settings */}

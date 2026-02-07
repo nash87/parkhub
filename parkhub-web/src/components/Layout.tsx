@@ -50,11 +50,7 @@ interface Notification {
   read: boolean;
 }
 
-const initialNotifications: Notification[] = [
-  { id: 'n1', textKey: 'notifications.bookingExpiring', textParams: { slot: '47' }, type: 'warning', read: false },
-  { id: 'n2', textKey: 'notifications.newLotAvailable', textParams: { name: 'Tiefgarage Süd' }, type: 'info', read: false },
-  { id: 'n3', textKey: 'notifications.slotFreed', textParams: { slot: '52' }, type: 'success', read: false },
-];
+const initialNotifications: Notification[] = [];
 
 const notifIcon = { warning: Warning, info: Info, success: CheckCircle };
 const notifColor = {
