@@ -19,37 +19,40 @@ import {
   Info,
   CheckCircle,
   DotsThreeCircle,
+  Translate,
 } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme, applyTheme } from '../stores/theme';
+import { useTranslation } from 'react-i18next';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: House },
-  { name: 'Buchen', href: '/book', icon: CalendarPlus },
-  { name: 'Buchungen', href: '/bookings', icon: ListChecks },
-  { name: 'Fahrzeuge', href: '/vehicles', icon: Car },
-  { name: 'Homeoffice', href: '/homeoffice', icon: House },
+const navigationKeys = [
+  { key: 'nav.dashboard', href: '/', icon: House },
+  { key: 'nav.book', href: '/book', icon: CalendarPlus },
+  { key: 'nav.bookings', href: '/bookings', icon: ListChecks },
+  { key: 'nav.vehicles', href: '/vehicles', icon: Car },
+  { key: 'nav.homeoffice', href: '/homeoffice', icon: House },
 ];
 
-const adminNav = [
-  { name: 'Admin', href: '/admin', icon: GearSix },
+const adminNavKeys = [
+  { key: 'nav.admin', href: '/admin', icon: GearSix },
 ];
 
 interface Notification {
   id: string;
-  text: string;
+  textKey: string;
+  textParams?: Record<string, string>;
   type: 'warning' | 'info' | 'success';
   read: boolean;
 }
 
 const initialNotifications: Notification[] = [
-  { id: 'n1', text: 'Ihre Buchung für Stellplatz 47 läuft in 30 Min ab', type: 'warning', read: false },
-  { id: 'n2', text: "Neuer Parkplatz 'Tiefgarage Süd' verfügbar", type: 'info', read: false },
-  { id: 'n3', text: 'Stellplatz 52 wurde für Sie freigegeben (Homeoffice)', type: 'success', read: false },
+  { id: 'n1', textKey: 'notifications.bookingExpiring', textParams: { slot: '47' }, type: 'warning', read: false },
+  { id: 'n2', textKey: 'notifications.newLotAvailable', textParams: { name: 'Tiefgarage Süd' }, type: 'info', read: false },
+  { id: 'n3', textKey: 'notifications.slotFreed', textParams: { slot: '52' }, type: 'success', read: false },
 ];
 
 const notifIcon = { warning: Warning, info: Info, success: CheckCircle };
@@ -60,6 +63,7 @@ const notifColor = {
 };
 
 export function Layout({ children }: LayoutProps) {
+  const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -72,6 +76,12 @@ export function Layout({ children }: LayoutProps) {
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const currentLang = i18n.language?.startsWith('en') ? 'en' : 'de';
+  function toggleLang() {
+    const next = currentLang === 'de' ? 'en' : 'de';
+    i18n.changeLanguage(next);
+  }
+
   useEffect(() => { applyTheme(isDark); }, [isDark]);
 
   useEffect(() => {
@@ -80,7 +90,6 @@ export function Layout({ children }: LayoutProps) {
     setNotifOpen(false);
   }, [location.pathname]);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
@@ -107,30 +116,40 @@ export function Layout({ children }: LayoutProps) {
             </Link>
 
             <nav className="hidden md:flex items-center gap-1">
-              {navigation.map((item) => {
+              {navigationKeys.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.href;
                 return (
                   <Link key={item.href} to={item.href} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isActive ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}>
                     <Icon weight={isActive ? 'fill' : 'regular'} className="w-5 h-5" />
-                    {item.name}
+                    {t(item.key)}
                   </Link>
                 );
               })}
-              {isAdmin && adminNav.map((item) => {
+              {isAdmin && adminNavKeys.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname.startsWith(item.href);
                 return (
                   <Link key={item.href} to={item.href} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isActive ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}>
                     <Icon weight={isActive ? 'fill' : 'regular'} className="w-5 h-5" />
-                    {item.name}
+                    {t(item.key)}
                   </Link>
                 );
               })}
             </nav>
 
             <div className="flex items-center gap-2">
-              <button onClick={toggle} className="btn btn-ghost btn-icon" aria-label="Theme umschalten">
+              {/* Language Toggle */}
+              <button
+                onClick={toggleLang}
+                className="btn btn-ghost px-2 py-1 text-xs font-bold tracking-wide"
+                aria-label="Toggle language"
+              >
+                <Translate weight="bold" className="w-4 h-4" />
+                <span>{currentLang.toUpperCase()}</span>
+              </button>
+
+              <button onClick={toggle} className="btn btn-ghost btn-icon" aria-label={t('theme.toggle')}>
                 {isDark ? <Sun weight="fill" className="w-5 h-5" /> : <Moon weight="fill" className="w-5 h-5" />}
               </button>
 
@@ -162,7 +181,7 @@ export function Layout({ children }: LayoutProps) {
                       className="absolute right-0 mt-2 w-80 card p-0 shadow-lg overflow-hidden"
                     >
                       <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                        <p className="font-semibold text-gray-900 dark:text-white text-sm">Benachrichtigungen</p>
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">{t('notifications.title')}</p>
                       </div>
                       <div className="max-h-72 overflow-y-auto">
                         {notifications.map((n) => {
@@ -178,9 +197,9 @@ export function Layout({ children }: LayoutProps) {
                               <NIcon weight="fill" className={`w-5 h-5 mt-0.5 flex-shrink-0 ${notifColor[n.type]}`} />
                               <div className="flex-1 min-w-0">
                                 <p className={`text-sm ${n.read ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white font-medium'}`}>
-                                  {n.text}
+                                  {t(n.textKey, n.textParams)}
                                 </p>
-                                <p className="text-xs text-gray-400 mt-0.5">vor 5 Min</p>
+                                <p className="text-xs text-gray-400 mt-0.5">{t('notifications.timeAgo')}</p>
                               </div>
                               {!n.read && <span className="w-2 h-2 bg-primary-500 rounded-full mt-2 flex-shrink-0" />}
                             </motion.button>
@@ -190,7 +209,7 @@ export function Layout({ children }: LayoutProps) {
                       {notifications.length === 0 && (
                         <div className="p-8 text-center">
                           <Bell weight="light" className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                          <p className="text-sm text-gray-400">Keine Benachrichtigungen</p>
+                          <p className="text-sm text-gray-400">{t('notifications.empty')}</p>
                         </div>
                       )}
                     </motion.div>
@@ -214,13 +233,13 @@ export function Layout({ children }: LayoutProps) {
                         <p className="text-sm text-gray-500">{user?.email}</p>
                       </div>
                       <Link to="/profile" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
-                        <User weight="regular" className="w-4 h-4" /> Profil
+                        <User weight="regular" className="w-4 h-4" /> {t('nav.profile')}
                       </Link>
                       <Link to="/settings" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
-                        <GearSix weight="regular" className="w-4 h-4" /> Einstellungen
+                        <GearSix weight="regular" className="w-4 h-4" /> {t('nav.settings')}
                       </Link>
                       <button onClick={logout} className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
-                        <SignOut weight="regular" className="w-4 h-4" /> Abmelden
+                        <SignOut weight="regular" className="w-4 h-4" /> {t('nav.logout')}
                       </button>
                     </motion.div>
                   )}
@@ -239,26 +258,26 @@ export function Layout({ children }: LayoutProps) {
           {mobileMenuOpen && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="md:hidden overflow-hidden border-t border-gray-100 dark:border-gray-800">
               <div className="px-4 py-3 space-y-1">
-                {navigation.map((item) => {
+                {navigationKeys.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.href;
                   return (
                     <Link key={item.href} to={item.href} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium ${isActive ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}>
-                      <Icon weight={isActive ? 'fill' : 'regular'} className="w-5 h-5" /> {item.name}
+                      <Icon weight={isActive ? 'fill' : 'regular'} className="w-5 h-5" /> {t(item.key)}
                     </Link>
                   );
                 })}
-                {isAdmin && adminNav.map((item) => {
+                {isAdmin && adminNavKeys.map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link key={item.href} to={item.href} className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">
-                      <Icon weight="regular" className="w-5 h-5" /> {item.name}
+                      <Icon weight="regular" className="w-5 h-5" /> {t(item.key)}
                     </Link>
                   );
                 })}
                 <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
                   <button onClick={logout} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-base font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
-                    <SignOut weight="regular" className="w-5 h-5" /> Abmelden
+                    <SignOut weight="regular" className="w-5 h-5" /> {t('nav.logout')}
                   </button>
                 </div>
               </div>
@@ -276,17 +295,17 @@ export function Layout({ children }: LayoutProps) {
         </div>
       </main>
 
-      {/* Footer - hidden on mobile when bottom bar shows */}
+      {/* Footer */}
       <footer className="hidden md:block bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              ParkHub — Open Source Parking Management · <span className="text-gray-400 dark:text-gray-500">v0.1.0</span>
+              {t('footer.tagline')} · <span className="text-gray-400 dark:text-gray-500">v0.1.0</span>
             </p>
             <div className="flex items-center gap-4 text-sm text-gray-400 dark:text-gray-500">
-              <a href="#" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Hilfe</a>
-              <a href="#" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Datenschutz</a>
-              <a href="#" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Impressum</a>
+              <a href="#" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.help')}</a>
+              <a href="#" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.privacy')}</a>
+              <a href="#" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.imprint')}</a>
             </div>
           </div>
         </div>
@@ -294,34 +313,32 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Mobile Bottom Tab Bar */}
       <MobileBottomBar isAdmin={isAdmin} />
-
-      {/* Bottom padding for mobile to account for bottom bar */}
       <div className="h-16 md:hidden" />
     </div>
   );
 }
 
-const mobileTabItems = [
-  { name: 'Dashboard', href: '/', icon: House },
-  { name: 'Buchen', href: '/book', icon: CalendarPlus },
-  { name: 'Buchungen', href: '/bookings', icon: ListChecks },
-  { name: 'Homeoffice', href: '/homeoffice', icon: House },
-  { name: 'Mehr', href: '#more', icon: DotsThreeCircle },
+const mobileTabKeys = [
+  { key: 'nav.dashboard', href: '/', icon: House },
+  { key: 'nav.book', href: '/book', icon: CalendarPlus },
+  { key: 'nav.bookings', href: '/bookings', icon: ListChecks },
+  { key: 'nav.homeoffice', href: '/homeoffice', icon: House },
+  { key: 'nav.more', href: '#more', icon: DotsThreeCircle },
 ];
 
-const moreItems = [
-  { name: 'Fahrzeuge', href: '/vehicles', icon: Car },
-  { name: 'Profil', href: '/profile', icon: User },
-  { name: 'Admin', href: '/admin', icon: GearSix, adminOnly: true },
+const moreItemKeys = [
+  { key: 'nav.vehicles', href: '/vehicles', icon: Car },
+  { key: 'nav.profile', href: '/profile', icon: User },
+  { key: 'nav.admin', href: '/admin', icon: GearSix, adminOnly: true },
 ];
 
 function MobileBottomBar({ isAdmin }: { isAdmin: boolean }) {
+  const { t } = useTranslation();
   const location = useLocation();
   const [showMore, setShowMore] = useState(false);
 
   return (
     <>
-      {/* More Sheet */}
       <AnimatePresence>
         {showMore && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 md:hidden" onClick={() => setShowMore(false)}>
@@ -336,7 +353,7 @@ function MobileBottomBar({ isAdmin }: { isAdmin: boolean }) {
             >
               <div className="w-8 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-4" />
               <div className="space-y-1">
-                {moreItems.filter(i => !i.adminOnly || isAdmin).map((item) => {
+                {moreItemKeys.filter(i => !i.adminOnly || isAdmin).map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.href;
                   return (
@@ -347,7 +364,7 @@ function MobileBottomBar({ isAdmin }: { isAdmin: boolean }) {
                       className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium ${isActive ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
                     >
                       <Icon weight={isActive ? 'fill' : 'regular'} className="w-5 h-5" />
-                      {item.name}
+                      {t(item.key)}
                     </Link>
                   );
                 })}
@@ -357,14 +374,13 @@ function MobileBottomBar({ isAdmin }: { isAdmin: boolean }) {
         )}
       </AnimatePresence>
 
-      {/* Bottom Tab Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 safe-area-bottom">
         <div className="flex items-center justify-around h-16">
-          {mobileTabItems.map((item) => {
+          {mobileTabKeys.map((item) => {
             const Icon = item.icon;
             const isMore = item.href === '#more';
             const isActive = !isMore && location.pathname === item.href;
-            const isMoreActive = isMore && moreItems.some(m => location.pathname === m.href);
+            const isMoreActive = isMore && moreItemKeys.some(m => location.pathname === m.href);
 
             if (isMore) {
               return (
@@ -374,7 +390,7 @@ function MobileBottomBar({ isAdmin }: { isAdmin: boolean }) {
                   className={`flex flex-col items-center justify-center gap-0.5 w-16 h-full text-xs font-medium transition-colors ${isMoreActive || showMore ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500'}`}
                 >
                   <Icon weight={isMoreActive || showMore ? 'fill' : 'regular'} className="w-6 h-6" />
-                  <span>{item.name}</span>
+                  <span>{t(item.key)}</span>
                 </button>
               );
             }
@@ -387,7 +403,7 @@ function MobileBottomBar({ isAdmin }: { isAdmin: boolean }) {
                 className={`flex flex-col items-center justify-center gap-0.5 w-16 h-full text-xs font-medium transition-colors ${isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500'}`}
               >
                 <Icon weight={isActive ? 'fill' : 'regular'} className="w-6 h-6" />
-                <span>{item.name}</span>
+                <span>{t(item.key)}</span>
               </Link>
             );
           })}
