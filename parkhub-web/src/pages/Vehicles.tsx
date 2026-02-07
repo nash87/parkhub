@@ -35,7 +35,7 @@ function PhotoUpload({ photoUrl, color, onPhotoChange, t }: { photoUrl?: string;
 
 function AddVehicleModal({ open, onClose, onSave }: { open: boolean; onClose: () => void; onSave: (v: Vehicle) => void }) {
   const { t } = useTranslation();
-  const [formData, setFormData] = useState({ license_plate: '', make: '', model: '', color: '', is_default: false });
+  const [formData, setFormData] = useState({ plate: '', make: '', model: '', color: '', is_default: false });
   const [photoUrl, setPhotoUrl] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
 
@@ -48,16 +48,16 @@ function AddVehicleModal({ open, onClose, onSave }: { open: boolean; onClose: ()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!formData.license_plate.trim()) return;
+    if (!formData.plate.trim()) return;
     setSaving(true);
     const newVehicle: Vehicle = {
-      id: 'v-' + Date.now(), user_id: 'demo-1', license_plate: formData.license_plate.toUpperCase(),
+      id: 'v-' + Date.now(), user_id: 'demo-1', plate: formData.plate.toUpperCase(),
       make: formData.make || undefined, model: formData.model || undefined, color: formData.color || undefined,
-      photoUrl: photoUrl || (formData.color ? generateCarPhotoSvg(formData.color) : undefined), is_default: formData.is_default,
+      photo_url: photoUrl || (formData.color ? generateCarPhotoSvg(formData.color) : undefined), is_default: formData.is_default,
     };
     await new Promise(r => setTimeout(r, 300));
     onSave(newVehicle);
-    setFormData({ license_plate: '', make: '', model: '', color: '', is_default: false });
+    setFormData({ plate: '', make: '', model: '', color: '', is_default: false });
     setPhotoUrl(undefined);
     setSaving(false);
   }
@@ -74,7 +74,7 @@ function AddVehicleModal({ open, onClose, onSave }: { open: boolean; onClose: ()
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <PhotoUpload photoUrl={photoUrl} color={formData.color} onPhotoChange={setPhotoUrl} t={t} />
-              <div><label className="label">{t('vehicles.plate')} *</label><input type="text" value={formData.license_plate} onChange={(e) => setFormData({ ...formData, license_plate: e.target.value.toUpperCase() })} placeholder={t('vehicles.platePlaceholder')} className="input font-mono text-lg tracking-wider" required autoFocus /></div>
+              <div><label className="label">{t('vehicles.plate')} *</label><input type="text" value={formData.plate} onChange={(e) => setFormData({ ...formData, plate: e.target.value.toUpperCase() })} placeholder={t('vehicles.platePlaceholder')} className="input font-mono text-lg tracking-wider" required autoFocus /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="label">{t('vehicles.make')}</label><input type="text" value={formData.make} onChange={(e) => setFormData({ ...formData, make: e.target.value })} placeholder={t('vehicles.makePlaceholder')} className="input" /></div>
                 <div><label className="label">{t('vehicles.model')}</label><input type="text" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} placeholder={t('vehicles.modelPlaceholder')} className="input" /></div>
@@ -86,7 +86,7 @@ function AddVehicleModal({ open, onClose, onSave }: { open: boolean; onClose: ()
               </label>
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
                 <button type="button" onClick={onClose} className="btn btn-secondary">{t('common.cancel')}</button>
-                <button type="submit" disabled={saving || !formData.license_plate.trim()} className="btn btn-primary">
+                <button type="submit" disabled={saving || !formData.plate.trim()} className="btn btn-primary">
                   {saving ? <SpinnerGap weight="bold" className="w-5 h-5 animate-spin" /> : <><CheckCircle weight="bold" className="w-4 h-4" />{t('common.save')}</>}
                 </button>
               </div>
@@ -145,17 +145,17 @@ export function VehiclesPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
                     <div className="relative group">
-                      {vehicle.photoUrl ? <img src={vehicle.photoUrl} alt={vehicle.license_plate} className="w-20 h-20 rounded-2xl object-cover" /> : (
+                      {vehicle.photo_url ? <img src={vehicle.photo_url} alt={vehicle.plate} className="w-20 h-20 rounded-2xl object-cover" /> : (
                         <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${colorClass || 'bg-gray-100 dark:bg-gray-800'}`}><Car weight="fill" className="w-10 h-10 text-white/40" /></div>
                       )}
-                      <button onClick={(e) => { e.stopPropagation(); const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = () => { if (input.files?.[0]) { const url = URL.createObjectURL(input.files[0]); setVehicles(prev => prev.map(v => v.id === vehicle.id ? { ...v, photoUrl: url } : v)); } }; input.click(); }}
+                      <button onClick={(e) => { e.stopPropagation(); const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = () => { if (input.files?.[0]) { const url = URL.createObjectURL(input.files[0]); setVehicles(prev => prev.map(v => v.id === vehicle.id ? { ...v, photo_url: url } : v)); } }; input.click(); }}
                         className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
                         <PencilSimple weight="bold" className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       </button>
                       <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full ${colorClass} ring-2 ring-white dark:ring-gray-900`} />
                     </div>
                     <div>
-                      <p className="text-xl font-bold text-gray-900 dark:text-white font-mono tracking-wider">{vehicle.license_plate}</p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-white font-mono tracking-wider">{vehicle.plate}</p>
                       {(vehicle.make || vehicle.model) && <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{vehicle.make} {vehicle.model}</p>}
                       {vehicle.color && <div className="flex items-center gap-1.5 mt-1"><div className={`w-2.5 h-2.5 rounded-full ${colorClass}`} /><span className="text-xs text-gray-500 dark:text-gray-500">{vehicle.color}</span></div>}
                     </div>

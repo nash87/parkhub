@@ -1,5 +1,9 @@
 /**
  * ParkHub API Client
+ *
+ * CORS Note: The backend must allow the frontend origin (e.g., http://localhost:5173)
+ * via Access-Control-Allow-Origin, Access-Control-Allow-Headers (Authorization, Content-Type),
+ * and Access-Control-Allow-Methods (GET, POST, PUT, DELETE, OPTIONS).
  */
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -16,6 +20,7 @@ interface ApiResponse<T> {
 
 class ApiClient {
   private token: string | null = null;
+  private refreshingPromise: Promise<boolean> | null = null;
 
   setToken(token: string | null) {
     this.token = token;
@@ -37,8 +42,9 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    const isFormData = options.body instanceof FormData;
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...options.headers as Record<string, string>,
     };
 
@@ -53,6 +59,35 @@ class ApiClient {
         headers,
       });
 
+      // Handle 401 — attempt token refresh once
+      if (response.status === 401) {
+        const refreshed = await this.tryRefreshToken();
+        if (refreshed) {
+          // Retry the original request with new token
+          const newToken = this.getToken();
+          if (newToken) {
+            headers['Authorization'] = `Bearer ${newToken}`;
+          }
+          const retryResponse = await fetch(`${API_BASE}${endpoint}`, {
+            ...options,
+            headers,
+          });
+          if (retryResponse.status === 204) return { success: true } as ApiResponse<T>;
+          return await retryResponse.json();
+        }
+        // Refresh failed — clear auth and redirect to login
+        this.clearAuth();
+        window.location.href = '/login';
+        return {
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Session expired. Please log in again.' },
+        };
+      }
+
+      if (response.status === 204) {
+        return { success: true } as ApiResponse<T>;
+      }
+
       const data = await response.json();
       return data;
     } catch (error) {
@@ -66,8 +101,47 @@ class ApiClient {
     }
   }
 
+  private async tryRefreshToken(): Promise<boolean> {
+    // Deduplicate concurrent refresh attempts
+    if (this.refreshingPromise) return this.refreshingPromise;
+
+    this.refreshingPromise = (async () => {
+      const refreshToken = localStorage.getItem('parkhub_refresh_token');
+      if (!refreshToken) return false;
+      try {
+        const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+        if (!response.ok) return false;
+        const result = await response.json();
+        if (result.success && result.data) {
+          this.setToken(result.data.access_token);
+          if (result.data.refresh_token) {
+            localStorage.setItem('parkhub_refresh_token', result.data.refresh_token);
+          }
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    })();
+
+    const result = await this.refreshingPromise;
+    this.refreshingPromise = null;
+    return result;
+  }
+
+  private clearAuth() {
+    this.token = null;
+    localStorage.removeItem('parkhub_token');
+    localStorage.removeItem('parkhub_refresh_token');
+  }
+
   // Auth
-  async login(username: string, password: string) {
+  async login(username: string, password: string): Promise<ApiResponse<{ user: User; tokens: AuthTokens }>> {
     if (DEMO_MODE) {
       return { success: true, data: { user: { id: 'demo-1', username, email: 'demo@parkhub.de', name: 'Max Mustermann', role: 'admin' as const, created_at: new Date().toISOString() }, tokens: { access_token: 'demo-token', refresh_token: 'demo-refresh', token_type: 'Bearer', expires_in: 86400 } } };
     }
@@ -77,7 +151,7 @@ class ApiClient {
     });
   }
 
-  async register(data: RegisterData) {
+  async register(data: RegisterData): Promise<ApiResponse<{ user: User; tokens: AuthTokens }>> {
     if (DEMO_MODE) {
       return { success: true, data: { user: { id: 'demo-' + Date.now(), username: data.username, email: data.email, name: data.name, role: 'user' as const, created_at: new Date().toISOString() }, tokens: { access_token: 'demo-token', refresh_token: 'demo-refresh', token_type: 'Bearer', expires_in: 86400 } } };
     }
@@ -87,7 +161,7 @@ class ApiClient {
     });
   }
 
-  async refreshToken(refreshToken: string) {
+  async refreshToken(refreshToken: string): Promise<ApiResponse<AuthTokens>> {
     return this.request<AuthTokens>('/api/v1/auth/refresh', {
       method: 'POST',
       body: JSON.stringify({ refresh_token: refreshToken }),
@@ -113,7 +187,12 @@ class ApiClient {
     return this.request<ParkingLot[]>('/api/v1/lots');
   }
 
-  async getLot(id: string) {
+  async getLot(id: string): Promise<ApiResponse<ParkingLot>> {
+    if (DEMO_MODE) {
+      const lots = (await this.getLots()).data || [];
+      const lot = lots.find(l => l.id === id);
+      return lot ? { success: true, data: lot } : { success: false, error: { code: 'NOT_FOUND', message: 'Lot not found' } };
+    }
     return this.request<ParkingLot>(`/api/v1/lots/${id}`);
   }
 
@@ -126,6 +205,22 @@ class ApiClient {
       }))};
     }
     return this.request<ParkingSlot[]>(`/api/v1/lots/${lotId}/slots`);
+  }
+
+  async getLotLayout(lotId: string): Promise<ApiResponse<LotLayout>> {
+    if (DEMO_MODE) {
+      const detailed = await this.getLotDetailed(lotId);
+      return { success: true, data: detailed.data?.layout };
+    }
+    return this.request<LotLayout>(`/api/v1/lots/${lotId}/layout`);
+  }
+
+  async saveLotLayout(lotId: string, layout: LotLayout): Promise<ApiResponse<void>> {
+    if (DEMO_MODE) return { success: true };
+    return this.request<void>(`/api/v1/lots/${lotId}/layout`, {
+      method: 'PUT',
+      body: JSON.stringify(layout),
+    });
   }
 
   // Bookings
@@ -143,7 +238,7 @@ class ApiClient {
     return this.request<Booking[]>('/api/v1/bookings');
   }
 
-  async createBooking(data: CreateBookingData) {
+  async createBooking(data: CreateBookingData): Promise<ApiResponse<Booking>> {
     if (DEMO_MODE) {
       return {
         success: true,
@@ -154,10 +249,12 @@ class ApiClient {
           lot_id: 'lot-1',
           slot_number: '47',
           lot_name: 'Firmenparkplatz',
-          vehicle_plate: data.license_plate || 'M-AB 1234',
+          vehicle_plate: 'M-AB 1234',
           start_time: data.start_time,
-          end_time: new Date(new Date(data.start_time).getTime() + (data.duration_minutes || 60) * 60000).toISOString(),
+          end_time: data.end_time,
           status: 'active' as const,
+          booking_type: data.booking_type || 'einmalig',
+          dauer_interval: data.dauer_interval,
           created_at: new Date().toISOString(),
         },
       };
@@ -168,7 +265,8 @@ class ApiClient {
     });
   }
 
-  async cancelBooking(id: string) {
+  async cancelBooking(id: string): Promise<ApiResponse<void>> {
+    if (DEMO_MODE) return { success: true };
     return this.request<void>(`/api/v1/bookings/${id}`, {
       method: 'DELETE',
     });
@@ -178,21 +276,25 @@ class ApiClient {
   async getVehicles(): Promise<ApiResponse<Vehicle[]>> {
     if (DEMO_MODE) {
       return { success: true, data: [
-        { id: 'v1', user_id: 'demo-1', license_plate: 'M-AB 1234', make: 'BMW', model: '320i', color: 'Schwarz', photoUrl: generateCarPhotoSvg('Schwarz'), is_default: true },
-        { id: 'v2', user_id: 'demo-1', license_plate: 'M-CD 5678', make: 'VW', model: 'Golf', color: 'Weiß', photoUrl: generateCarPhotoSvg('Weiß'), is_default: false },
+        { id: 'v1', user_id: 'demo-1', plate: 'M-AB 1234', make: 'BMW', model: '320i', color: 'Schwarz', photo_url: generateCarPhotoSvg('Schwarz'), is_default: true },
+        { id: 'v2', user_id: 'demo-1', plate: 'M-CD 5678', make: 'VW', model: 'Golf', color: 'Weiß', photo_url: generateCarPhotoSvg('Weiß'), is_default: false },
       ]};
     }
     return this.request<Vehicle[]>('/api/v1/vehicles');
   }
 
-  async createVehicle(data: CreateVehicleData) {
+  async createVehicle(data: CreateVehicleData): Promise<ApiResponse<Vehicle>> {
+    if (DEMO_MODE) {
+      return { success: true, data: { id: 'v-' + Date.now(), user_id: 'demo-1', plate: data.plate, make: data.make, model: data.model, color: data.color, is_default: data.is_default ?? false } };
+    }
     return this.request<Vehicle>('/api/v1/vehicles', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteVehicle(id: string) {
+  async deleteVehicle(id: string): Promise<ApiResponse<void>> {
+    if (DEMO_MODE) return { success: true };
     return this.request<void>(`/api/v1/vehicles/${id}`, {
       method: 'DELETE',
     });
@@ -205,11 +307,21 @@ class ApiClient {
     }
     const formData = new FormData();
     formData.append('photo', file);
-    return this.request(`/api/v1/vehicles/${vehicleId}/photo`, { method: 'POST', body: formData });
+    // Don't set Content-Type — browser sets it with boundary for FormData
+    return this.request<{ url: string }>(`/api/v1/vehicles/${vehicleId}/photo`, {
+      method: 'POST',
+      body: formData,
+    });
   }
 
-  // Lot detailed (mock)
+  // Lot detailed — for real API, GET /api/v1/lots/:id includes layout
   async getLotDetailed(id: string): Promise<ApiResponse<ParkingLotDetailed>> {
+    if (!DEMO_MODE) {
+      // Backend returns lot with layout included
+      return this.request<ParkingLotDetailed>(`/api/v1/lots/${id}`);
+    }
+
+    // Demo mode — return mock layouts
     if (id === 'lot-2') {
       return {
         success: true,
@@ -313,22 +425,47 @@ class ApiClient {
         parkingSlot: { number: '47', lotName: 'Firmenparkplatz' },
       }};
     }
-    return this.request('/api/v1/homeoffice');
+    return this.request<HomeofficeSettings>('/api/v1/homeoffice');
   }
 
   async updateHomeofficePattern(weekdays: number[]): Promise<ApiResponse<void>> {
     if (DEMO_MODE) return { success: true };
-    return this.request('/api/v1/homeoffice/pattern', { method: 'PUT', body: JSON.stringify({ weekdays }) });
+    return this.request<void>('/api/v1/homeoffice/pattern', { method: 'PUT', body: JSON.stringify({ weekdays }) });
   }
 
   async addHomeofficeDay(date: string, reason?: string): Promise<ApiResponse<HomeofficeDay>> {
     if (DEMO_MODE) return { success: true, data: { id: `ho-${Date.now()}`, date, reason } };
-    return this.request('/api/v1/homeoffice/days', { method: 'POST', body: JSON.stringify({ date, reason }) });
+    return this.request<HomeofficeDay>('/api/v1/homeoffice/days', { method: 'POST', body: JSON.stringify({ date, reason }) });
   }
 
   async removeHomeofficeDay(id: string): Promise<ApiResponse<void>> {
     if (DEMO_MODE) return { success: true };
-    return this.request(`/api/v1/homeoffice/days/${id}`, { method: 'DELETE' });
+    return this.request<void>(`/api/v1/homeoffice/days/${id}`, { method: 'DELETE' });
+  }
+
+  // Admin
+  async getAdminUsers(): Promise<ApiResponse<User[]>> {
+    if (DEMO_MODE) {
+      return { success: true, data: [
+        { id: 'demo-1', username: 'demo', email: 'demo@parkhub.de', name: 'Max Mustermann', role: 'admin', created_at: new Date().toISOString() },
+        { id: 'demo-2', username: 'lisa', email: 'lisa@parkhub.de', name: 'Lisa Schmidt', role: 'user', created_at: new Date().toISOString() },
+      ]};
+    }
+    return this.request<User[]>('/api/v1/admin/users');
+  }
+
+  async getAdminBookings(): Promise<ApiResponse<Booking[]>> {
+    if (DEMO_MODE) {
+      return this.getBookings(); // reuse demo bookings
+    }
+    return this.request<Booking[]>('/api/v1/admin/bookings');
+  }
+
+  async getAdminStats(): Promise<ApiResponse<AdminStats>> {
+    if (DEMO_MODE) {
+      return { success: true, data: { total_users: 12, total_lots: 2, total_bookings: 47, active_bookings: 8, total_vehicles: 15 } };
+    }
+    return this.request<AdminStats>('/api/v1/admin/stats');
   }
 
   // Health
@@ -369,6 +506,7 @@ export interface ParkingLot {
   address: string;
   total_slots: number;
   available_slots: number;
+  layout?: LotLayout;
 }
 
 export interface ParkingSlot {
@@ -399,19 +537,20 @@ export interface Booking {
 export interface CreateBookingData {
   slot_id: string;
   start_time: string;
-  duration_minutes: number;
+  end_time: string;
+  booking_type: 'einmalig' | 'mehrtaegig' | 'dauer';
+  dauer_interval?: 'weekly' | 'monthly';
   vehicle_id?: string;
-  license_plate?: string;
 }
 
 export interface Vehicle {
   id: string;
   user_id: string;
-  license_plate: string;
+  plate: string;
   make?: string;
   model?: string;
   color?: string;
-  photoUrl?: string;
+  photo_url?: string;
   is_default: boolean;
 }
 
@@ -436,10 +575,11 @@ export function generateCarPhotoSvg(color: string): string {
 }
 
 export interface CreateVehicleData {
-  license_plate: string;
+  plate: string;
   make?: string;
   model?: string;
   color?: string;
+  is_default?: boolean;
 }
 
 // Parking lot layout configuration
@@ -483,4 +623,13 @@ export interface HomeofficeSettings {
   pattern: HomeofficePattern;
   singleDays: HomeofficeDay[];
   parkingSlot?: { number: string; lotName: string };
+}
+
+// Admin types
+export interface AdminStats {
+  total_users: number;
+  total_lots: number;
+  total_bookings: number;
+  active_bookings: number;
+  total_vehicles: number;
 }

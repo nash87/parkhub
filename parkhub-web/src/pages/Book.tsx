@@ -117,16 +117,22 @@ export function BookPage() {
     if (bookingType === 'mehrtaegig') durationMinutes = differenceInDays(new Date(endDate), new Date(startDate)) * 24 * 60;
     else if (bookingType === 'dauer') durationMinutes = dauerInterval === 'monthly' ? 30 * 24 * 60 : 7 * 24 * 60;
 
+    const startIso = bookingType === 'mehrtaegig' ? new Date(startDate).toISOString() : startTime.toISOString();
+    const endIso = bookingType === 'mehrtaegig'
+      ? new Date(endDate).toISOString()
+      : new Date(startTime.getTime() + durationMinutes * 60000).toISOString();
+
     const res = await api.createBooking({
       slot_id: selectedSlot.id,
-      start_time: bookingType === 'mehrtaegig' ? new Date(startDate).toISOString() : startTime.toISOString(),
-      duration_minutes: durationMinutes,
+      start_time: startIso,
+      end_time: endIso,
+      booking_type: bookingType,
+      dauer_interval: bookingType === 'dauer' ? dauerInterval : undefined,
       vehicle_id: selectedVehicle || undefined,
-      license_plate: !selectedVehicle ? customPlate : undefined,
     });
 
     if (res.success) {
-      const plate = selectedVehicle ? (vehicles.find(v => v.id === selectedVehicle)?.license_plate || '') : customPlate;
+      const plate = selectedVehicle ? (vehicles.find(v => v.id === selectedVehicle)?.plate || '') : customPlate;
       const typeLabel = bookingType === 'einmalig' ? t('book.single') : bookingType === 'mehrtaegig' ? t('book.multiDay') : t('book.recurring');
       const endT = addMinutes(new Date(), duration);
       const timeLabel = bookingType === 'einmalig'
@@ -281,7 +287,7 @@ export function BookPage() {
                 {vehicles.length > 0 && (
                   <select value={selectedVehicle} onChange={(e) => { setSelectedVehicle(e.target.value); setCustomPlate(''); }} className="input">
                     <option value="">{t('book.otherPlate')}</option>
-                    {vehicles.map((v) => <option key={v.id} value={v.id}>{v.license_plate} {v.make && v.model ? `(${v.make} ${v.model})` : ''}</option>)}
+                    {vehicles.map((v) => <option key={v.id} value={v.id}>{v.plate} {v.make && v.model ? `(${v.make} ${v.model})` : ''}</option>)}
                   </select>
                 )}
                 {!selectedVehicle && <input type="text" value={customPlate} onChange={(e) => setCustomPlate(e.target.value.toUpperCase())} placeholder={t('book.enterPlate')} className="input mt-2" />}
@@ -308,7 +314,7 @@ export function BookPage() {
                   {bookingType === 'dauer' && <>{dauerInterval === 'weekly' ? `${t('book.weeklyShort')} (${dauerDays.map(d => dayNames[d]).join(', ')})` : t('book.monthly')} ab {format(new Date(startDate), 'd. MMM yyyy', { locale: dateFnsLocale })}</>}
                 </p>
               </div>
-              <div className="col-span-2"><p className="text-white/70 text-sm">{t('book.licensePlate')}</p><p className="font-medium">{selectedVehicle ? vehicles.find(v => v.id === selectedVehicle)?.license_plate : customPlate || '—'}</p></div>
+              <div className="col-span-2"><p className="text-white/70 text-sm">{t('book.licensePlate')}</p><p className="font-medium">{selectedVehicle ? vehicles.find(v => v.id === selectedVehicle)?.plate : customPlate || '—'}</p></div>
             </div>
             <button onClick={handleBook} disabled={booking || (!selectedVehicle && !customPlate)} className="btn bg-white text-primary-700 hover:bg-white/90 w-full justify-center">
               {booking ? <SpinnerGap weight="bold" className="w-5 h-5 animate-spin" /> : <><CheckCircle weight="bold" className="w-5 h-5" />{t('book.bookNow')}</>}

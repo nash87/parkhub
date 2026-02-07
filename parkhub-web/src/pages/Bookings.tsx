@@ -121,7 +121,7 @@ export function BookingsPage() {
     } finally { setLoading(false); }
   }
 
-  function getVehiclePhoto(plate?: string) { if (!plate) return undefined; return vehicles.find(v => v.license_plate === plate)?.photoUrl; }
+  function getVehiclePhoto(plate?: string) { if (!plate) return undefined; return vehicles.find(v => v.plate === plate)?.photo_url; }
 
   async function handleCancel(id: string) {
     setCancelling(id);
