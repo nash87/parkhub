@@ -1220,101 +1220,69 @@ async fn generate_dummy_users(db: &Database, username_style: UsernameStyle) -> R
 async fn create_sample_parking_lot(db: &Database) -> Result<()> {
     use chrono::Utc;
     use parkhub_common::models::{
-        LotStatus, OperatingHours, ParkingFloor, ParkingLot, ParkingSlot, PricingInfo,
-        PricingRate, SlotFeature, SlotPosition, SlotStatus, SlotType,
+        LotLayout, LotRow, LotStatus, ParkingLot, ParkingSlot, RowSide, SlotConfig, SlotStatus,
     };
     use uuid::Uuid;
 
     let lot_id = Uuid::new_v4();
-    let floor_id = Uuid::new_v4();
 
     // Create 10 parking slots
     let mut slots = Vec::new();
+    let mut top_slot_configs = Vec::new();
+    let mut bottom_slot_configs = Vec::new();
+
     for i in 1..=10 {
+        let slot_id = Uuid::new_v4();
+        let slot_number = format!("P{}", i);
+
         slots.push(ParkingSlot {
-            id: Uuid::new_v4(),
+            id: slot_id,
             lot_id,
-            floor_id,
-            slot_number: i,
-            row: (i - 1) / 5,
-            column: (i - 1) % 5,
-            slot_type: if i == 1 {
-                SlotType::Handicap
-            } else if i == 10 {
-                SlotType::Electric
-            } else {
-                SlotType::Standard
-            },
+            slot_number: slot_number.clone(),
             status: SlotStatus::Available,
             current_booking: None,
-            features: if i <= 2 {
-                vec![SlotFeature::NearExit]
-            } else {
-                vec![]
-            },
-            position: SlotPosition {
-                x: ((i - 1) % 5) as f32 * 80.0,
-                y: ((i - 1) / 5) as f32 * 100.0,
-                width: 70.0,
-                height: 90.0,
-                rotation: 0.0,
-            },
         });
+
+        let config = SlotConfig {
+            id: slot_id.to_string(),
+            number: slot_number,
+            status: SlotStatus::Available,
+            vehicle_plate: None,
+            homeoffice_user: None,
+        };
+
+        if i <= 5 {
+            top_slot_configs.push(config);
+        } else {
+            bottom_slot_configs.push(config);
+        }
     }
 
-    let floor = ParkingFloor {
-        id: floor_id,
-        lot_id,
-        name: "Ground Floor".to_string(),
-        floor_number: 0,
-        total_slots: 10,
-        available_slots: 10,
-        slots: slots.clone(),
+    let layout = LotLayout {
+        rows: vec![
+            LotRow {
+                id: Uuid::new_v4().to_string(),
+                label: Some("Row A".to_string()),
+                side: RowSide::Top,
+                slots: top_slot_configs,
+            },
+            LotRow {
+                id: Uuid::new_v4().to_string(),
+                label: Some("Row B".to_string()),
+                side: RowSide::Bottom,
+                slots: bottom_slot_configs,
+            },
+        ],
+        road_label: Some("Main Road".to_string()),
     };
 
     let lot = ParkingLot {
         id: lot_id,
-        name: "Home Parking".to_string(),
+        name: "Company Parking".to_string(),
         address: "123 Main Street".to_string(),
-        latitude: 0.0,
-        longitude: 0.0,
         total_slots: 10,
         available_slots: 10,
-        floors: vec![floor],
-        amenities: vec!["Security".to_string(), "Covered".to_string()],
-        pricing: PricingInfo {
-            currency: "EUR".to_string(),
-            rates: vec![
-                PricingRate {
-                    duration_minutes: 60,
-                    price: 2.0,
-                    label: "1 hour".to_string(),
-                },
-                PricingRate {
-                    duration_minutes: 120,
-                    price: 3.5,
-                    label: "2 hours".to_string(),
-                },
-                PricingRate {
-                    duration_minutes: 240,
-                    price: 6.0,
-                    label: "4 hours".to_string(),
-                },
-            ],
-            daily_max: Some(15.0),
-            monthly_pass: Some(200.0),
-        },
-        operating_hours: OperatingHours {
-            is_24h: true,
-            monday: None,
-            tuesday: None,
-            wednesday: None,
-            thursday: None,
-            friday: None,
-            saturday: None,
-            sunday: None,
-        },
-        images: vec![],
+        layout: Some(layout),
         status: LotStatus::Open,
         created_at: Utc::now(),
         updated_at: Utc::now(),

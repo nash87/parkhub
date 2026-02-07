@@ -146,8 +146,7 @@ pub struct HandshakeResponse {
 pub struct SlotUpdateEvent {
     pub lot_id: String,
     pub slot_id: String,
-    pub slot_number: i32,
-    pub floor_id: String,
+    pub slot_number: String,
     pub previous_status: SlotStatus,
     pub new_status: SlotStatus,
     pub booking_info: Option<SlotBookingInfo>,
