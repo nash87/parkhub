@@ -344,7 +344,8 @@ impl Database {
         let write_txn = db.begin_write()?;
         let existed = {
             let mut table = write_txn.open_table(SESSIONS)?;
-            table.remove(token)?.is_some()
+            let existed = table.remove(token)?.is_some();
+            existed
         };
         write_txn.commit()?;
         Ok(existed)
@@ -489,7 +490,8 @@ impl Database {
         let write_txn = db.begin_write()?;
         let existed = {
             let mut table = write_txn.open_table(PARKING_LOTS)?;
-            table.remove(id)?.is_some()
+            let existed = table.remove(id)?.is_some();
+            existed
         };
         write_txn.commit()?;
         if existed {
@@ -612,7 +614,8 @@ impl Database {
         let write_txn = db.begin_write()?;
         let existed = {
             let mut table = write_txn.open_table(BOOKINGS)?;
-            table.remove(id)?.is_some()
+            let existed = table.remove(id)?.is_some();
+            existed
         };
         write_txn.commit()?;
         if existed {
