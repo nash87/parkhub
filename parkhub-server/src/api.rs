@@ -149,6 +149,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/privacy", get(get_privacy_policy))
         .route("/api/v1/about", get(get_about))
         .route("/api/v1/help", get(get_help))
+        .route("/api/v1/setup/change-password", post(setup_change_password))
         .route("/api/v1/setup/status", get(get_setup_status))
         .route("/api/v1/branding", get(get_branding_public))
         .route("/api/v1/branding/logo", get(serve_branding_logo));
@@ -2247,4 +2248,40 @@ async fn load_branding_config(db: &crate::db::Database) -> BrandingConfig {
         }
         _ => BrandingConfig::default(),
     }
+}
+
+/// POST /api/v1/setup/change-password - Change admin password during setup (no auth required)
+/// Only works when setup is not complete
+async fn setup_change_password(
+    State(state): State<SharedState>,
+    Json(req): Json<serde_json::Value>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state = state.read().await;
+    
+    let current_password = req.get("current_password").and_then(|v| v.as_str()).unwrap_or("");
+    let new_password = req.get("new_password").and_then(|v| v.as_str()).unwrap_or("");
+    
+    if new_password.len() < 8 {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("WEAK_PASSWORD", "Password must be at least 8 characters")));
+    }
+    
+    // Find admin user
+    let mut admin = match state.db.get_user_by_username("admin").await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Admin user not found"))),
+    };
+    
+    if !verify_password(current_password, &admin.password_hash) {
+        return (StatusCode::UNAUTHORIZED, Json(ApiResponse::error("INVALID_PASSWORD", "Current password is incorrect")));
+    }
+    
+    admin.password_hash = hash_password(new_password);
+    admin.updated_at = chrono::Utc::now();
+    
+    if let Err(e) = state.db.save_user(&admin).await {
+        tracing::error!("Failed to update password: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to update password")));
+    }
+    
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({ "message": "Password changed successfully" }))))
 }

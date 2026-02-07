@@ -9,8 +9,13 @@ import toast from 'react-hot-toast';
 
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('parkhub_token');
-  return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+  return token
+    ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+    : { 'Content-Type': 'application/json' };
 }
+
+
+
 
 interface OnboardingWizardProps {
   onComplete: () => void;
@@ -78,26 +83,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     }
 
     try {
-      // Always fresh-login first to ensure valid token
-      const loginRes = await fetch('/api/v1/auth/login', {
+      // Use setup endpoint (no auth required during initial setup)
+      const res = await fetch('/api/v1/setup/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin', password: currentPassword }),
-      });
-      const loginData = await loginRes.json();
-      if (!loginData.success) {
-        setPasswordError('Aktuelles Passwort ist falsch');
-        return false;
-      }
-      const freshToken = loginData.data.tokens.access_token;
-      localStorage.setItem('parkhub_token', freshToken);
-      if (loginData.data.tokens.refresh_token)
-        localStorage.setItem('parkhub_refresh_token', loginData.data.tokens.refresh_token);
-
-      // Now change password with guaranteed fresh token
-      const res = await fetch('/api/v1/users/me/password', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${freshToken}` },
         body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
       });
       const data = await res.json();
