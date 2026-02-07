@@ -521,6 +521,27 @@ async fn list_lots(State(state): State<SharedState>) -> Json<ApiResponse<Vec<Par
     }
 }
 
+
+/// Sync ParkingSlot records from a LotLayout
+async fn sync_slots_from_layout(db: &crate::db::Database, lot_id: &uuid::Uuid, layout: &parkhub_common::LotLayout) {
+    for row in &layout.rows {
+        for slot_config in &row.slots {
+            let slot_id = uuid::Uuid::parse_str(&slot_config.id).unwrap_or_else(|_| uuid::Uuid::new_v4());
+            let slot = ParkingSlot {
+                id: slot_id,
+                lot_id: *lot_id,
+                slot_number: slot_config.number.clone(),
+                status: slot_config.status.clone(),
+                current_booking: None,
+                reserved_for_department: None,
+            };
+            if let Err(e) = db.save_parking_slot(&slot).await {
+                tracing::warn!("Failed to sync slot {}: {}", slot_config.number, e);
+            }
+        }
+    }
+}
+
 async fn create_lot(
     State(state): State<SharedState>,
     Extension(auth_user): Extension<AuthUser>,
@@ -537,6 +558,10 @@ async fn create_lot(
     if let Err(e) = state_guard.db.save_parking_lot(&lot).await {
         tracing::error!("Failed to save parking lot: {}", e);
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to create parking lot")));
+    }
+    // Auto-create ParkingSlot records from layout
+    if let Some(ref layout) = lot.layout {
+        sync_slots_from_layout(&state_guard.db, &lot.id, layout).await;
     }
     AuditEntry::new(AuditEventType::LotCreated)
         .user(auth_user.user_id, &user.username)
@@ -634,6 +659,10 @@ async fn update_lot_layout(
         }
     }
     let _ = state_guard.db.save_lot_layout(&id, &layout).await;
+    // Sync ParkingSlot records from updated layout
+    if let Ok(lot_uuid) = uuid::Uuid::parse_str(&id) {
+        sync_slots_from_layout(&state_guard.db, &lot_uuid, &layout).await;
+    }
     (StatusCode::OK, Json(ApiResponse::success(layout)))
 }
 
