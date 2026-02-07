@@ -97,6 +97,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/lots/:lot_id/slots/:slot_id/qr", get(slot_qr_code))
         .route("/api/v1/lots/:id/waitlist", get(get_waitlist).post(join_waitlist))
         .route("/api/v1/push/subscribe", post(push_subscribe))
+        .route("/api/v1/admin/users/:id", axum::routing::patch(admin_update_user))
         .route("/api/v1/admin/slots/:id", axum::routing::patch(admin_update_slot))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
@@ -294,13 +295,12 @@ async fn register(
         return (StatusCode::CONFLICT, Json(ApiResponse::error("EMAIL_EXISTS", "An account with this email already exists")));
     }
 
-    let username = request.email.split('@').next().unwrap_or("user").to_string();
-    let mut final_username = username.clone();
-    let mut counter = 1;
-    while let Ok(Some(_)) = state_guard.db.get_user_by_username(&final_username).await {
-        final_username = format!("{}{}", username, counter);
-        counter += 1;
+    // Check if username is already taken
+    if let Ok(Some(_)) = state_guard.db.get_user_by_username(&request.username).await {
+        return (StatusCode::CONFLICT, Json(ApiResponse::error("USERNAME_EXISTS", "This username is already taken")));
     }
+
+    let final_username = request.username.clone();
 
     let password_hash = hash_password(&request.password);
     let now = Utc::now();
@@ -1285,6 +1285,54 @@ async fn push_subscribe(
 #[derive(Debug, serde::Deserialize)]
 struct AdminUpdateSlotRequest {
     reserved_for_department: Option<String>,
+}
+
+/// Admin: update user (department, role, active status)
+async fn admin_update_user(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(user_id): Path<String>,
+    Json(body): Json<serde_json::Value>,
+) -> (StatusCode, Json<ApiResponse<User>>) {
+    let state_guard = state.read().await;
+    let admin = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if admin.role != UserRole::Admin && admin.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let mut user = match state_guard.db.get_user(&user_id).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "User not found"))),
+    };
+
+    if let Some(dept) = body.get("department") {
+        user.department = dept.as_str().map(|s| s.to_string());
+    }
+    if let Some(role) = body.get("role").and_then(|r| r.as_str()) {
+        match role {
+            "user" => user.role = UserRole::User,
+            "admin" => user.role = UserRole::Admin,
+            "superadmin" => user.role = UserRole::SuperAdmin,
+            _ => {}
+        }
+    }
+    if let Some(active) = body.get("is_active").and_then(|a| a.as_bool()) {
+        user.is_active = active;
+    }
+
+    user.updated_at = Utc::now();
+
+    if let Err(e) = state_guard.db.save_user(&user).await {
+        tracing::error!("Failed to update user: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to update user")));
+    }
+
+    let mut response_user = user;
+    response_user.password_hash = String::new();
+    (StatusCode::OK, Json(ApiResponse::success(response_user)))
 }
 
 async fn admin_update_slot(

@@ -99,6 +99,7 @@ pub struct RefreshTokenRequest {
 /// Register new user request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegisterRequest {
+    pub username: String,
     pub email: String,
     pub password: String,
     pub name: String,
