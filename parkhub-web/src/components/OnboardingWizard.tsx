@@ -78,14 +78,32 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     }
 
     try {
-      const res = await fetch('/api/v1/users/me/password', {
+      let res = await fetch('/api/v1/users/me/password', {
         method: 'PATCH',
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-          current_password: currentPassword,
-          new_password: newPassword,
-        }),
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
       });
+
+      // Auto re-login on 401 (stale token from previous server session)
+      if (res.status === 401) {
+        const loginRes = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'admin', password: currentPassword }),
+        });
+        const loginData = await loginRes.json();
+        if (loginData.success && loginData.data?.tokens?.access_token) {
+          localStorage.setItem('parkhub_token', loginData.data.tokens.access_token);
+          if (loginData.data.tokens.refresh_token)
+            localStorage.setItem('parkhub_refresh_token', loginData.data.tokens.refresh_token);
+          res = await fetch('/api/v1/users/me/password', {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+          });
+        }
+      }
+
       const data = await res.json();
       if (data.success) {
         setPasswordChanged(true);
