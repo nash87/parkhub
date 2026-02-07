@@ -11,7 +11,7 @@ use axum::{
     routing::{delete, get, post, put},
     Extension, Json, Router,
 };
-use chrono::{Duration, Utc};
+use chrono::{Datelike, Duration, Utc};
 use metrics_exporter_prometheus::PrometheusHandle;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -34,6 +34,7 @@ use parkhub_common::{
     HomeofficePattern, HomeofficeSettings, LoginRequest, LoginResponse, LotLayout,
     ParkingLot, ParkingSlot, RefreshTokenRequest, RegisterRequest, ServerStatus,
     SlotStatus, User, UserPreferences, UserRole, Vehicle, AdminStats,
+    WaitlistEntry, PushSubscription, RecurrenceRule,
     PROTOCOL_VERSION,
 };
 
@@ -94,6 +95,9 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/admin/stats", get(admin_stats))
         .route("/api/v1/admin/reports", get(admin_reports))
         .route("/api/v1/lots/:lot_id/slots/:slot_id/qr", get(slot_qr_code))
+        .route("/api/v1/lots/:id/waitlist", get(get_waitlist).post(join_waitlist))
+        .route("/api/v1/push/subscribe", post(push_subscribe))
+        .route("/api/v1/admin/slots/:id", axum::routing::patch(admin_update_slot))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
@@ -314,6 +318,7 @@ async fn register(
         last_login: Some(now),
         preferences: UserPreferences::default(),
         is_active: true,
+        department: None,
     };
 
     if let Err(e) = state_guard.db.save_user(&user).await {
@@ -564,6 +569,19 @@ async fn create_booking(
         return (StatusCode::CONFLICT, Json(ApiResponse::error("SLOT_UNAVAILABLE", "This slot is not available")));
     }
 
+    // Department check
+    if let Some(ref dept) = slot.reserved_for_department {
+        let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+            Ok(Some(u)) => u,
+            _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+        };
+        let user_dept = user.department.as_deref().unwrap_or("");
+        if user_dept != dept && user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+            return (StatusCode::FORBIDDEN, Json(ApiResponse::error("DEPARTMENT_RESTRICTED",
+                format!("This slot is reserved for department: {}", dept))));
+        }
+    }
+
     // Get lot name
     let lot_name = match state_guard.db.get_parking_lot(&req.lot_id.to_string()).await {
         Ok(Some(lot)) => Some(lot.name),
@@ -599,15 +617,17 @@ async fn create_booking(
         slot_id: req.slot_id,
         booking_type: req.booking_type.unwrap_or_default(),
         dauer_interval: req.dauer_interval,
-        lot_name,
+        lot_name: lot_name.clone(),
         slot_number: Some(slot.slot_number.clone()),
-        vehicle_plate,
+        vehicle_plate: vehicle_plate.clone(),
         start_time: req.start_time,
         end_time,
         status: BookingStatus::Confirmed,
         created_at: now,
         updated_at: now,
-        notes: req.notes,
+        notes: req.notes.clone(),
+        recurrence: req.recurrence.clone(),
+        checked_in_at: None,
     };
 
     if let Err(e) = state_guard.db.save_booking(&booking).await {
@@ -619,6 +639,56 @@ async fn create_booking(
     let mut updated_slot = slot;
     updated_slot.status = SlotStatus::Reserved;
     let _ = state_guard.db.save_parking_slot(&updated_slot).await;
+
+    // Send confirmation email if configured
+    if let Some(ref email_svc) = state_guard.email {
+        if let Ok(Some(user)) = state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+            let _ = email_svc.send_booking_confirmation(
+                &user.email, &user.name,
+                booking.slot_number.as_deref().unwrap_or("?"),
+                booking.lot_name.as_deref().unwrap_or("Lot"),
+                &booking.start_time.to_rfc3339(), &booking.end_time.to_rfc3339(),
+            ).await;
+        }
+    }
+
+    // Expand recurring bookings
+    if let Some(ref recurrence) = booking.recurrence {
+        let start_date = booking.start_time.date_naive();
+        let end_date = chrono::NaiveDate::parse_from_str(&recurrence.until, "%Y-%m-%d")
+            .unwrap_or(start_date + chrono::Duration::days(90));
+        let duration = booking.end_time - booking.start_time;
+        let time_of_day = booking.start_time.time();
+        let mut current = start_date + chrono::Duration::days(1);
+        while current <= end_date {
+            let weekday = current.weekday().num_days_from_monday() as u8;
+            if recurrence.weekdays.contains(&weekday) {
+                let cs = current.and_time(time_of_day).and_utc();
+                let ce = cs + duration;
+                let child = Booking {
+                    id: Uuid::new_v4(), user_id: auth_user.user_id,
+                    lot_id: booking.lot_id, slot_id: booking.slot_id,
+                    booking_type: booking.booking_type.clone(),
+                    dauer_interval: booking.dauer_interval.clone(),
+                    lot_name: booking.lot_name.clone(),
+                    slot_number: booking.slot_number.clone(),
+                    vehicle_plate: booking.vehicle_plate.clone(),
+                    start_time: cs, end_time: ce,
+                    status: BookingStatus::Confirmed,
+                    created_at: now, updated_at: now,
+                    notes: booking.notes.clone(),
+                    recurrence: Some(RecurrenceRule {
+                        weekdays: recurrence.weekdays.clone(),
+                        until: recurrence.until.clone(),
+                        parent_id: Some(booking.id),
+                    }),
+                    checked_in_at: None,
+                };
+                let _ = state_guard.db.save_booking(&child).await;
+            }
+            current += chrono::Duration::days(1);
+        }
+    }
 
     (StatusCode::CREATED, Json(ApiResponse::success(booking)))
 }
@@ -676,6 +746,23 @@ async fn cancel_booking(
     if let Ok(Some(mut slot)) = state_guard.db.get_parking_slot(&booking.slot_id.to_string()).await {
         slot.status = SlotStatus::Available;
         let _ = state_guard.db.save_parking_slot(&slot).await;
+    }
+
+    // Notify first person on waitlist
+    let date = booking.start_time.format("%Y-%m-%d").to_string();
+    if let Ok(waitlist) = state_guard.db.list_waitlist_by_lot(&booking.lot_id.to_string(), Some(&date)).await {
+        if let Some(first) = waitlist.first() {
+            if !first.notified {
+                if let Some(ref email_svc) = state_guard.email {
+                    if let Ok(Some(wu)) = state_guard.db.get_user(&first.user_id.to_string()).await {
+                        let _ = email_svc.send_waitlist_notification(&wu.email, &wu.name, booking.lot_name.as_deref().unwrap_or("Lot"), &date).await;
+                    }
+                }
+                let mut ue = first.clone();
+                ue.notified = true;
+                let _ = state_guard.db.save_waitlist_entry(&ue).await;
+            }
+        }
     }
 
     (StatusCode::OK, Json(ApiResponse::success(())))
@@ -983,6 +1070,7 @@ async fn checkin_booking(
     let mut updated_booking = booking;
     updated_booking.status = BookingStatus::Active;
     updated_booking.updated_at = Utc::now();
+    updated_booking.checked_in_at = Some(Utc::now());
 
     if let Err(e) = state_guard.db.save_booking(&updated_booking).await {
         tracing::error!("Failed to update booking: {}", e);
@@ -1077,7 +1165,7 @@ async fn admin_reports(
 
 async fn slot_qr_code(
     State(state): State<SharedState>,
-    Extension(auth_user): Extension<AuthUser>,
+    Extension(_auth_user): Extension<AuthUser>,
     Path((lot_id, slot_id)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let state_guard = state.read().await;
@@ -1105,6 +1193,128 @@ async fn slot_qr_code(
 
     let svg = qr.render::<qrcode::render::svg::Color>().quiet_zone(true).min_dimensions(256, 256).build();
     (StatusCode::OK, [(header::CONTENT_TYPE, "image/svg+xml")], svg)
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WAITLIST
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, serde::Deserialize)]
+struct WaitlistParams {
+    date: Option<String>,
+}
+
+async fn join_waitlist(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(lot_id): Path<String>,
+    Query(params): Query<WaitlistParams>,
+) -> (StatusCode, Json<ApiResponse<WaitlistEntry>>) {
+    let date = params.date.unwrap_or_else(|| Utc::now().format("%Y-%m-%d").to_string());
+    let state_guard = state.read().await;
+    match state_guard.db.get_parking_lot(&lot_id).await {
+        Ok(Some(_)) => {},
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Lot not found"))),
+    };
+    let entry = WaitlistEntry {
+        id: Uuid::new_v4(),
+        lot_id: lot_id.parse().unwrap_or_default(),
+        user_id: auth_user.user_id,
+        date,
+        created_at: Utc::now(),
+        notified: false,
+    };
+    if let Err(e) = state_guard.db.save_waitlist_entry(&entry).await {
+        tracing::error!("Failed to save waitlist entry: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to join waitlist")));
+    }
+    (StatusCode::CREATED, Json(ApiResponse::success(entry)))
+}
+
+async fn get_waitlist(
+    State(state): State<SharedState>,
+    Path(lot_id): Path<String>,
+    Query(params): Query<WaitlistParams>,
+) -> Json<ApiResponse<Vec<WaitlistEntry>>> {
+    let state_guard = state.read().await;
+    match state_guard.db.list_waitlist_by_lot(&lot_id, params.date.as_deref()).await {
+        Ok(entries) => Json(ApiResponse::success(entries)),
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            Json(ApiResponse::error("SERVER_ERROR", "Failed to get waitlist"))
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PUSH SUBSCRIBE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, serde::Deserialize)]
+struct PushSubscribeRequest {
+    endpoint: String,
+    p256dh: String,
+    auth: String,
+}
+
+async fn push_subscribe(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<PushSubscribeRequest>,
+) -> (StatusCode, Json<ApiResponse<()>>) {
+    let sub = PushSubscription {
+        user_id: auth_user.user_id,
+        endpoint: req.endpoint,
+        p256dh: req.p256dh,
+        auth: req.auth,
+        created_at: Utc::now(),
+    };
+    let state_guard = state.read().await;
+    if let Err(e) = state_guard.db.save_push_subscription(&sub).await {
+        tracing::error!("Failed to save push subscription: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save subscription")));
+    }
+    (StatusCode::CREATED, Json(ApiResponse::success(())))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN SLOT UPDATE (Department reservation)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, serde::Deserialize)]
+struct AdminUpdateSlotRequest {
+    reserved_for_department: Option<String>,
+}
+
+async fn admin_update_slot(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(slot_id): Path<String>,
+    Json(req): Json<AdminUpdateSlotRequest>,
+) -> (StatusCode, Json<ApiResponse<ParkingSlot>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+    let mut slot = match state_guard.db.get_parking_slot(&slot_id).await {
+        Ok(Some(s)) => s,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Slot not found"))),
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
+        }
+    };
+    slot.reserved_for_department = req.reserved_for_department;
+    if let Err(e) = state_guard.db.save_parking_slot(&slot).await {
+        tracing::error!("Failed to update slot: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to update slot")));
+    }
+    (StatusCode::OK, Json(ApiResponse::success(slot)))
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

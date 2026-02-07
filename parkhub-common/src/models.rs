@@ -27,6 +27,8 @@ pub struct User {
     pub last_login: Option<DateTime<Utc>>,
     pub preferences: UserPreferences,
     pub is_active: bool,
+    #[serde(default)]
+    pub department: Option<String>,
 }
 
 /// User role for access control
@@ -120,6 +122,8 @@ pub struct ParkingSlot {
     pub slot_number: String,
     pub status: SlotStatus,
     pub current_booking: Option<SlotBookingInfo>,
+    #[serde(default)]
+    pub reserved_for_department: Option<String>,
 }
 
 /// Slot availability status
@@ -179,6 +183,10 @@ pub struct Booking {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub notes: Option<String>,
+    #[serde(default)]
+    pub recurrence: Option<RecurrenceRule>,
+    #[serde(default)]
+    pub checked_in_at: Option<DateTime<Utc>>,
 }
 
 /// Booking type
@@ -211,6 +219,7 @@ pub enum BookingStatus {
     Cancelled,
     Expired,
     NoShow,
+    AutoReleased,
 }
 
 /// Request to create a booking
@@ -226,6 +235,7 @@ pub struct CreateBookingRequest {
     pub vehicle_id: Option<Uuid>,
     pub license_plate: Option<String>,
     pub notes: Option<String>,
+    pub recurrence: Option<RecurrenceRule>,
 }
 
 /// Booking history filters
@@ -325,6 +335,50 @@ pub struct AdminStats {
     pub total_lots: i32,
     pub active_bookings: i32,
     pub bookings_today: i32,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RECURRING BOOKING MODELS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Recurrence rule for recurring bookings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecurrenceRule {
+    /// Weekdays: 0=Mon, 1=Tue, ..., 6=Sun
+    pub weekdays: Vec<u8>,
+    /// End date for recurrence (ISO date YYYY-MM-DD)
+    pub until: String,
+    /// Parent recurring booking ID (set on expanded instances)
+    pub parent_id: Option<Uuid>,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WAITLIST MODELS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Waitlist entry for a parking lot
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WaitlistEntry {
+    pub id: Uuid,
+    pub lot_id: Uuid,
+    pub user_id: Uuid,
+    pub date: String,
+    pub created_at: DateTime<Utc>,
+    pub notified: bool,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PUSH SUBSCRIPTION MODELS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Web Push subscription
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PushSubscription {
+    pub user_id: Uuid,
+    pub endpoint: String,
+    pub p256dh: String,
+    pub auth: String,
+    pub created_at: DateTime<Utc>,
 }
 
 #[cfg(test)]

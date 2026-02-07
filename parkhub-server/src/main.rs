@@ -28,6 +28,8 @@ mod requests;
 mod static_files;
 mod tls;
 mod validation;
+mod email;
+mod background_jobs;
 
 use config::ServerConfig;
 use db::{Database, DatabaseConfig};
@@ -46,6 +48,7 @@ use tray_icon::{
 
 /// Application state shared across handlers
 pub struct AppState {
+    pub email: Option<crate::email::EmailService>,
     pub config: ServerConfig,
     pub db: Database,
     pub mdns: Option<MdnsService>,
@@ -336,12 +339,24 @@ async fn main() -> Result<()> {
         None
     };
 
+    // Initialize email service (optional)
+    let email_service = email::SmtpConfig::from_env().map(email::EmailService::new);
+    if email_service.is_some() {
+        info!("SMTP email service configured");
+    } else {
+        info!("SMTP not configured - email notifications disabled");
+    }
+
     // Create application state
     let state = Arc::new(RwLock::new(AppState {
+        email: email_service.clone(),
         config: config.clone(),
         db,
         mdns,
     }));
+
+    // Start background jobs
+    background_jobs::start_background_jobs(state.clone(), email_service);
 
     // Build the API router
     let app = api::create_router(state.clone());
@@ -1090,6 +1105,7 @@ async fn create_admin_user(db: &Database, config: &ServerConfig) -> Result<()> {
         last_login: None,
         preferences: UserPreferences::default(),
         is_active: true,
+        department: None,
     };
 
     db.save_user(&admin_user).await?;
@@ -1206,6 +1222,7 @@ async fn generate_dummy_users(db: &Database, username_style: UsernameStyle) -> R
             last_login: None,
             preferences: UserPreferences::default(),
             is_active: true,
+            department: None,
         };
 
         db.save_user(&user).await?;
@@ -1241,6 +1258,7 @@ async fn create_sample_parking_lot(db: &Database) -> Result<()> {
             slot_number: slot_number.clone(),
             status: SlotStatus::Available,
             current_booking: None,
+            reserved_for_department: None,
         });
 
         let config = SlotConfig {

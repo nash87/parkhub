@@ -22,6 +22,7 @@ use uuid::Uuid;
 
 use parkhub_common::models::{
     Booking, HomeofficeSettings, LotLayout, ParkingLot, ParkingSlot, User, Vehicle,
+    WaitlistEntry, PushSubscription,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -40,6 +41,8 @@ const VEHICLES: TableDefinition<&str, &[u8]> = TableDefinition::new("vehicles");
 const SETTINGS: TableDefinition<&str, &str> = TableDefinition::new("settings");
 const HOMEOFFICE: TableDefinition<&str, &[u8]> = TableDefinition::new("homeoffice");
 const LOT_LAYOUTS: TableDefinition<&str, &[u8]> = TableDefinition::new("lot_layouts");
+const WAITLIST: TableDefinition<&str, &[u8]> = TableDefinition::new("waitlist");
+const PUSH_SUBSCRIPTIONS: TableDefinition<&str, &[u8]> = TableDefinition::new("push_subscriptions");
 
 // Settings keys
 const SETTING_SETUP_COMPLETED: &str = "setup_completed";
@@ -192,6 +195,8 @@ impl Database {
             let _ = write_txn.open_table(SETTINGS)?;
             let _ = write_txn.open_table(HOMEOFFICE)?;
             let _ = write_txn.open_table(LOT_LAYOUTS)?;
+            let _ = write_txn.open_table(WAITLIST)?;
+            let _ = write_txn.open_table(PUSH_SUBSCRIPTIONS)?;
         }
         write_txn.commit()?;
 
@@ -746,6 +751,101 @@ impl Database {
         write_txn.commit()?;
         Ok(())
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // WAITLIST OPERATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    pub async fn save_waitlist_entry(&self, entry: &WaitlistEntry) -> Result<()> {
+        let id = entry.id.to_string();
+        let data = self.serialize(entry)?;
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        {
+            let mut table = write_txn.open_table(WAITLIST)?;
+            table.insert(id.as_str(), data.as_slice())?;
+        }
+        write_txn.commit()?;
+        debug!("Saved waitlist entry: {}", entry.id);
+        Ok(())
+    }
+
+    pub async fn list_waitlist_by_lot(&self, lot_id: &str, date: Option<&str>) -> Result<Vec<WaitlistEntry>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(WAITLIST)?;
+        let mut entries = Vec::new();
+        for entry in table.iter()? {
+            let (_, value) = entry?;
+            let e: WaitlistEntry = self.deserialize(value.value())?;
+            if e.lot_id.to_string() == lot_id {
+                if let Some(d) = date {
+                    if e.date == d { entries.push(e); }
+                } else {
+                    entries.push(e);
+                }
+            }
+        }
+        entries.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+        Ok(entries)
+    }
+
+    pub async fn delete_waitlist_entry(&self, id: &str) -> Result<bool> {
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        let existed = {
+            let mut table = write_txn.open_table(WAITLIST)?;
+            let x = table.remove(id)?.is_some(); x
+        };
+        write_txn.commit()?;
+        Ok(existed)
+    }
+
+    pub async fn list_all_waitlist(&self) -> Result<Vec<WaitlistEntry>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(WAITLIST)?;
+        let mut entries = Vec::new();
+        for entry in table.iter()? {
+            let (_, value) = entry?;
+            entries.push(self.deserialize(value.value())?);
+        }
+        Ok(entries)
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PUSH SUBSCRIPTION OPERATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    pub async fn save_push_subscription(&self, sub: &PushSubscription) -> Result<()> {
+        let key = format!("{}:{}", sub.user_id, sub.endpoint);
+        let data = self.serialize(sub)?;
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        {
+            let mut table = write_txn.open_table(PUSH_SUBSCRIPTIONS)?;
+            table.insert(key.as_str(), data.as_slice())?;
+        }
+        write_txn.commit()?;
+        debug!("Saved push subscription for user: {}", sub.user_id);
+        Ok(())
+    }
+
+    pub async fn list_push_subscriptions_by_user(&self, user_id: &str) -> Result<Vec<PushSubscription>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(PUSH_SUBSCRIPTIONS)?;
+        let prefix = format!("{}:", user_id);
+        let mut subs = Vec::new();
+        for entry in table.iter()? {
+            let (key, value) = entry?;
+            if key.value().starts_with(&prefix) {
+                subs.push(self.deserialize(value.value())?);
+            }
+        }
+        Ok(subs)
+    }
+
 }
 
 #[cfg(test)]
