@@ -312,8 +312,9 @@ async fn main() -> Result<()> {
         info!("Creating admin user...");
         create_admin_user(&db, &config).await?;
 
-        // Also create a sample parking lot
-        create_sample_parking_lot(&db).await?;
+        // Sample parking lot is NOT created by default
+        // Users choose in onboarding wizard whether to load dummy data
+        // create_sample_parking_lot(&db).await?;
 
         // Generate dummy users if requested during setup
         if config.generate_dummy_users {
@@ -1113,7 +1114,7 @@ async fn create_admin_user(db: &Database, config: &ServerConfig) -> Result<()> {
     };
 
     db.save_user(&admin_user).await?;
-    db.mark_setup_completed().await?;
+    // Don't mark setup as completed - onboarding wizard will do this
     info!(
         "Admin user '{}' created successfully",
         config.admin_username

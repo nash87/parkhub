@@ -181,6 +181,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/push/subscribe", post(push_subscribe))
         .route("/api/v1/admin/users/:id", patch(admin_update_user))
         .route("/api/v1/admin/slots/:id", patch(admin_update_slot))
+        .route("/api/v1/admin/lots/:id", delete(admin_delete_lot))
         .route("/api/v1/users/me/export", get(export_user_data))
         .route("/api/v1/users/me/delete", delete(delete_own_account))
         .route("/api/v1/users/me/password", patch(change_password))
@@ -1753,10 +1754,19 @@ async fn get_setup_status(
     let has_lots = state.db.list_parking_lots().await.map(|l| !l.is_empty()).unwrap_or(false);
     let stats = state.db.stats().await.unwrap_or_default();
 
+    // Check if admin still has default password
+    let needs_password_change = if let Ok(Some(admin)) = state.db.get_user_by_username("admin").await {
+        // Check if password is still "admin"
+        crate::api::check_default_password(&admin.password_hash)
+    } else {
+        false
+    };
+
     Json(ApiResponse::success(serde_json::json!({
         "setup_complete": !is_fresh,
+        "needs_password_change": needs_password_change,
         "has_parking_lots": has_lots,
-        "has_users": stats.users > 0,
+        "has_users": stats.users > 1,
         "total_users": stats.users,
         "total_lots": stats.parking_lots,
     })))
@@ -1914,6 +1924,90 @@ async fn get_help(headers: HeaderMap) -> Json<ApiResponse<serde_json::Value>> {
             ]
         })))
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN DELETE LOT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn admin_delete_lot(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    // Check lot exists
+    let lot = match state_guard.db.get_parking_lot(&id).await {
+        Ok(Some(l)) => l,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Parking lot not found"))),
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
+        }
+    };
+
+    // Delete associated slots
+    let slots = state_guard.db.list_slots_by_lot(&id).await.unwrap_or_default();
+    let mut deleted_slots = 0u64;
+    for slot in &slots {
+        if let Ok(true) = state_guard.db.delete_parking_slot(&slot.id.to_string()).await {
+            deleted_slots += 1;
+        }
+    }
+
+    // Delete associated bookings for this lot
+    let bookings = state_guard.db.list_bookings().await.unwrap_or_default();
+    let mut deleted_bookings = 0u64;
+    for booking in &bookings {
+        if booking.lot_id.to_string() == id {
+            if let Ok(true) = state_guard.db.delete_booking(&booking.id.to_string()).await {
+                deleted_bookings += 1;
+            }
+        }
+    }
+
+    // Delete lot layout
+    let _ = state_guard.db.delete_lot_layout(&id).await;
+
+    // Delete the lot itself
+    match state_guard.db.delete_parking_lot(&id).await {
+        Ok(true) => {
+            AuditEntry::new(AuditEventType::ConfigChanged)
+                .user(auth_user.user_id, &user.username)
+                .resource("lot", &id)
+                .details(serde_json::json!({
+                    "action": "lot_deleted",
+                    "lot_name": lot.name,
+                    "deleted_slots": deleted_slots,
+                    "deleted_bookings": deleted_bookings,
+                }))
+                .log();
+
+            (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+                "message": "Parking lot deleted successfully",
+                "deleted_slots": deleted_slots,
+                "deleted_bookings": deleted_bookings,
+            }))))
+        }
+        Ok(false) => (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Parking lot not found"))),
+        Err(e) => {
+            tracing::error!("Failed to delete parking lot: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to delete parking lot")))
+        }
+    }
+}
+
+/// Check if a password hash matches the default "admin" password
+pub fn check_default_password(hash: &str) -> bool {
+    verify_password("admin", hash)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

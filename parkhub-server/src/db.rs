@@ -567,7 +567,42 @@ impl Database {
         Ok(true)
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
+    pub async fn delete_parking_slot(&self, id: &str) -> Result<bool> {
+        // Also remove from slots_by_lot index
+        if let Ok(Some(slot)) = self.get_parking_slot(id).await {
+            let lot_id = slot.lot_id.to_string();
+            let db = self.inner.write().await;
+            let write_txn = db.begin_write()?;
+            {
+                let mut table = write_txn.open_table(PARKING_SLOTS)?;
+                table.remove(id)?;
+                let mut idx = write_txn.open_table(SLOTS_BY_LOT)?;
+                let key = format!("{}:{}", lot_id, id);
+                idx.remove(key.as_str())?;
+            }
+            write_txn.commit()?;
+            debug!("Deleted parking slot: {}", id);
+            return Ok(true);
+        }
+        Ok(false)
+    }
+
+    pub async fn delete_lot_layout(&self, lot_id: &str) -> Result<bool> {
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        let existed;
+        {
+            let mut table = write_txn.open_table(LOT_LAYOUTS)?;
+            existed = table.remove(lot_id)?.is_some();
+        }
+        write_txn.commit()?;
+        if existed {
+            debug!("Deleted lot layout: {}", lot_id);
+        }
+        Ok(existed)
+    }
+
+        // ═══════════════════════════════════════════════════════════════════════════
     // BOOKING OPERATIONS
     // ═══════════════════════════════════════════════════════════════════════════
 

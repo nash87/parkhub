@@ -107,6 +107,23 @@ function AdminLots() {
 
   useEffect(() => { loadLots(); }, []);
   async function loadLots() { try { const res = await api.getLots(); if (res.success && res.data) setLots(res.data); } finally { setLoading(false); } }
+  const [deletingLotId, setDeletingLotId] = useState<string | null>(null);
+  async function handleDeleteLot(lotId: string, _lotName: string) {
+    if (!confirm(t('admin.lots.confirmDelete', 'Parkplatz  + lotName +  wirklich löschen? Alle zugehörigen Stellplätze und Buchungen werden ebenfalls gelöscht.'))) return;
+    setDeletingLotId(lotId);
+    try {
+      const token = (window as any).__parkhub_token || localStorage.getItem('parkhub_token');
+      const res = await fetch('/api/v1/admin/lots/' + lotId, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLots(prev => prev.filter(l => l.id !== lotId));
+        if (editingLotId === lotId) { setEditingLotId(null); setEditingLayout(null); }
+      }
+    } finally { setDeletingLotId(null); }
+  }
   async function handleEdit(lot: ParkingLot) {
     if (editingLotId === lot.id) { setEditingLotId(null); setEditingLayout(null); return; }
     const res = await api.getLotDetailed(lot.id);
@@ -132,6 +149,7 @@ function AdminLots() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4"><div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center"><Buildings weight="fill" className="w-6 h-6 text-gray-500" /></div><div><p className="font-semibold text-gray-900 dark:text-white">{lot.name}</p><p className="text-sm text-gray-500 dark:text-gray-400">{lot.address}</p></div></div>
               <div className="flex items-center gap-4"><div className="text-right"><p className="font-bold text-gray-900 dark:text-white">{lot.available_slots}/{lot.total_slots}</p><p className="text-xs text-gray-500">{t('common.available')}</p></div>
+              <button onClick={() => handleDeleteLot(lot.id, lot.name)} disabled={deletingLotId === lot.id} className="btn btn-sm btn-ghost text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"><Trash weight="regular" className="w-4 h-4" /></button>
               <button onClick={() => handleEdit(lot)} className={`btn btn-sm ${editingLotId === lot.id ? 'btn-primary' : 'btn-secondary'}`}>{t('admin.lots.edit')}<CaretRight weight="bold" className={`w-4 h-4 transition-transform ${editingLotId === lot.id ? 'rotate-90' : ''}`} /></button></div>
             </div>
           </div>
