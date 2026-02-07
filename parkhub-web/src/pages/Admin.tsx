@@ -38,6 +38,27 @@ function AdminOverview() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [showReset, setShowReset] = useState(false);
+  const [resetInput, setResetInput] = useState('');
+  const [resetting, setResetting] = useState(false);
+
+  async function handleReset() {
+    if (resetInput !== 'RESET') return;
+    setResetting(true);
+    try {
+      const token = localStorage.getItem('parkhub_token');
+      const res = await fetch('/api/v1/admin/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ confirm: 'RESET' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.removeItem('parkhub_token');
+        window.location.href = '/login';
+      }
+    } finally { setResetting(false); }
+  }
 
   useEffect(() => {
     (async () => {
@@ -95,6 +116,31 @@ function AdminOverview() {
             ))}</div>
           </div>
         </div>
+      </div>
+      {/* Database Reset - Danger Zone */}
+      <div className="card p-6 border-2 border-red-200 dark:border-red-900/50">
+        <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
+          <Trash weight="fill" className="w-5 h-5" />{t('admin.reset.title')}
+        </h3>
+        {!showReset ? (
+          <button onClick={() => setShowReset(true)} className="btn bg-red-600 hover:bg-red-700 text-white">
+            <Trash weight="bold" className="w-4 h-4" />{t('admin.reset.button')}
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-red-600 dark:text-red-400 font-medium">{t('admin.reset.warning')}</p>
+            <div>
+              <label className="label text-red-600">{t('admin.reset.inputLabel')}</label>
+              <input type="text" value={resetInput} onChange={e => setResetInput(e.target.value)} placeholder={t('admin.reset.inputPlaceholder')} className="input border-red-300 dark:border-red-700" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleReset} disabled={resetInput !== 'RESET' || resetting} className="btn bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">
+                <Trash weight="bold" className="w-4 h-4" />{resetting ? t('common.loading') : t('admin.reset.confirm')}
+              </button>
+              <button onClick={() => { setShowReset(false); setResetInput(''); }} className="btn btn-secondary">{t('common.cancel')}</button>
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   );

@@ -11,6 +11,7 @@ import {
   Prohibit,
 } from '@phosphor-icons/react';
 import type { LotLayout, LotRow, SlotConfig } from '../api/client';
+import { useTranslation } from 'react-i18next';
 import { ParkingLotGrid } from './ParkingLotGrid';
 
 interface LotLayoutEditorProps {
@@ -54,8 +55,9 @@ function rowConfigToRow(cfg: RowEditorConfig): LotRow {
 }
 
 export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCancel }: LotLayoutEditorProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState(initName || '');
-  const [roadLabel, setRoadLabel] = useState(initialLayout?.roadLabel || 'Fahrweg');
+  const [roadLabel, setRoadLabel] = useState(initialLayout?.roadLabel || t('lotEditor.driveway', 'Fahrweg'));
   const [showPreview, setShowPreview] = useState(true);
 
   const initRows: RowEditorConfig[] = initialLayout?.rows.map((r) => ({
@@ -155,7 +157,7 @@ export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCa
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Parkplatz-Name
+            {t("lotEditor.lotName", "Parkplatz-Name")}
           </label>
           <input
             type="text"
@@ -167,7 +169,7 @@ export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCa
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Fahrweg-Beschriftung
+            {t("lotEditor.drivewayLabel", "Fahrweg-Beschriftung")}
           </label>
           <input
             type="text"
@@ -181,7 +183,7 @@ export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCa
       {/* Rows */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Reihen</h3>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t("lotEditor.rows", "Reihen")}</h3>
           <div className="flex gap-2">
             <button onClick={() => addRow('top')} className="btn btn-secondary btn-sm">
               <Plus weight="bold" className="w-3.5 h-3.5" />
@@ -212,7 +214,7 @@ export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCa
                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
                         : 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
                     }`}>
-                      {row.side === 'top' ? 'Oben' : 'Unten'}
+                      {row.side === 'top' ? t('lotEditor.top', 'Oben') : t('lotEditor.bottom', 'Unten')}
                     </span>
                     <input
                       type="text"
@@ -241,7 +243,7 @@ export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCa
                 {/* Slot config */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400">Anzahl Plätze</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400">{t("lotEditor.slotCount", "Anzahl Plätze")}</label>
                     <input
                       type="number"
                       min={1}
@@ -252,7 +254,7 @@ export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCa
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400">Startnummer</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400">{t("lotEditor.startNumber", "Startnummer")}</label>
                     <input
                       type="number"
                       min={1}
@@ -271,7 +273,7 @@ export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCa
                 {/* Individual slot overrides */}
                 <div>
                   <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
-                    Plätze (Klick = Status ändern)
+                    {t("lotEditor.slotsClickStatus", "Plätze")}
                   </label>
                   <div className="flex flex-wrap gap-1">
                     {row.slots.map((slot, si) => (
@@ -283,7 +285,7 @@ export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCa
                           ${slot.status === 'disabled' ? 'bg-gray-200 border-gray-300 text-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-500' : ''}
                           ${slot.status === 'blocked' ? 'bg-red-100 border-red-300 text-red-500 dark:bg-red-900/40 dark:border-red-700 dark:text-red-400' : ''}
                         `}
-                        title={`Platz ${slot.number}: ${slot.status}`}
+                        title={`${t('dashboard.slot', 'Slot')} ${slot.number}: ${slot.status}`}
                       >
                         {slot.status === 'disabled' ? <Prohibit weight="bold" className="w-3 h-3" /> : slot.number}
                       </button>
@@ -297,7 +299,7 @@ export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCa
 
         {rows.length === 0 && (
           <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
-            Noch keine Reihen angelegt. Fügen Sie oben eine Reihe hinzu.
+            {t("lotEditor.noRows", "Noch keine Reihen angelegt.")}
           </div>
         )}
       </div>
@@ -310,7 +312,7 @@ export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCa
             className="btn btn-secondary btn-sm mb-3"
           >
             <Eye weight="bold" className="w-4 h-4" />
-            {showPreview ? 'Vorschau ausblenden' : 'Vorschau anzeigen'}
+            {showPreview ? t('lotEditor.hidePreview', 'Vorschau ausblenden') : t('lotEditor.showPreview', 'Vorschau anzeigen')}
           </button>
 
           <AnimatePresence>

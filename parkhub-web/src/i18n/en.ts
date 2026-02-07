@@ -325,7 +325,38 @@ export const en = {
       status: 'Status',
       noBookings: 'No bookings found',
     },
+    reset: {
+      button: "Reset Database",
+      title: "Reset Database",
+      warning: "Are you sure? All data will be permanently deleted.",
+      inputLabel: "Type RESET to confirm",
+      inputPlaceholder: "RESET",
+      confirm: "Reset",
+      success: "Database has been reset",
+      failed: "Reset failed",
+    },
   },
+
+  // Slot editing
+  slotEdit: {
+    editName: "Edit name",
+    addSlot: "Add parking slot",
+    removeSlot: "Remove parking slot",
+    slotName: "Slot name",
+    customName: "Custom name",
+    confirmRemove: "Really remove this slot?",
+    nameUpdated: "Slot name updated",
+    slotAdded: "Slot added",
+    slotRemoved: "Slot removed",
+  },
+
+  // Language
+  language: {
+    toggle: "Switch language",
+    de: "Deutsch",
+    en: "English",
+  },
+
   profile: {
     title: 'My Profile',
     subtitle: 'Your personal data and statistics',

@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Car, Eye, EyeSlash, ArrowRight, SpinnerGap, User, Envelope, Lock } from '@phosphor-icons/react';
+import { Car, Eye, EyeSlash, ArrowRight, SpinnerGap, User, Envelope, Lock , Moon, Sun, Globe } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
+import { useTheme } from '../stores/theme';
 
 export function RegisterPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { register, isAuthenticated, isLoading } = useAuth();
   const [formData, setFormData] = useState({ username: '', email: '', password: '', confirmPassword: '', name: '' });
+  const { isDark, toggle: toggleTheme } = useTheme();
+  const currentLang = i18n.language?.startsWith("en") ? "en" : "de";
+  const toggleLang = () => i18n.changeLanguage(currentLang === "de" ? "en" : "de");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -29,7 +33,11 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950 relative">
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+        <button onClick={toggleLang} className="p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 text-sm font-medium"><Globe weight="bold" className="w-4 h-4" />{currentLang.toUpperCase()}</button>
+        <button onClick={toggleTheme} className="p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">{isDark ? <Sun weight="fill" className="w-5 h-5" /> : <Moon weight="fill" className="w-5 h-5" />}</button>
+      </div>
       <div className="hidden lg:flex lg:w-1/2 bg-primary-600 dark:bg-primary-700 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-500 to-primary-700" />
         <div className="absolute inset-0 opacity-10">

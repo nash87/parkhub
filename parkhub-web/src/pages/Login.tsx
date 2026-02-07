@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Car, Eye, EyeSlash, ArrowRight, SpinnerGap } from '@phosphor-icons/react';
+import { Car, Eye, EyeSlash, ArrowRight, SpinnerGap, Moon, Sun, Globe } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
+import { useTheme } from '../stores/theme';
 
 export function LoginPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { login, isAuthenticated, isLoading } = useAuth();
   const { branding } = useBranding();
+  const { isDark, toggle: toggleTheme } = useTheme();
+  const currentLang = i18n.language?.startsWith('en') ? 'en' : 'de';
+  const toggleLang = () => i18n.changeLanguage(currentLang === 'de' ? 'en' : 'de');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -41,7 +45,16 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950 relative">
+      {/* Top-right theme + language controls */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+        <button onClick={toggleLang} className="p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 text-sm font-medium" aria-label={t('language.toggle', 'Switch language')}>
+          <Globe weight="bold" className="w-4 h-4" />{currentLang.toUpperCase()}
+        </button>
+        <button onClick={toggleTheme} className="p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label={t('theme.toggle')}>
+          {isDark ? <Sun weight="fill" className="w-5 h-5" /> : <Moon weight="fill" className="w-5 h-5" />}
+        </button>
+      </div>
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ backgroundColor: branding.login_background_color }}>
         <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${branding.primary_color}, ${branding.login_background_color})` }} />
         <div className="absolute inset-0 opacity-10">
@@ -113,6 +126,13 @@ export function LoginPage() {
           <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
             {t('login.noAccount')}{' '}
             <Link to="/register" className="text-primary-600 hover:text-primary-700 dark:text-primary-400 font-medium">{t('login.register')}</Link>
+          </p>
+          <p className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
+            <Link to="/privacy" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.privacy')}</Link>
+            {' · '}
+            <Link to="/terms" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.terms')}</Link>
+            {' · '}
+            <Link to="/legal" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.imprint')}</Link>
           </p>
         </motion.div>
       </div>

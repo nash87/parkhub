@@ -982,6 +982,87 @@ impl Database {
         write_txn.commit()?;
         Ok(existed)
     }
+
+    /// Reset ALL database data (admin reset)
+    pub async fn reset_all_data(&self) -> Result<()> {
+        let db = self.inner.write().await;
+        
+        // Use two write transactions: first to collect keys, then to delete
+        // We need write txn because open_table on write creates missing tables
+        let write_txn = db.begin_write()?;
+        
+        // Collect keys from byte-value tables
+        macro_rules! collect_and_clear {
+            ($txn:expr, $table:expr) => {{
+                let mut t = $txn.open_table($table)?;
+                let keys: Vec<String> = {
+                    let mut ks = Vec::new();
+                    for entry in t.iter()? {
+                        let (k, _v) = entry?;
+                        ks.push(k.value().to_string());
+                    }
+                    ks
+                };
+                for k in &keys {
+                    t.remove(k.as_str())?;
+                }
+            }};
+        }
+        
+        macro_rules! collect_and_clear_str {
+            ($txn:expr, $table:expr) => {{
+                let mut t = $txn.open_table($table)?;
+                let keys: Vec<String> = {
+                    let mut ks = Vec::new();
+                    for entry in t.iter()? {
+                        let (k, _v) = entry?;
+                        ks.push(k.value().to_string());
+                    }
+                    ks
+                };
+                for k in &keys {
+                    t.remove(k.as_str())?;
+                }
+            }};
+        }
+        
+        collect_and_clear!(write_txn, BOOKINGS);
+        collect_and_clear!(write_txn, PARKING_SLOTS);
+        collect_and_clear!(write_txn, SLOTS_BY_LOT);
+        collect_and_clear!(write_txn, PARKING_LOTS);
+        collect_and_clear!(write_txn, VEHICLES);
+        collect_and_clear!(write_txn, HOMEOFFICE);
+        collect_and_clear!(write_txn, LOT_LAYOUTS);
+        collect_and_clear!(write_txn, WAITLIST);
+        collect_and_clear!(write_txn, PUSH_SUBSCRIPTIONS);
+        collect_and_clear!(write_txn, BRANDING);
+        collect_and_clear!(write_txn, SESSIONS);
+        collect_and_clear_str!(write_txn, USERS_BY_USERNAME);
+        collect_and_clear_str!(write_txn, USERS_BY_EMAIL);
+        
+        {
+            let mut t = write_txn.open_table(SETTINGS)?;
+            t.insert(SETTING_SETUP_COMPLETED, "false")?;
+        }
+        write_txn.commit()?;
+        info!("Database reset: all data tables cleared");
+        Ok(())
+    }
+
+    /// Delete all users except the given admin user ID
+    pub async fn delete_all_users_except(&self, admin_id: &str) -> Result<u64> {
+        let users = self.list_users().await?;
+        let mut count = 0u64;
+        for user in &users {
+            let uid = user.id.to_string();
+            if uid != admin_id {
+                self.delete_user(&uid).await?;
+                count += 1;
+            }
+        }
+        Ok(count)
+    }
+
 }
 
 

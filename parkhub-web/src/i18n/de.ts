@@ -354,6 +354,36 @@ export const de = {
       status: 'Status',
       noBookings: 'Keine Buchungen gefunden',
     },
+    reset: {
+      button: 'Datenbank zurücksetzen',
+      title: 'Datenbank zurücksetzen',
+      warning: 'Sind Sie sicher? Alle Daten werden unwiderruflich gelöscht.',
+      inputLabel: 'Geben Sie RESET ein, um zu bestätigen',
+      inputPlaceholder: 'RESET',
+      confirm: 'Zurücksetzen',
+      success: 'Datenbank wurde zurückgesetzt',
+      failed: 'Zurücksetzen fehlgeschlagen',
+    },
+  },
+
+  // Slot editing
+  slotEdit: {
+    editName: 'Name bearbeiten',
+    addSlot: 'Stellplatz hinzufügen',
+    removeSlot: 'Stellplatz entfernen',
+    slotName: 'Stellplatz-Name',
+    customName: 'Eigener Name',
+    confirmRemove: 'Stellplatz wirklich entfernen?',
+    nameUpdated: 'Stellplatz-Name aktualisiert',
+    slotAdded: 'Stellplatz hinzugefügt',
+    slotRemoved: 'Stellplatz entfernt',
+  },
+
+  // Language
+  language: {
+    toggle: 'Sprache wechseln',
+    de: 'Deutsch',
+    en: 'English',
   },
 
   // Profile

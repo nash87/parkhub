@@ -189,6 +189,8 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/setup/complete", post(complete_setup))
         .route("/api/v1/admin/branding", get(get_branding_admin).put(update_branding))
         .route("/api/v1/admin/branding/logo", post(upload_branding_logo))
+        .route("/api/v1/admin/reset", post(admin_reset_database))
+        .route("/api/v1/lots/:lot_id/slots/:slot_id", put(admin_update_slot_properties))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
@@ -2313,4 +2315,127 @@ async fn setup_change_password(
     }
     
     (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({ "message": "Password changed successfully" }))))
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN DATABASE RESET
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Deserialize)]
+struct AdminResetRequest {
+    confirm: String,
+}
+
+async fn admin_reset_database(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<AdminResetRequest>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    if req.confirm != "RESET" {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("INVALID_CONFIRMATION", "Confirmation must be exactly RESET")));
+    }
+
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    if let Err(e) = state_guard.db.reset_all_data().await {
+        tracing::error!("Failed to reset database: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to reset database")));
+    }
+
+    let _ = state_guard.db.delete_all_users_except(&auth_user.user_id.to_string()).await;
+
+    let mut admin = user;
+    admin.password_hash = hash_password("admin");
+    admin.updated_at = Utc::now();
+    let _ = state_guard.db.save_user(&admin).await;
+
+    tracing::info!("Database reset by admin: {}", admin.username);
+
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+        "success": true,
+        "message": "Database reset complete"
+    }))))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SLOT UPDATE (name/status) - PUT /api/v1/lots/:lot_id/slots/:slot_id
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Deserialize)]
+struct UpdateSlotPropertiesRequest {
+    name: Option<String>,
+    status: Option<String>,
+}
+
+async fn admin_update_slot_properties(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path((lot_id, slot_id)): Path<(String, String)>,
+    Json(req): Json<UpdateSlotPropertiesRequest>,
+) -> (StatusCode, Json<ApiResponse<ParkingSlot>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let mut slot = match state_guard.db.get_parking_slot(&slot_id).await {
+        Ok(Some(s)) => s,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Slot not found"))),
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
+        }
+    };
+
+    if slot.lot_id.to_string() != lot_id {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("LOT_MISMATCH", "Slot does not belong to this lot")));
+    }
+
+    if let Some(ref name) = req.name {
+        slot.slot_number = name.clone();
+    }
+    if let Some(ref status) = req.status {
+        slot.status = match status.as_str() {
+            "available" => SlotStatus::Available,
+            "occupied" => SlotStatus::Occupied,
+            "reserved" => SlotStatus::Reserved,
+            "disabled" => SlotStatus::Disabled,
+            _ => slot.status,
+        };
+    }
+
+    if let Err(e) = state_guard.db.save_parking_slot(&slot).await {
+        tracing::error!("Failed to update slot: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to update slot")));
+    }
+
+    // Update slot name in lot layout too
+    if req.name.is_some() {
+        if let Ok(Some(mut lot)) = state_guard.db.get_parking_lot(&lot_id).await {
+            if let Some(ref mut layout) = lot.layout {
+                for row in &mut layout.rows {
+                    for s in &mut row.slots {
+                        if s.id == slot_id {
+                            s.number = slot.slot_number.clone();
+                        }
+                    }
+                }
+                let _ = state_guard.db.save_parking_lot(&lot).await;
+            }
+        }
+    }
+
+    (StatusCode::OK, Json(ApiResponse::success(slot)))
 }
