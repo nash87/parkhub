@@ -348,7 +348,7 @@ export const en = {
     occupied: 'Occupied',
     reserved: 'Reserved',
     disabled: 'Disabled',
-    homeoffice: '🏠 Home Office (free)',
+    homeoffice: 'Home Office (free)',
     road: 'Driveway',
     occupiedBy: 'Occupied: {{plate}}',
     hoFreeFrom: 'Free (Home office by {{user}})',

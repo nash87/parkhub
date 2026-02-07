@@ -381,7 +381,7 @@ export const de = {
     occupied: 'Belegt',
     reserved: 'Reserviert',
     disabled: 'Gesperrt',
-    homeoffice: '🏠 Homeoffice (frei)',
+    homeoffice: 'Homeoffice (frei)',
     road: 'Fahrweg',
     occupiedBy: 'Belegt: {{plate}}',
     hoFreeFrom: 'Frei (Homeoffice von {{user}})',

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Buildings, Car, Users, CheckCircle, ArrowRight, ArrowLeft, Database, Sparkle } from '@phosphor-icons/react';
+import { Lock, Buildings, Car, Users, CheckCircle, ArrowRight, ArrowLeft, Database, Sparkle, ClipboardText } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 
 // Auth context available via provider
@@ -271,7 +271,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     Das Standard-Passwort muss aus Sicherheitsgründen geändert werden.
                   </p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
-                    📋 Standard-Login: Benutzername <strong>admin</strong> / Passwort <strong>admin</strong>
+                    <ClipboardText size={16} className="inline mr-1" />Standard-Login: Benutzername <strong>admin</strong> / Passwort <strong>admin</strong>
                   </p>
                 </div>
                 {passwordChanged ? (
@@ -426,7 +426,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 text-left space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Passwort:</span>
-                    <span className="font-medium text-emerald-600">✓ Geändert</span>
+                    <span className="font-medium text-emerald-600 flex items-center gap-1"><CheckCircle size={16} weight="fill" />Geändert</span>
                   </div>
                   {companyName && (
                     <div className="flex justify-between">
