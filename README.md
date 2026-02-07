@@ -193,7 +193,34 @@ spec:
 
 ## 📸 Screenshots
 
-<!-- Screenshots will be added here -->
+<details>
+<summary>Click to expand screenshots</summary>
+
+### Dashboard
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Book a Parking Spot
+![Booking](docs/screenshots/booking.png)
+
+### My Bookings
+![Bookings](docs/screenshots/bookings.png)
+
+### Home Office Management
+![Home Office](docs/screenshots/homeoffice.png)
+
+### Admin Overview
+![Admin](docs/screenshots/admin-overview.png)
+
+### Admin Lot Editor
+![Lot Editor](docs/screenshots/admin-editor.png)
+
+### Login
+![Login](docs/screenshots/login.png)
+
+### Mobile View
+![Mobile](docs/screenshots/mobile.png)
+
+</details>
 
 ---
 
