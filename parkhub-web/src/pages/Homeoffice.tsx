@@ -27,7 +27,7 @@ export function HomeofficePage() {
   const isHoToday = useMemo(() => {
     if (!settings) return false;
     if (settings.pattern.weekdays.includes(todayDow)) return true;
-    return settings.singleDays.some(d => d.date === today.toISOString().slice(0, 10));
+    return settings.single_days.some(d => d.date === today.toISOString().slice(0, 10));
   }, [settings, todayDow]);
 
   const hoThisWeek = useMemo(() => {
@@ -36,7 +36,7 @@ export function HomeofficePage() {
     let count = 0;
     for (let i = 0; i < 5; i++) {
       const d = new Date(monday); d.setDate(monday.getDate() + i);
-      if (settings.pattern.weekdays.includes(i) || settings.singleDays.some(s => s.date === d.toISOString().slice(0, 10))) count++;
+      if (settings.pattern.weekdays.includes(i) || settings.single_days.some(s => s.date === d.toISOString().slice(0, 10))) count++;
     }
     return count;
   }, [settings]);
@@ -52,24 +52,24 @@ export function HomeofficePage() {
   async function addDay() {
     if (!newDate) return;
     const res = await api.addHomeofficeDay(newDate);
-    if (res.success && res.data && settings) { setSettings({ ...settings, singleDays: [...settings.singleDays, res.data] }); setNewDate(''); toast.success(t('homeoffice.dayAdded')); }
+    if (res.success && res.data && settings) { setSettings({ ...settings, single_days: [...settings.single_days, res.data] }); setNewDate(''); toast.success(t('homeoffice.dayAdded')); }
   }
 
   async function removeDay(id: string) {
     await api.removeHomeofficeDay(id);
-    if (settings) { setSettings({ ...settings, singleDays: settings.singleDays.filter(d => d.id !== id) }); toast.success(t('homeoffice.dayRemoved')); }
+    if (settings) { setSettings({ ...settings, single_days: settings.single_days.filter(d => d.id !== id) }); toast.success(t('homeoffice.dayRemoved')); }
   }
 
   async function addNextWeek() {
     if (!settings) return;
     const nextMon = getMonday(today); nextMon.setDate(nextMon.getDate() + 7);
-    const newDays = [...settings.singleDays];
+    const newDays = [...settings.single_days];
     for (let i = 0; i < 5; i++) {
       const d = new Date(nextMon); d.setDate(nextMon.getDate() + i);
       const dStr = d.toISOString().slice(0, 10);
       if (!newDays.some(x => x.date === dStr)) { const res = await api.addHomeofficeDay(dStr); if (res.success && res.data) newDays.push(res.data); }
     }
-    setSettings({ ...settings, singleDays: newDays });
+    setSettings({ ...settings, single_days: newDays });
     toast.success(t('homeoffice.nextWeekMarked'));
   }
 
@@ -89,7 +89,7 @@ export function HomeofficePage() {
     for (let d = 1; d <= lastDay.getDate(); d++) {
       const date = new Date(year, month, d); const dow = date.getDay() === 0 ? 6 : date.getDay() - 1;
       const isPattern = dow < 5 && settings.pattern.weekdays.includes(dow);
-      const isSingle = settings.singleDays.some(s => s.date === date.toISOString().slice(0, 10));
+      const isSingle = settings.single_days.some(s => s.date === date.toISOString().slice(0, 10));
       days.push({ date, inMonth: true, isHo: isPattern || isSingle, hoType: isPattern ? 'pattern' : isSingle ? 'single' : undefined, isToday: isSameDay(date, today) });
     }
     while (days.length % 7 !== 0) { const d = new Date(year, month + 1, days.length - startDow - lastDay.getDate() + 1); days.push({ date: d, inMonth: false, isHo: false, isToday: false }); }
@@ -152,20 +152,20 @@ export function HomeofficePage() {
           </motion.div>
 
           <motion.div variants={itemVariants} className="card p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><CalendarBlank weight="fill" className="w-5 h-5 text-emerald-600" />{t('homeoffice.singleDays')}</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><CalendarBlank weight="fill" className="w-5 h-5 text-emerald-600" />{t('homeoffice.single_days')}</h2>
             <div className="flex gap-2 mb-4">
               <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="input flex-1" min={today.toISOString().slice(0, 10)} />
               <button onClick={addDay} disabled={!newDate} className="btn btn-primary"><Plus weight="bold" className="w-4 h-4" />{t('common.add')}</button>
             </div>
             <button onClick={addNextWeek} className="btn btn-ghost text-sm mb-4 w-full justify-center"><Calendar weight="bold" className="w-4 h-4" />{t('homeoffice.nextWeekComplete')}</button>
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {settings?.singleDays.filter(d => d.date >= today.toISOString().slice(0, 10)).sort((a, b) => a.date.localeCompare(b.date)).map(day => (
+              {settings?.single_days.filter(d => d.date >= today.toISOString().slice(0, 10)).sort((a, b) => a.date.localeCompare(b.date)).map(day => (
                 <div key={day.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
                   <div className="flex items-center gap-3"><CalendarCheck weight="fill" className="w-5 h-5 text-emerald-500" /><span className="text-sm font-medium text-gray-900 dark:text-white">{new Date(day.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span></div>
                   <button onClick={() => removeDay(day.id)} className="btn btn-ghost btn-icon text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"><Trash weight="bold" className="w-4 h-4" /></button>
                 </div>
               ))}
-              {(!settings?.singleDays || settings.singleDays.filter(d => d.date >= today.toISOString().slice(0, 10)).length === 0) && <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">{t('homeoffice.noSingleDays')}</p>}
+              {(!settings?.single_days || settings.single_days.filter(d => d.date >= today.toISOString().slice(0, 10)).length === 0) && <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">{t('homeoffice.noSingleDays')}</p>}
             </div>
           </motion.div>
         </div>

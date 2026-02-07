@@ -327,20 +327,13 @@ export interface Booking {
   vehicle_plate?: string;
   start_time: string;
   end_time: string;
-  status: 'active' | 'completed' | 'cancelled';
+  status: 'active' | 'completed' | 'cancelled' | 'confirmed';
   booking_type?: 'einmalig' | 'mehrtaegig' | 'dauer';
   dauer_interval?: 'weekly' | 'monthly';
   created_at: string;
 }
 
-export interface CreateBookingData {
-  slot_id: string;
-  start_time: string;
-  end_time: string;
-  booking_type: 'einmalig' | 'mehrtaegig' | 'dauer';
-  dauer_interval?: 'weekly' | 'monthly';
-  vehicle_id?: string;
-}
+export interface CreateBookingData {  lot_id: string;  slot_id: string;  start_time: string;  duration_minutes: number;  vehicle_id?: string;  license_plate?: string;  notes?: string;}
 
 export interface Vehicle {
   id: string;
@@ -420,7 +413,7 @@ export interface HomeofficeDay {
 
 export interface HomeofficeSettings {
   pattern: HomeofficePattern;
-  singleDays: HomeofficeDay[];
+  single_days: HomeofficeDay[];
   parkingSlot?: { number: string; lotName: string };
 }
 
@@ -430,7 +423,7 @@ export interface AdminStats {
   total_lots: number;
   total_bookings: number;
   active_bookings: number;
-  total_vehicles: number;
+  bookings_today: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

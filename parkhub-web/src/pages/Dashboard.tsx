@@ -47,7 +47,7 @@ export function DashboardPage() {
         setDetailedLots(detailedResults.filter((r) => r.success && r.data).map((r) => r.data!));
       }
       if (bookingsRes.success && bookingsRes.data) {
-        setActiveBookings(bookingsRes.data.filter(b => b.status === 'active'));
+        setActiveBookings(bookingsRes.data.filter(b => b.status === 'active' || b.status === 'confirmed'));
       }
     } finally { setLoading(false); }
   }
@@ -55,7 +55,7 @@ export function DashboardPage() {
   const todayDow = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
   const todayStr = new Date().toISOString().slice(0, 10);
   const isHoToday = hoSettings ? (
-    hoSettings.pattern.weekdays.includes(todayDow) || hoSettings.singleDays.some(d => d.date === todayStr)
+    hoSettings.pattern.weekdays.includes(todayDow) || hoSettings.single_days.some(d => d.date === todayStr)
   ) : false;
 
   const totalSlots = lots.reduce((sum, lot) => sum + lot.total_slots, 0);

@@ -118,16 +118,12 @@ export function BookPage() {
     else if (bookingType === 'dauer') durationMinutes = dauerInterval === 'monthly' ? 30 * 24 * 60 : 7 * 24 * 60;
 
     const startIso = bookingType === 'mehrtaegig' ? new Date(startDate).toISOString() : startTime.toISOString();
-    const endIso = bookingType === 'mehrtaegig'
-      ? new Date(endDate).toISOString()
-      : new Date(startTime.getTime() + durationMinutes * 60000).toISOString();
 
     const res = await api.createBooking({
+      lot_id: selectedLot,
       slot_id: selectedSlot.id,
       start_time: startIso,
-      end_time: endIso,
-      booking_type: bookingType,
-      dauer_interval: bookingType === 'dauer' ? dauerInterval : undefined,
+      duration_minutes: durationMinutes,
       vehicle_id: selectedVehicle || undefined,
     });
 
