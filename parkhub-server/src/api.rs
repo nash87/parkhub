@@ -35,7 +35,7 @@ use parkhub_common::{
     CreateBookingRequest, HandshakeRequest, HandshakeResponse, HomeofficeDay,
     HomeofficePattern, HomeofficeSettings, LoginRequest,
     ParkingLot, ParkingSlot, RefreshTokenRequest, RegisterRequest, ServerStatus,
-    SlotStatus, User, UserRole, Vehicle, AdminStats,
+    LotStatus, SlotStatus, User, UserRole, Vehicle, AdminStats,
     WaitlistEntry, PushSubscription, RecurrenceRule,
     PROTOCOL_VERSION,
 };
@@ -169,11 +169,11 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/vehicles", get(list_vehicles).post(create_vehicle))
         .route("/api/v1/vehicles/:id", delete(delete_vehicle))
         .route("/api/v1/vehicles/:id/photo", post(upload_vehicle_photo))
-        .route("/api/v1/homeoffice", get(get_homeoffice_settings))
+        .route("/api/v1/homeoffice", get(get_homeoffice_settings).put(update_homeoffice_settings))
         .route("/api/v1/homeoffice/pattern", put(update_homeoffice_pattern))
         .route("/api/v1/homeoffice/days", post(add_homeoffice_day))
         .route("/api/v1/homeoffice/days/:id", delete(remove_homeoffice_day))
-        .route("/api/v1/admin/users", get(admin_list_users))
+        .route("/api/v1/admin/users", get(admin_list_users).post(admin_create_user))
         .route("/api/v1/admin/bookings", get(admin_list_bookings))
         .route("/api/v1/admin/stats", get(admin_stats))
         .route("/api/v1/admin/reports", get(admin_reports))
@@ -547,7 +547,7 @@ async fn sync_slots_from_layout(db: &crate::db::Database, lot_id: &uuid::Uuid, l
 async fn create_lot(
     State(state): State<SharedState>,
     Extension(auth_user): Extension<AuthUser>,
-    Json(lot): Json<ParkingLot>,
+    Json(req): Json<CreateLotRequest>,
 ) -> (StatusCode, Json<ApiResponse<ParkingLot>>) {
     let state_guard = state.read().await;
     let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
@@ -557,13 +557,37 @@ async fn create_lot(
     if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
         return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
     }
+    let now = Utc::now();
+    let lot = ParkingLot {
+        id: Uuid::new_v4(),
+        name: req.name,
+        address: req.address,
+        total_slots: req.total_slots,
+        available_slots: req.total_slots,
+        layout: None,
+        status: req.status.unwrap_or(LotStatus::Open),
+        created_at: now,
+        updated_at: now,
+    };
     if let Err(e) = state_guard.db.save_parking_lot(&lot).await {
         tracing::error!("Failed to save parking lot: {}", e);
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to create parking lot")));
     }
-    // Auto-create ParkingSlot records from layout
-    if let Some(ref layout) = lot.layout {
-        sync_slots_from_layout(&state_guard.db, &lot.id, layout).await;
+    // Auto-create ParkingSlot records
+    if lot.total_slots > 0 {
+        for i in 1..=lot.total_slots {
+            let slot = ParkingSlot {
+                id: Uuid::new_v4(),
+                lot_id: lot.id,
+                slot_number: format!("{}", i),
+                status: SlotStatus::Available,
+                current_booking: None,
+                reserved_for_department: None,
+            };
+            if let Err(e) = state_guard.db.save_parking_slot(&slot).await {
+                tracing::warn!("Failed to create slot {}: {}", i, e);
+            }
+        }
     }
     AuditEntry::new(AuditEventType::LotCreated)
         .user(auth_user.user_id, &user.username)
@@ -1082,6 +1106,67 @@ async fn get_homeoffice_settings(
     }
 }
 
+
+/// Wrapper for PUT /api/v1/homeoffice that accepts {"pattern": {"weekdays": [...]}}
+#[derive(Debug, Deserialize)]
+pub struct UpdateHomeofficeRequest {
+    pub pattern: Option<HomeofficePatternInput>,
+    pub weekdays: Option<Vec<serde_json::Value>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct HomeofficePatternInput {
+    pub weekdays: Vec<serde_json::Value>,
+}
+
+fn parse_weekdays(vals: &[serde_json::Value]) -> Vec<u8> {
+    vals.iter().filter_map(|v| {
+        match v {
+            serde_json::Value::Number(n) => n.as_u64().map(|n| n as u8),
+            serde_json::Value::String(s) => match s.to_lowercase().as_str() {
+                "monday" | "mon" => Some(0),
+                "tuesday" | "tue" => Some(1),
+                "wednesday" | "wed" => Some(2),
+                "thursday" | "thu" => Some(3),
+                "friday" | "fri" => Some(4),
+                "saturday" | "sat" => Some(5),
+                "sunday" | "sun" => Some(6),
+                _ => s.parse::<u8>().ok(),
+            },
+            _ => None,
+        }
+    }).collect()
+}
+
+async fn update_homeoffice_settings(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<UpdateHomeofficeRequest>,
+) -> (StatusCode, Json<ApiResponse<HomeofficeSettings>>) {
+    let pattern = if let Some(p) = req.pattern {
+        HomeofficePattern { weekdays: parse_weekdays(&p.weekdays) }
+    } else if let Some(weekdays) = req.weekdays {
+        HomeofficePattern { weekdays: parse_weekdays(&weekdays) }
+    } else {
+        HomeofficePattern { weekdays: vec![] }
+    };
+    let state_guard = state.read().await;
+    let mut settings = match state_guard.db.get_homeoffice_settings(&auth_user.user_id.to_string()).await {
+        Ok(Some(s)) => s,
+        _ => HomeofficeSettings {
+            user_id: auth_user.user_id,
+            pattern: HomeofficePattern { weekdays: vec![] },
+            single_days: vec![],
+        },
+    };
+    settings.pattern = pattern;
+    if let Err(e) = state_guard.db.save_homeoffice_settings(&settings).await {
+        tracing::error!("Failed to save homeoffice settings: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save settings")));
+    }
+    (StatusCode::OK, Json(ApiResponse::success(settings)))
+}
+
 async fn update_homeoffice_pattern(
     State(state): State<SharedState>,
     Extension(auth_user): Extension<AuthUser>,
@@ -1147,6 +1232,53 @@ async fn remove_homeoffice_day(
 // ═══════════════════════════════════════════════════════════════════════════════
 // ADMIN
 // ═══════════════════════════════════════════════════════════════════════════════
+
+
+/// POST /api/v1/admin/users - Admin creates a new user
+async fn admin_create_user(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<AdminCreateUserRequest>,
+) -> (StatusCode, Json<ApiResponse<UserResponse>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+    if let Ok(Some(_)) = state_guard.db.get_user_by_username(&req.username).await {
+        return (StatusCode::CONFLICT, Json(ApiResponse::error("USERNAME_EXISTS", "Username already taken")));
+    }
+    let password_hash = hash_password(&req.password);
+    let now = Utc::now();
+    let new_user = User {
+        id: Uuid::new_v4(),
+        username: req.username,
+        email: req.email,
+        password_hash,
+        name: req.name,
+        picture: None,
+        phone: None,
+        role: req.role,
+        created_at: now,
+        updated_at: now,
+        last_login: None,
+        preferences: parkhub_common::UserPreferences::default(),
+        is_active: true,
+        department: None,
+    };
+    if let Err(e) = state_guard.db.save_user(&new_user).await {
+        tracing::error!("Failed to create user: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to create user")));
+    }
+    AuditEntry::new(AuditEventType::UserCreated)
+        .user(auth_user.user_id, &user.username)
+        .resource("user", &new_user.id.to_string())
+        .log();
+    (StatusCode::CREATED, Json(ApiResponse::success(UserResponse::from(new_user))))
+}
 
 async fn admin_list_users(
     State(state): State<SharedState>,
@@ -2130,10 +2262,49 @@ async fn get_branding_admin(
 }
 
 /// PUT /api/v1/admin/branding - Update branding config
+
+/// Partial branding update request - all fields optional
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateBrandingRequest {
+    pub company_name: Option<String>,
+    pub primary_color: Option<String>,
+    pub secondary_color: Option<String>,
+    pub logo_url: Option<Option<String>>,
+    pub favicon_url: Option<Option<String>>,
+    pub login_background_color: Option<String>,
+    pub custom_css: Option<Option<String>>,
+}
+
+/// Create parking lot request
+#[derive(Debug, Deserialize)]
+pub struct CreateLotRequest {
+    pub name: String,
+    pub address: String,
+    pub total_slots: i32,
+    #[serde(default)]
+    pub status: Option<LotStatus>,
+}
+
+/// Admin create user request
+#[derive(Debug, Deserialize)]
+pub struct AdminCreateUserRequest {
+    pub username: String,
+    pub password: String,
+    pub name: String,
+    pub email: String,
+    #[serde(default = "default_user_role")]
+    pub role: UserRole,
+}
+
+fn default_user_role() -> UserRole {
+    UserRole::User
+}
+
+
 async fn update_branding(
     State(state): State<SharedState>,
     Extension(auth_user): Extension<AuthUser>,
-    Json(config): Json<BrandingConfig>,
+    Json(req): Json<UpdateBrandingRequest>,
 ) -> (StatusCode, Json<ApiResponse<BrandingConfig>>) {
     let state = state.read().await;
     let user = match state.db.get_user(&auth_user.user_id.to_string()).await {
@@ -2144,12 +2315,15 @@ async fn update_branding(
         return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
     }
 
-    // Preserve logo_url if not provided (it's set by logo upload)
-    let mut final_config = config;
-    if final_config.logo_url.is_none() {
-        let existing = load_branding_config(&state.db).await;
-        final_config.logo_url = existing.logo_url;
-    }
+    // Merge with existing branding config
+    let mut final_config = load_branding_config(&state.db).await;
+    if let Some(v) = req.company_name { final_config.company_name = v; }
+    if let Some(v) = req.primary_color { final_config.primary_color = v; }
+    if let Some(v) = req.secondary_color { final_config.secondary_color = v; }
+    if let Some(v) = req.logo_url { final_config.logo_url = v; }
+    if let Some(v) = req.favicon_url { final_config.favicon_url = v; }
+    if let Some(v) = req.login_background_color { final_config.login_background_color = v; }
+    if let Some(v) = req.custom_css { final_config.custom_css = v; }
 
     let json_data = serde_json::to_vec(&final_config).unwrap();
     if let Err(e) = state.db.save_branding("config", &json_data).await {
