@@ -148,7 +148,7 @@ REST API at `/api/v1/`:
 | GET | /api/v1/admin/users | List users (admin) |
 | GET | /api/v1/admin/bookings | All bookings (admin) |
 
-Full OpenAPI spec at `/api/docs` when running.
+Full OpenAPI spec at `/swagger-ui/` when running. Raw JSON at `/api-docs/openapi.json`.
 
 ---
 
