@@ -12,14 +12,16 @@ import {
   TrendUp,
   CaretRight,
 } from '@phosphor-icons/react';
-import { api, ParkingLot, Booking } from '../api/client';
+import { api, ParkingLot, ParkingLotDetailed, Booking } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { ParkingLotGrid } from '../components/ParkingLotGrid';
 import { format, formatDistanceToNow } from 'date-fns';
 import { de } from 'date-fns/locale';
 
 export function DashboardPage() {
   const { user } = useAuth();
   const [lots, setLots] = useState<ParkingLot[]>([]);
+  const [detailedLots, setDetailedLots] = useState<ParkingLotDetailed[]>([]);
   const [activeBookings, setActiveBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +36,17 @@ export function DashboardPage() {
         api.getBookings(),
       ]);
 
-      if (lotsRes.success && lotsRes.data) setLots(lotsRes.data);
+      if (lotsRes.success && lotsRes.data) {
+        setLots(lotsRes.data);
+        // Load detailed lot data for grid view
+        const detailedPromises = lotsRes.data.map((lot) => api.getLotDetailed(lot.id));
+        const detailedResults = await Promise.all(detailedPromises);
+        setDetailedLots(
+          detailedResults
+            .filter((r) => r.success && r.data)
+            .map((r) => r.data!)
+        );
+      }
       if (bookingsRes.success && bookingsRes.data) {
         setActiveBookings(bookingsRes.data.filter(b => b.status === 'active'));
       }
@@ -230,6 +242,23 @@ export function DashboardPage() {
               </motion.div>
             ))}
           </div>
+        </motion.div>
+      )}
+
+      {/* Parking Lot Grid Overview */}
+      {detailedLots.length > 0 && (
+        <motion.div variants={itemVariants} className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Parkplatz-Übersicht
+          </h2>
+          {detailedLots.filter((l) => l.layout).map((lot) => (
+            <div key={lot.id} className="card p-6">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                {lot.name}
+              </h3>
+              <ParkingLotGrid layout={lot.layout!} interactive={false} />
+            </div>
+          ))}
         </motion.div>
       )}
 

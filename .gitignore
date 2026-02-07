@@ -42,3 +42,13 @@ layouts/
 # Package files
 *.zip
 *.tar.gz
+
+# Node
+node_modules/
+package-lock.json
+parkhub-web/node_modules/
+parkhub-web/package-lock.json
+
+# Screenshots (generated)
+screenshots-new/
+screenshots-win/
