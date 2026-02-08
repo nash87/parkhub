@@ -103,6 +103,7 @@ export function RegisterPage() {
                 <input type={showPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} className="input pl-11" placeholder="••••••••" required />
               </div>
             </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 text-center">{t("register.privacyNotice")} <Link to="/privacy" className="text-primary-600 hover:underline">{t("footer.privacy")}</Link></p>
             <button type="submit" disabled={loading} className="btn btn-primary w-full justify-center mt-6">
               {loading ? <SpinnerGap weight="bold" className="w-5 h-5 animate-spin" /> : <>{t('register.submit')} <ArrowRight weight="bold" className="w-5 h-5" /></>}
             </button>

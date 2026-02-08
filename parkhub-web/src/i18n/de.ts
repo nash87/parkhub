@@ -90,6 +90,7 @@ export const de = {
     confirmPassword: 'Passwort bestätigen',
     submit: 'Registrieren',
     alreadyRegistered: 'Bereits registriert?',
+    privacyNotice: 'Mit der Registrierung akzeptieren Sie unsere',
     loginLink: 'Jetzt anmelden',
     heroTitle: 'Werden Sie Teil von ParkHub',
     heroSubtitle: 'Erstellen Sie Ihr Konto und beginnen Sie noch heute mit der intelligenten Parkplatzverwaltung.',
@@ -164,6 +165,8 @@ export const de = {
     licensePlate: 'Kennzeichen',
     bookNow: 'Jetzt buchen',
     bookingFailed: 'Buchung fehlgeschlagen',
+    saveVehicleForFuture: 'Fahrzeug für zukünftige Buchungen speichern',
+    vehicleSaved: 'Fahrzeug wurde gespeichert',
     weeklyShort: 'Wöchentl.',
   },
 
@@ -490,31 +493,51 @@ export const de = {
   privacy: {
     title: 'Datenschutzerklärung',
     subtitle: 'Wie wir mit Ihren Daten umgehen — transparent und DSGVO-konform.',
+    defaultCompany: 'Der Betreiber dieser ParkHub-Instanz',
+    defaultEmail: 'admin@example.com',
+    lastUpdated: 'Diese Datenschutzerklärung wird automatisch generiert und entspricht dem aktuellen Stand der Software.',
+    controller: {
+      title: 'Verantwortlicher',
+      content: 'Verantwortlich für die Datenverarbeitung im Sinne der DSGVO ist:\n\n{{companyName}}\n\nKontakt: {{contactEmail}}\n\nDer Verantwortliche betreibt diese ParkHub-Instanz selbst und ist für den ordnungsgemäßen Datenschutz verantwortlich.',
+    },
     dataCollected: {
-      title: 'Welche Daten wir erheben',
-      content: 'Wir erheben nur die für die Parkplatzverwaltung notwendigen Daten:\n\n• Kontodaten (Name, E-Mail, Benutzername)\n• Fahrzeuginformationen (Kennzeichen, Marke, Modell)\n• Buchungshistorie (Stellplatz, Zeit, Dauer)\n• Homeoffice-Planung\n• Einstellungen (Theme, Sprache, Barrierefreiheit)\n\nKein Tracking, keine Analytics, keine Drittanbieter-Scripts.',
+      title: 'Welche Daten werden erhoben',
+      content: 'Wir erheben ausschließlich die für die Parkplatzverwaltung notwendigen Daten:\n\n• Benutzername und Passwort (gehasht)\n• E-Mail-Adresse\n• Vor- und Nachname\n• Kfz-Kennzeichen\n• Buchungsdaten (Stellplatz, Zeitraum, Dauer)\n• Fahrzeugfotos (optional, nur wenn hochgeladen)\n• IP-Adressen (in Server-Logs)\n• Homeoffice-Planung\n• Einstellungen (Theme, Sprache, Barrierefreiheit)\n\nEs werden KEINE weiteren Daten erhoben. Kein Tracking, keine Analytics, keine Drittanbieter-Scripts.',
+    },
+    purpose: {
+      title: 'Zweck der Datenverarbeitung',
+      content: 'Die Datenverarbeitung dient ausschließlich folgenden Zwecken:\n\n• Verwaltung und Buchung von Parkplätzen\n• Benutzerkontenverwaltung und Authentifizierung\n• Anzeige der Belegung und Verfügbarkeit\n• Homeoffice-Koordination\n\nRechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) und Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Parkplatzverwaltung).',
     },
     storage: {
-      title: 'Datenspeicherung',
-      content: 'Alle Daten werden in einer eingebetteten Datenbank (redb) direkt auf Ihrem Server gespeichert. ParkHub ist 100% selbst gehostet — Ihre Daten verlassen niemals Ihre Infrastruktur.\n\nKeine Cloud-Dienste, keine externen Datenbanken, keine Datenübertragungen an Dritte.',
+      title: 'Speicherort der Daten',
+      content: 'Alle Daten werden ausschließlich lokal auf dem Server des Betreibers gespeichert:\n\n• Datenbank: redb (eingebettete Datenbank, lokale Datei auf dem Server)\n• KEINE Cloud-Dienste\n• KEINE externe Datenbanken\n• KEINE Weitergabe an Dritte\n• KEINE Datenübertragung ins Ausland\n\nDie Daten verlassen niemals die Infrastruktur des Betreibers.',
+    },
+    technical: {
+      title: 'Technische Details',
+      content: 'ParkHub verwendet folgende Technologien:\n\n• Backend: Rust (Axum Web-Framework)\n• Datenbank: redb (eingebettete Key-Value-Datenbank, lokale Datei)\n• Authentifizierung: JWT-Tokens (kein Cookie-basiertes Tracking)\n• Passwörter: bcrypt-gehasht (nicht im Klartext gespeichert)\n\nNICHT verwendet werden:\n• Keine externen Tracking-Tools\n• Keine Cookies (nur JWT Session-Token im localStorage)\n• Keine Analytics (kein Google Analytics, kein Matomo)\n• Kein Google, kein Facebook, keine Social-Media-Plugins\n• Keine externen Schriftarten oder CDNs\n• Alle Daten liegen auf dem Server des Betreibers',
     },
     security: {
-      title: 'Sicherheit',
-      content: 'Passwörter werden mit bcrypt gehasht. API-Zugriff wird über JWT-Tokens gesichert. Die Kommunikation sollte über HTTPS erfolgen.\n\nDie Datenbankdatei wird auf dem Server-Dateisystem gespeichert.',
+      title: 'Sicherheitsmaßnahmen',
+      content: 'Zum Schutz Ihrer Daten werden folgende Maßnahmen eingesetzt:\n\n• Passwörter werden mit bcrypt gehasht und nie im Klartext gespeichert\n• API-Zugriff über JWT-Tokens gesichert\n• HTTPS-Verschlüsselung (konfigurierbar)\n• Rollenbasierte Zugriffskontrolle (Admin/Benutzer)\n• Eingabevalidierung gegen XSS und Injection\n• Rate-Limiting gegen Brute-Force-Angriffe',
     },
-    access: {
-      title: 'Zugriff',
-      content: 'Nur Administratoren Ihrer ParkHub-Instanz haben Zugriff auf Benutzerdaten. Da ParkHub selbst gehostet wird, kontrolliert Ihre IT-Abteilung den gesamten Zugriff.',
+    retention: {
+      title: 'Aufbewahrungsdauer',
+      content: 'Die Aufbewahrungsdauer der Daten richtet sich nach folgenden Regeln:\n\n• Buchungsdaten: Werden gemäß der Konfiguration des Betreibers aufbewahrt\n• Benutzerkonto: Bis zur Löschung durch den Benutzer oder Administrator\n• Server-Logs: Gemäß Serverkonfiguration\n\nSie können Ihr Konto und alle damit verbundenen Daten jederzeit selbst löschen (Profil > Konto löschen).',
+    },
+    contact: {
+      title: 'Kontakt',
+      content: 'Bei Fragen zum Datenschutz wenden Sie sich bitte an:\n\n{{companyName}}\nE-Mail: {{contactEmail}}\n\nSie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren, wenn Sie der Meinung sind, dass die Verarbeitung Ihrer Daten gegen die DSGVO verstößt.',
     },
     rights: {
-      title: 'Ihre Rechte (DSGVO)',
-      access: 'Auskunftsrecht — Laden Sie alle Ihre Daten über die Profilseite herunter (Art. 15 DSGVO)',
-      rectification: 'Recht auf Berichtigung — Bearbeiten Sie Ihre Profildaten jederzeit (Art. 16 DSGVO)',
-      erasure: 'Recht auf Löschung — Löschen Sie Ihr Konto und alle Daten über die Profilseite (Art. 17 DSGVO)',
-      portability: 'Recht auf Datenübertragbarkeit — Exportieren Sie Ihre Daten als JSON (Art. 20 DSGVO)',
+      title: 'Ihre Rechte nach DSGVO (Art. 15-22)',
+      access: 'Auskunftsrecht (Art. 15 DSGVO) — Laden Sie alle Ihre Daten als JSON herunter über Profil > Daten exportieren oder GET /api/v1/users/me/export',
+      rectification: 'Recht auf Berichtigung (Art. 16 DSGVO) — Bearbeiten Sie Ihre Profildaten jederzeit über die Profilseite',
+      erasure: 'Recht auf Löschung (Art. 17 DSGVO) — Löschen Sie Ihr Konto und alle Daten über Profil > Konto löschen oder DELETE /api/v1/users/me/delete',
+      portability: 'Recht auf Datenübertragbarkeit (Art. 20 DSGVO) — Exportieren Sie Ihre Daten als JSON-Datei',
+      restriction: 'Recht auf Einschränkung der Verarbeitung (Art. 18 DSGVO) — Kontaktieren Sie den Administrator',
+      objection: 'Widerspruchsrecht (Art. 21 DSGVO) — Kontaktieren Sie den Administrator oder löschen Sie Ihr Konto',
     },
   },
-
   // AGB
   terms: {
     title: 'Nutzungsbedingungen',
@@ -539,7 +562,26 @@ export const de = {
   // Impressum
   legal: {
     title: 'Impressum',
-    content: '[Firmenname]\n[Straße]\n[PLZ, Ort]\n[Land]\n\nVertreten durch: [Name]\nE-Mail: [E-Mail]\nTelefon: [Telefon]\n\nVerantwortlich für den Inhalt nach § 55 Abs. 2 RStV:\n[Name, Adresse]\n\nBitte aktualisieren Sie diese Seite mit Ihren tatsächlichen Unternehmensdaten.',
+    operator: {
+      title: 'Betreiber',
+      content: 'Diese ParkHub-Instanz wird betrieben von:\n\n{{companyName}}\n\nKontakt: {{contactEmail}}',
+    },
+    software: {
+      title: 'Software',
+      content: 'ParkHub ist Open-Source-Software unter der MIT-Lizenz.\n\nQuellcode: https://github.com/frostplexx/parkhub\n\nDies ist eine selbstgehostete Anwendung. Der Betreiber ist allein verantwortlich für Installation, Konfiguration und Datenverwaltung.',
+    },
+    license: {
+      title: 'Lizenz (MIT)',
+      content: 'Copyright (c) 2026 ParkHub Contributors\n\nHiermit wird jeder Person, die eine Kopie dieser Software erhält, kostenlos die Erlaubnis erteilt, die Software ohne Einschränkung zu nutzen, einschließlich der Rechte zur Nutzung, zum Kopieren, Ändern, Zusammenführen, Veröffentlichen, Verteilen, Unterlizenzieren und/oder Verkaufen.',
+    },
+    disclaimer: {
+      title: 'Haftungsausschluss',
+      content: 'DIE SOFTWARE WIRD OHNE JEGLICHE GEWÄHRLEISTUNG BEREITGESTELLT, WEDER AUSDRÜCKLICH NOCH STILLSCHWEIGEND, EINSCHLIESSLICH DER GEWÄHRLEISTUNG DER MARKTGÄNGIGKEIT, EIGNUNG FÜR EINEN BESTIMMTEN ZWECK UND NICHTVERLETZUNG.\n\nDer Betreiber dieser Instanz ist für die Einhaltung lokaler Gesetze und Vorschriften verantwortlich.',
+    },
+    selfHosted: {
+      title: 'Hinweis zum Selbsthosting',
+      content: 'Diese Anwendung läuft vollständig auf der Infrastruktur des Betreibers. Es werden keine Daten an externe Server übermittelt. Als selbstgehostete Anwendung liegt die Datenhoheit vollständig beim Betreiber.',
+    },
   },
 
   // Über

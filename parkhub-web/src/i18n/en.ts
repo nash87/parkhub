@@ -79,6 +79,7 @@ export const en = {
     confirmPassword: 'Confirm Password',
     submit: 'Register',
     alreadyRegistered: 'Already registered?',
+    privacyNotice: 'By registering, you accept our',
     loginLink: 'Sign in',
     heroTitle: 'Join ParkHub',
     heroSubtitle: 'Create your account and start managing parking intelligently today.',
@@ -149,6 +150,8 @@ export const en = {
     licensePlate: 'License Plate',
     bookNow: 'Book Now',
     bookingFailed: 'Booking failed',
+    saveVehicleForFuture: 'Save vehicle for future bookings',
+    vehicleSaved: 'Vehicle saved successfully',
     weeklyShort: 'Weekly',
   },
   bookingSuccess: {
@@ -449,34 +452,55 @@ export const en = {
   },
 
   // Privacy Page
+  // Privacy
   privacy: {
     title: 'Privacy Policy',
-    subtitle: 'How we handle your data — transparently and DSGVO-compliant.',
+    subtitle: 'How we handle your data — transparently and GDPR-compliant.',
+    defaultCompany: 'The operator of this ParkHub instance',
+    defaultEmail: 'admin@example.com',
+    lastUpdated: 'This privacy policy is automatically generated and reflects the current state of the software.',
+    controller: {
+      title: 'Data Controller',
+      content: 'The data controller as defined by the GDPR is:\n\n{{companyName}}\n\nContact: {{contactEmail}}\n\nThe controller operates this ParkHub instance and is responsible for proper data protection.',
+    },
     dataCollected: {
       title: 'Data We Collect',
-      content: 'We collect only the data necessary for parking management:\n\n• Account data (name, email, username)\n• Vehicle information (license plate, make, model)\n• Booking history (slot, time, duration)\n• Home office schedule\n• Preferences (theme, language, accessibility)\n\nNo tracking, no analytics, no third-party scripts.',
+      content: 'We collect only the data necessary for parking management:\n\n• Username and password (hashed)\n• Email address\n• First and last name\n• License plates\n• Booking data (slot, time period, duration)\n• Vehicle photos (optional, only if uploaded)\n• IP addresses (in server logs)\n• Home office schedule\n• Preferences (theme, language, accessibility)\n\nNO additional data is collected. No tracking, no analytics, no third-party scripts.',
+    },
+    purpose: {
+      title: 'Purpose of Data Processing',
+      content: 'Data processing serves exclusively the following purposes:\n\n• Management and booking of parking spaces\n• User account management and authentication\n• Display of occupancy and availability\n• Home office coordination\n\nLegal basis: Art. 6(1)(b) GDPR (contract performance) and Art. 6(1)(f) GDPR (legitimate interest in parking management).',
     },
     storage: {
-      title: 'How Data Is Stored',
-      content: 'All data is stored in an embedded database (redb) directly on your server. ParkHub is 100% self-hosted — your data never leaves your infrastructure.\n\nNo cloud services, no external databases, no data transfers to third parties.',
+      title: 'Data Storage Location',
+      content: 'All data is stored exclusively on the operator\'s local server:\n\n• Database: redb (embedded database, local file on server)\n• NO cloud services\n• NO external databases\n• NO data sharing with third parties\n• NO data transfer abroad\n\nData never leaves the operator\'s infrastructure.\n\nAs a self-hosted application, data sovereignty lies entirely with the operator. Data residency is determined by where this instance is deployed.',
+    },
+    technical: {
+      title: 'Technical Details',
+      content: 'ParkHub uses the following technologies:\n\n• Backend: Rust (Axum web framework)\n• Database: redb (embedded key-value database, local file)\n• Authentication: JWT tokens (no cookie-based tracking)\n• Passwords: bcrypt-hashed (never stored in plaintext)\n\nNOT used:\n• No external tracking tools\n• No cookies (only JWT session token in localStorage)\n• No analytics (no Google Analytics, no Matomo)\n• No Google, no Facebook, no social media plugins\n• No external fonts or CDNs\n• All data resides on the operator\'s server\n\nThis application does not use cookies or tracking technologies. Session tokens are stored in the browser\'s localStorage.',
     },
     security: {
-      title: 'Security',
-      content: 'Passwords are hashed with bcrypt. API access is secured via JWT tokens. All communication should be served over HTTPS.\n\nThe embedded database file is stored on the server filesystem.',
+      title: 'Security Measures',
+      content: 'The following measures protect your data:\n\n• Passwords are bcrypt-hashed and never stored in plaintext\n• API access secured via JWT tokens\n• HTTPS encryption (configurable)\n• Role-based access control (admin/user)\n• Input validation against XSS and injection\n• Rate limiting against brute-force attacks',
     },
-    access: {
-      title: 'Who Has Access',
-      content: 'Only administrators of your ParkHub instance have access to user data. Since ParkHub is self-hosted, your IT department controls all access.',
+    retention: {
+      title: 'Data Retention',
+      content: 'Data retention follows these rules:\n\n• Booking data: Retained according to the operator\'s configuration\n• User account: Until deletion by the user or administrator\n• Server logs: According to server configuration\n\nYou can delete your account and all associated data at any time (Profile > Delete Account).',
+    },
+    contact: {
+      title: 'Contact',
+      content: 'For questions about data protection, please contact:\n\n{{companyName}}\nEmail: {{contactEmail}}\n\nYou have the right to lodge a complaint with a data protection supervisory authority if you believe that the processing of your data violates the GDPR.',
     },
     rights: {
-      title: 'Your Rights (DSGVO)',
-      access: 'Right of access — Download all your data via your profile page (Art. 15 DSGVO)',
-      rectification: 'Right to rectification — Edit your profile data at any time (Art. 16 DSGVO)',
-      erasure: 'Right to erasure — Delete your account and all data via profile page (Art. 17 DSGVO)',
-      portability: 'Right to data portability — Export your data as JSON (Art. 20 DSGVO)',
+      title: 'Your Rights under GDPR (Art. 15-22)',
+      access: 'Right of access (Art. 15 GDPR) — Download all your data as JSON via Profile > Export Data or GET /api/v1/users/me/export',
+      rectification: 'Right to rectification (Art. 16 GDPR) — Edit your profile data at any time via the profile page',
+      erasure: 'Right to erasure (Art. 17 GDPR) — Delete your account and all data via Profile > Delete Account or DELETE /api/v1/users/me/delete',
+      portability: 'Right to data portability (Art. 20 GDPR) — Export your data as a JSON file',
+      restriction: 'Right to restriction of processing (Art. 18 GDPR) — Contact the administrator',
+      objection: 'Right to object (Art. 21 GDPR) — Contact the administrator or delete your account',
     },
   },
-
   // Terms
   terms: {
     title: 'Terms of Service',
@@ -500,8 +524,27 @@ export const en = {
 
   // Legal/Imprint
   legal: {
-    title: 'Legal Notice / Impressum',
-    content: '[Company Name]\n[Street Address]\n[Postal Code, City]\n[Country]\n\nRepresented by: [Name]\nEmail: [email]\nPhone: [phone]\n\nResponsible for content according to § 55 Abs. 2 RStV:\n[Name, Address]\n\nPlease update this page with your actual company information.',
+    title: 'Legal Notice',
+    operator: {
+      title: 'Operator',
+      content: 'This ParkHub instance is operated by:\n\n{{companyName}}\n\nContact: {{contactEmail}}',
+    },
+    software: {
+      title: 'Software',
+      content: 'ParkHub is open source software licensed under the MIT License.\n\nSource code: https://github.com/frostplexx/parkhub\n\nThis is a self-hosted application. The operator is solely responsible for deployment, configuration, and data management.',
+    },
+    license: {
+      title: 'License (MIT)',
+      content: 'Copyright (c) 2026 ParkHub Contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software to deal in the Software without restriction, including the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies.',
+    },
+    disclaimer: {
+      title: 'Disclaimer',
+      content: 'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.\n\nThe operator of this instance is responsible for compliance with local laws and regulations.',
+    },
+    selfHosted: {
+      title: 'Self-Hosted Notice',
+      content: 'This application runs entirely on the operator\'s infrastructure. No data is transmitted to external servers. As a self-hosted application, data sovereignty lies entirely with the operator.',
+    },
   },
 
   // About

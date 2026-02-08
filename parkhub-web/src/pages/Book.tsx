@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Car, Clock, CheckCircle, SpinnerGap, MapPin, CalendarBlank, Repeat, Heart, Star, Sun, Moon,
+  Car, Clock, CheckCircle, SpinnerGap, MapPin, CalendarBlank, Repeat, Heart, Star, Sun, Moon, FloppyDisk,
 } from '@phosphor-icons/react';
 import { api, ParkingLot, ParkingLotDetailed, Vehicle, SlotConfig } from '../api/client';
 import { ParkingLotGrid } from '../components/ParkingLotGrid';
@@ -72,6 +72,7 @@ export function BookPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<string>('');
   const [customPlate, setCustomPlate] = useState('');
+  const [saveVehicle, setSaveVehicle] = useState(true);
   const [duration] = useState(60);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
@@ -165,6 +166,13 @@ export function BookPage() {
         : `${dauerInterval === 'weekly' ? t('book.weekly') : t('book.monthly')}`;
       setSuccessSummary({ lot: selectedLotData?.name || '', slot: selectedSlot!.number, type: typeLabel, time: timeLabel, plate });
       setShowSuccess(true);
+      // Save vehicle for future bookings
+      if (saveVehicle && customPlate && !selectedVehicle) {
+        try {
+          const vRes = await api.createVehicle({ plate: customPlate, is_default: vehicles.length === 0 });
+          if (vRes.success) toast.success(t("book.vehicleSaved"));
+        } catch (_) { /* ignore vehicle save errors */ }
+      }
     } else {
       toast.error(res.error?.message || t('book.bookingFailed'));
     }
@@ -359,6 +367,13 @@ export function BookPage() {
                   </select>
                 )}
                 {!selectedVehicle && <div className="mt-2"><LicensePlateInput value={customPlate} onChange={setCustomPlate} /></div>}
+                {!selectedVehicle && customPlate && (
+                  <label className="flex items-center gap-2 mt-3 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+                    <input type="checkbox" checked={saveVehicle} onChange={(e) => setSaveVehicle(e.target.checked)} className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                    <FloppyDisk weight="regular" className="w-4 h-4" />
+                    {t("book.saveVehicleForFuture")}
+                  </label>
+                )}
               </div>
             </div>
           </motion.div>

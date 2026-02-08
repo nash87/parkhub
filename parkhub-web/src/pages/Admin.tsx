@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChartBar, Buildings, Users, ListChecks, Plus, CheckCircle, TrendUp, CaretRight,
   SpinnerGap, MagnifyingGlass, XCircle, Trash, PencilSimple,
-  Lightning, Pulse, ShieldCheck, Clock, House, Prohibit, Palette,
+  Lightning, Pulse, ShieldCheck, Clock, House, Prohibit, Palette, GearSix, ArrowsClockwise,
 } from '@phosphor-icons/react';
 import { api, ParkingLot, ParkingLotDetailed, User, Booking, AdminStats } from '../api/client';
 import { LotLayoutEditor } from '../components/LotLayoutEditor';
@@ -20,6 +20,7 @@ function AdminNav() {
     { name: t('admin.tabs.users'), path: '/admin/users', icon: Users },
     { name: t('admin.tabs.bookings'), path: '/admin/bookings', icon: ListChecks },
     { name: t('admin.tabs.branding', 'Branding'), path: '/admin/branding', icon: Palette },
+    { name: t('admin.tabs.system', 'System'), path: '/admin/system', icon: GearSix },
   ];
   return (
     <div className="border-b border-gray-200 dark:border-gray-800 mb-8">
@@ -381,13 +382,105 @@ function AdminBookings() {
   );
 }
 
+export 
+function AdminSystem() {
+  const { t } = useTranslation();
+  const [version, setVersion] = useState('');
+  const [latestVersion, setLatestVersion] = useState<string | null>(null);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState('');
+  const [lastChecked, setLastChecked] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/v1/system/version')
+      .then(r => r.json())
+      .then(d => setVersion(d.version || ''))
+      .catch(() => {});
+  }, []);
+
+  async function checkForUpdates() {
+    setChecking(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('parkhub_token');
+      const res = await fetch('/api/v1/admin/updates/check', {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      const data = await res.json();
+      setLatestVersion(data.latest || null);
+      setUpdateAvailable(data.update_available || false);
+      if (data.error) setError(data.error);
+      setLastChecked(new Date().toLocaleString());
+    } catch {
+      setError(t('admin.version.error', 'Could not check for updates'));
+    }
+    setChecking(false);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <GearSix weight="fill" className="w-5 h-5 text-primary-600" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('admin.version.title', 'System Information')}</h2>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800">
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('admin.version.current', 'Current Version')}</span>
+            <span className="font-mono font-medium text-gray-900 dark:text-white">v{version || '...'}</span>
+          </div>
+          {latestVersion && (
+            <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800">
+              <span className="text-sm text-gray-600 dark:text-gray-400">{t('admin.version.latest', 'Latest Version')}</span>
+              <span className={'font-mono font-medium ' + (updateAvailable ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')}>
+                v{latestVersion}
+              </span>
+            </div>
+          )}
+          {lastChecked && (
+            <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800">
+              <span className="text-sm text-gray-600 dark:text-gray-400">{t('admin.version.lastChecked', 'Last checked')}</span>
+              <span className="text-sm text-gray-500">{lastChecked}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800">
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('admin.version.repoUrl', 'Repository')}</span>
+            <a href="https://github.com/frostplexx/parkhub" target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline">
+              github.com/frostplexx/parkhub
+            </a>
+          </div>
+        </div>
+        <div className="mt-6 flex items-center gap-3">
+          <button onClick={checkForUpdates} disabled={checking} className="btn-primary flex items-center gap-2 px-4 py-2 text-sm">
+            <ArrowsClockwise weight="bold" className={'w-4 h-4' + (checking ? ' animate-spin' : '')} />
+            {checking ? t('admin.version.checking', 'Checking...') : t('admin.version.checkForUpdates', 'Check for updates')}
+          </button>
+        </div>
+        {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+        {updateAvailable && (
+          <div className="mt-4 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">{t('admin.version.updateAvailable', 'Update available')}: v{latestVersion}</p>
+            <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">{t('admin.version.updateInstructions', 'To update, run the update script on the server or pull the latest version from the repository.')}</p>
+          </div>
+        )}
+        {latestVersion && !updateAvailable && !error && (
+          <div className="mt-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+            <p className="text-sm font-medium text-green-800 dark:text-green-300">{t('admin.version.noUpdates', 'You are running the latest version.')}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function AdminPage() {
   const { t } = useTranslation();
   return (
     <div>
       <div className="mb-2"><h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('admin.title')}</h1><p className="text-gray-500 dark:text-gray-400 mt-1">{t('admin.subtitle')}</p></div>
       <AdminNav />
-      <Routes><Route path="/" element={<AdminOverview />} /><Route path="/lots" element={<AdminLots />} /><Route path="/users" element={<AdminUsers />} /><Route path="/bookings" element={<AdminBookings />} /><Route path="/branding" element={<AdminBrandingPage />} /></Routes>
+      <Routes><Route path="/" element={<AdminOverview />} /><Route path="/lots" element={<AdminLots />} /><Route path="/users" element={<AdminUsers />} /><Route path="/bookings" element={<AdminBookings />} /><Route path="/branding" element={<AdminBrandingPage />} /><Route path="/system" element={<AdminSystem />} /></Routes>
     </div>
   );
 }

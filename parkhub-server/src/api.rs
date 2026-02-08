@@ -45,6 +45,11 @@ use crate::AppState;
 
 type SharedState = Arc<RwLock<AppState>>;
 
+/// Current version from Cargo.toml
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+
+
 /// User ID extracted from auth token
 #[derive(Clone)]
 pub struct AuthUser {
@@ -155,7 +160,8 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/setup/status", get(get_setup_status))
         .route("/api/v1/branding", get(get_branding_public))
         .route("/api/v1/branding/logo", get(serve_branding_logo))
-        .route("/api/v1/vehicles/:id/photo", get(get_vehicle_photo));
+        .route("/api/v1/vehicles/:id/photo", get(get_vehicle_photo))
+        .route("/api/v1/system/version", get(get_system_version));
 
     // Protected routes (auth required)
     let protected_routes = Router::new()
@@ -193,6 +199,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/admin/branding", get(get_branding_admin).put(update_branding))
         .route("/api/v1/admin/branding/logo", post(upload_branding_logo))
         .route("/api/v1/admin/reset", post(admin_reset_database))
+        .route("/api/v1/admin/updates/check", get(admin_check_updates))
         .route("/api/v1/lots/:lot_id/slots/:slot_id", put(admin_update_slot_properties))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
@@ -2758,3 +2765,96 @@ async fn admin_update_slot_properties(
 
     (StatusCode::OK, Json(ApiResponse::success(slot)))
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SYSTEM VERSION & UPDATE CHECK
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Get current system version
+async fn get_system_version() -> impl IntoResponse {
+    Json(serde_json::json!({
+        "version": VERSION,
+        "name": "ParkHub Server",
+    }))
+}
+
+/// Check for updates (admin only)
+async fn admin_check_updates(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(serde_json::json!({"error": "Access denied"}))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({"error": "Admin access required"})));
+    }
+    drop(state_guard);
+
+    let repo_url = "https://github.com/frostplexx/parkhub".to_string();
+    let api_url = "https://api.github.com/repos/frostplexx/parkhub/releases/latest";
+
+    let client = match reqwest::Client::builder()
+        .user_agent("ParkHub-Server")
+        .timeout(std::time::Duration::from_secs(10))
+        .build() {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::OK, Json(serde_json::json!({
+            "current": VERSION,
+            "latest": serde_json::Value::Null,
+            "update_available": false,
+            "repo_url": repo_url,
+            "error": "Failed to create HTTP client",
+        }))),
+    };
+
+    match client.get(api_url).send().await {
+        Ok(resp) if resp.status().is_success() => {
+            if let Ok(body) = resp.json::<serde_json::Value>().await {
+                let tag = body.get("tag_name")
+                    .and_then(|v: &serde_json::Value| v.as_str())
+                    .unwrap_or("")
+                    .trim_start_matches('v')
+                    .to_string();
+                let update_available = !tag.is_empty() && tag != VERSION;
+                (StatusCode::OK, Json(serde_json::json!({
+                    "current": VERSION,
+                    "latest": tag,
+                    "update_available": update_available,
+                    "repo_url": repo_url,
+                })))
+            } else {
+                (StatusCode::OK, Json(serde_json::json!({
+                    "current": VERSION,
+                    "latest": serde_json::Value::Null,
+                    "update_available": false,
+                    "repo_url": repo_url,
+                    "error": "Failed to parse response",
+                })))
+            }
+        }
+        Ok(resp) => {
+            let status = resp.status().to_string();
+            (StatusCode::OK, Json(serde_json::json!({
+                "current": VERSION,
+                "latest": serde_json::Value::Null,
+                "update_available": false,
+                "repo_url": repo_url,
+                "error": format!("GitHub API returned {}", status),
+            })))
+        }
+        Err(e) => {
+            (StatusCode::OK, Json(serde_json::json!({
+                "current": VERSION,
+                "latest": serde_json::Value::Null,
+                "update_available": false,
+                "repo_url": repo_url,
+                "error": format!("Network error: {}", e),
+            })))
+        }
+    }
+}
+
