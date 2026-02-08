@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Car, Eye, EyeSlash, ArrowRight, SpinnerGap, Moon, Sun, Globe, GithubLogo } from '@phosphor-icons/react';
+import { Eye, EyeSlash, ArrowRight, SpinnerGap, Moon, Sun, Globe, GithubLogo } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { useTranslation } from 'react-i18next';
@@ -65,8 +65,8 @@ export function LoginPage() {
         </div>
         <div className="relative z-10 flex flex-col justify-center px-16 text-white">
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-              {branding.logo_url ? <img src={branding.logo_url} alt="" className="w-8 h-8 object-contain" /> : <Car weight="fill" className="w-8 h-8" />}
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center">
+              <img src={branding.logo_url || "/icon.svg"} alt={branding.company_name} className="w-10 h-10 object-contain" />
             </div>
             <span className="text-3xl font-bold">{branding.company_name}</span>
           </div>
@@ -89,7 +89,7 @@ export function LoginPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center">
-              <Car weight="fill" className="w-7 h-7 text-white" />
+              <img src={branding.logo_url || "/icon.svg"} alt={branding.company_name} className="w-10 h-10 object-contain" />
             </div>
             <span className="text-2xl font-bold text-gray-900 dark:text-white">{branding.company_name}</span>
           </div>

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/screenshots/logo-banner.svg" alt="ParkHub" width="600">
+  <img src="parkhub-web/public/logo.svg" alt="ParkHub" width="600">
 </p>
 
 <h1 align="center">ParkHub</h1>
@@ -57,10 +57,10 @@ ParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, *
 
 ```bash
 # Interactive installer (Linux / macOS)
-curl -fsSL https://github.com/nash87/parkhub/releases/latest/download/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nash87/parkhub/main/install.sh | bash
 
 # Windows (PowerShell)
-irm https://github.com/nash87/parkhub/releases/latest/download/install.ps1 | iex
+irm https://raw.githubusercontent.com/nash87/parkhub/main/install.ps1 | iex
 ```
 
 The installer offers two modes:
@@ -77,33 +77,33 @@ On first start, a welcome screen lets you choose your language. Then an onboardi
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/welcome.svg" alt="Welcome / Willkommen — Language Selection" width="45%">
+  <img src="docs/screenshots/welcome.png" alt="Welcome / Willkommen — Language Selection" width="45%">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/login.svg" alt="Login / Anmeldung" width="45%">
+  <img src="docs/screenshots/login.png" alt="Login / Anmeldung" width="45%">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/onboarding.svg" alt="Onboarding Wizard / Ersteinrichtung" width="45%">
+  <img src="docs/screenshots/onboarding.png" alt="Onboarding Wizard / Ersteinrichtung" width="45%">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/dashboard.svg" alt="Dashboard / Übersicht" width="45%">
+  <img src="docs/screenshots/dashboard.png" alt="Dashboard / Übersicht" width="45%">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/booking.svg" alt="Booking / Stellplatz buchen" width="45%">
+  <img src="docs/screenshots/booking.png" alt="Booking / Stellplatz buchen" width="45%">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/admin.svg" alt="Admin Panel / Verwaltung" width="45%">
+  <img src="docs/screenshots/admin.png" alt="Admin Panel / Verwaltung" width="45%">
 </p>
 
 <details>
 <summary>More screenshots / Weitere Screenshots</summary>
 <br>
 <p align="center">
-  <img src="docs/screenshots/themes.svg" alt="10 Color Themes / Farbthemen" width="45%">
+  <img src="docs/screenshots/themes.png" alt="10 Color Themes / Farbthemen" width="45%">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/dark-mode.svg" alt="Dark Mode / Dunkelmodus" width="45%">
+  <img src="docs/screenshots/dark-mode.png" alt="Dark Mode / Dunkelmodus" width="45%">
 </p>
 <p align="center">
-  <img src="docs/screenshots/mobile.svg" alt="Mobile View / Mobilansicht (PWA)" width="45%">
+  <img src="docs/screenshots/mobile.png" alt="Mobile View / Mobilansicht (PWA)" width="45%">
 </p>
 </details>
 
@@ -114,10 +114,10 @@ On first start, a welcome screen lets you choose your language. Then an onboardi
 
 ```bash
 # Linux / macOS
-curl -fsSL https://github.com/nash87/parkhub/releases/latest/download/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nash87/parkhub/main/install.sh | bash
 
 # Windows (PowerShell)
-irm https://github.com/nash87/parkhub/releases/latest/download/install.ps1 | iex
+irm https://raw.githubusercontent.com/nash87/parkhub/main/install.ps1 | iex
 ```
 
 ### Docker
