@@ -1,70 +1,69 @@
 # Accessibility
 
-ParkHub is designed to be usable by everyone. This document covers the built-in accessibility features.
-
 ## Colorblind Modes
 
-ParkHub includes three colorblind simulation modes that adjust the UI palette for better contrast:
+Three simulation modes that remap the color palette for better distinction:
 
-| Mode | Condition | Description |
-|------|-----------|-------------|
-| Protanopia | Red-blind | Reduces reliance on red-green distinctions |
-| Deuteranopia | Green-blind | Alternative color mappings for green-deficient vision |
-| Tritanopia | Blue-yellow blind | Adjusted palette for blue-yellow deficiency |
+| Mode | Affects | What it does |
+|------|---------|-------------|
+| Protanopia | Red-blind (~1% of males) | Removes red-green reliance, shifts to blue-yellow distinctions |
+| Deuteranopia | Green-blind (~6% of males) | Similar to protanopia but different cone response curve |
+| Tritanopia | Blue-yellow blind (rare) | Shifts to red-green distinctions |
 
-Enable via **Profile → Accessibility → Colorblind Mode**.
+These are applied as CSS filter overlays. They don't change the palette — they transform rendered colors. Toggle in **Profile → Accessibility**.
 
 ## Font Scaling
 
-Users can adjust the base font size from the profile settings:
+Four sizes, applied by changing the root `font-size`. Everything uses `rem` units, so the whole UI scales:
 
-- **Small** (14px)
-- **Medium** (16px, default)
-- **Large** (18px)
-- **Extra Large** (20px)
+| Size | Base | Effect |
+|------|------|--------|
+| Small | 14px | Fits more on screen |
+| Medium | 16px | Browser default |
+| Large | 18px | Easier to read |
+| Extra Large | 20px | For users who need it |
 
-The entire UI scales proportionally using `rem` units.
+Stored in localStorage, applied on page load.
 
 ## Reduced Motion
 
-For users who prefer minimal animation:
+Two triggers:
 
-- Respects the `prefers-reduced-motion` media query automatically
-- Can be toggled manually in **Profile → Accessibility**
-- Disables Framer Motion animations, transitions, and parallax effects
+1. **OS-level:** If the user has `prefers-reduced-motion: reduce` set in their OS, Framer Motion animations are automatically disabled.
+2. **Manual toggle:** In Profile → Accessibility, users can force-disable animations regardless of OS setting.
+
+When active: no page transitions, no list item animations, no parallax, no spring physics. Instant state changes only.
 
 ## High Contrast
 
-High contrast mode increases color contrast ratios across the UI:
+Increases contrast ratios across the UI:
 
-- Sharper borders and outlines
-- Bolder text rendering
-- Increased contrast between foreground and background
-- Meets WCAG AAA standards when enabled
-
-## ARIA Labels
-
-All interactive elements include proper ARIA attributes:
-
-- Form inputs have associated `<label>` elements
-- Buttons include `aria-label` for icon-only controls
-- Navigation uses `<nav>` landmarks with `aria-label`
-- Status messages use `aria-live` regions
-- Modals include `role="dialog"` with `aria-modal`
+- Borders go from subtle gray to solid dark
+- Text gets bolder weight
+- Background-foreground contrast meets WCAG AAA (7:1 ratio)
+- Focus indicators are thicker and higher-contrast
 
 ## Keyboard Navigation
 
-The entire application is navigable via keyboard:
+Every interactive element is reachable via `Tab`. Focus order follows visual layout. Key bindings:
 
 | Key | Action |
 |-----|--------|
-| `Tab` | Move to next interactive element |
-| `Shift+Tab` | Move to previous element |
-| `Enter` / `Space` | Activate buttons and links |
-| `Escape` | Close modals and dropdowns |
-| Arrow keys | Navigate within menus and date pickers |
+| `Tab` / `Shift+Tab` | Move focus forward/backward |
+| `Enter` or `Space` | Activate buttons, toggle checkboxes |
+| `Escape` | Close modals, dropdowns, overlays |
+| Arrow keys | Navigate within menus, date pickers, slot grids |
 
-Focus indicators are visible on all interactive elements.
+Focus rings are always visible when navigating by keyboard (hidden on mouse click via `:focus-visible`).
+
+## ARIA
+
+- All form inputs have `<label>` associations (via `htmlFor` or wrapping)
+- Icon-only buttons have `aria-label` (e.g., the dark mode toggle)
+- Navigation landmarks use `<nav aria-label="...">`
+- Toast notifications use `aria-live="polite"` regions
+- Modals use `role="dialog"` with `aria-modal="true"` and focus trapping
+- Loading states announce via `aria-busy`
 
 ---
 

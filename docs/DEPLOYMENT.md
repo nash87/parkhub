@@ -1,19 +1,19 @@
-# Production Deployment Guide
+# Deployment
 
-## Docker Compose (Recommended)
+## Docker Compose
+
+This is the simplest production setup. ParkHub + Caddy for automatic HTTPS.
 
 ```yaml
 services:
   parkhub:
     image: ghcr.io/nash87/parkhub:latest
     container_name: parkhub
-    ports:
-      - "7878:7878"
+    command: ["--headless", "--data-dir", "/data"]
     volumes:
       - parkhub-data:/data
     environment:
-      - PARKHUB_DATA_DIR=/data
-      - PARKHUB_LOG_LEVEL=info
+      RUST_LOG: "info"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:7878/health"]
@@ -27,10 +27,12 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
     depends_on:
-      - parkhub
+      parkhub:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   parkhub-data:
@@ -45,39 +47,39 @@ parking.example.com {
 }
 ```
 
+Start: `docker compose up -d`. Caddy gets a Let's Encrypt cert automatically.
+
+If you don't need HTTPS (e.g., behind a corporate VPN), skip Caddy:
+
+```yaml
+services:
+  parkhub:
+    image: ghcr.io/nash87/parkhub:latest
+    ports:
+      - "7878:7878"
+    volumes:
+      - parkhub-data:/data
+    environment:
+      PARKHUB_DATA_DIR: /data
+    restart: unless-stopped
+
+volumes:
+  parkhub-data:
+```
+
 ## Health Checks
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /health` | General health status |
-| `GET /health/live` | Kubernetes liveness probe |
-| `GET /health/ready` | Kubernetes readiness probe |
-| `GET /metrics` | Prometheus-compatible metrics |
+Three endpoints for monitoring and orchestrators:
 
-## Backup Strategy
+| Endpoint | What it checks | Use for |
+|----------|---------------|---------|
+| `GET /health` | Returns `"ok"` if the process is running | Simple uptime check |
+| `GET /health/live` | Always returns `200` if the server is alive | K8s `livenessProbe` |
+| `GET /health/ready` | Returns `200` if the database is accessible, `503` otherwise | K8s `readinessProbe` |
 
-ParkHub uses a single redb file for all data. Backup is simple:
+## Prometheus Metrics
 
-```bash
-# Stop the server (or use file-level snapshot)
-cp /data/parkhub.redb /backups/parkhub-$(date +%Y%m%d).redb
-
-# Automated daily backup via cron
-0 2 * * * cp /var/lib/parkhub/parkhub.redb /backups/parkhub-$(date +\%Y\%m\%d).redb
-```
-
-For Docker volumes:
-
-```bash
-docker run --rm \
-  -v parkhub-data:/data:ro \
-  -v $(pwd)/backups:/backups \
-  alpine cp /data/parkhub.redb /backups/parkhub-$(date +%Y%m%d).redb
-```
-
-## Monitoring
-
-ParkHub exposes a `/metrics` endpoint compatible with Prometheus:
+`GET /metrics` returns Prometheus-format metrics. Scrape it:
 
 ```yaml
 # prometheus.yml
@@ -86,25 +88,42 @@ scrape_configs:
     static_configs:
       - targets: ["parkhub:7878"]
     metrics_path: /metrics
+    scrape_interval: 30s
 ```
 
-## Log Management
+## Backups
 
-ParkHub outputs structured logs to stdout. Adjust the level via:
+All data lives in a single redb file (default: `./data/parkhub.redb`). Back it up by copying the file.
+
+For a consistent backup, either stop the server briefly or copy during low-traffic hours. redb uses MVCC, so a file copy during operation is generally safe, but stopping the server guarantees consistency.
 
 ```bash
-PARKHUB_LOG_LEVEL=debug parkhub-server
+# Simple cron backup
+0 3 * * * cp /var/lib/parkhub/parkhub.redb /backups/parkhub-$(date +\%Y\%m\%d).redb
 ```
 
-Levels: `trace`, `debug`, `info`, `warn`, `error`
-
-For production, pipe to a log aggregator:
+Docker volume backup:
 
 ```bash
-parkhub-server 2>&1 | tee /var/log/parkhub.log
+docker run --rm \
+  -v parkhub-data:/data:ro \
+  -v ./backups:/backups \
+  alpine cp /data/parkhub.redb /backups/parkhub-$(date +%Y%m%d).redb
 ```
 
-Or use Docker logging drivers:
+To restore: stop ParkHub, replace the `.redb` file, restart.
+
+## Logging
+
+Structured logs go to stdout. Control verbosity with `RUST_LOG`:
+
+```bash
+RUST_LOG=debug parkhub-server          # verbose
+RUST_LOG=warn parkhub-server           # quiet
+RUST_LOG=info,parkhub_server=trace     # trace only parkhub code
+```
+
+Docker Compose logging config to avoid filling disks:
 
 ```yaml
 services:
@@ -116,15 +135,9 @@ services:
         max-file: "3"
 ```
 
-## Kubernetes
+## Scaling
 
-See the full manifests in the [Installation Guide](INSTALLATION.md#kubernetes-deployment).
-
-Key considerations:
-- Use a `PersistentVolumeClaim` for the data directory
-- Only **1 replica** — redb is a single-writer database
-- Configure liveness and readiness probes
-- Use an Ingress controller for TLS termination
+You can't. redb is a single-writer embedded database. Run exactly one instance. If you need horizontal scaling, ParkHub isn't the right tool — but for its intended use case (a company with dozens to hundreds of employees), a single instance handles it easily.
 
 ---
 

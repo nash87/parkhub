@@ -1,197 +1,196 @@
-# Development Guide
+# Development
 
 ## Project Structure
 
 ```
 parkhub/
-├── src/                        # Desktop client (Slint UI)
-│   ├── main.rs                 # Desktop entry point
-│   ├── api/                    # API client, endpoints, models
-│   ├── auth/                   # Auth module
-│   ├── config.rs               # Config parsing
-│   ├── database/               # Local database (schema, repository)
-│   └── layout_storage.rs       # Parking layout persistence
-├── parkhub-server/             # HTTP server (the main binary)
+├── parkhub-common/          Shared types — User, Booking, ParkingLot, Vehicle, etc.
+│   └── src/lib.rs           Models + protocol version constant
+├── parkhub-server/          The actual server
 │   └── src/
-│       ├── main.rs             # Entry point, CLI args, server startup
-│       ├── api.rs              # All API route handlers
-│       ├── db.rs               # redb database layer
-│       ├── jwt.rs              # JWT module (available, currently unused)
-│       ├── config.rs           # Configuration parsing
-│       ├── error.rs            # Error types and response mapping
-│       ├── health.rs           # Health/liveness/readiness endpoints
-│       ├── metrics.rs          # Prometheus metrics
-│       ├── rate_limit.rs       # Per-IP and per-user rate limiting
-│       ├── static_files.rs     # Embedded frontend serving (rust_embed)
-│       ├── tls.rs              # Built-in TLS support
-│       ├── email.rs            # SMTP notifications
-│       ├── audit.rs            # Audit logging
-│       ├── background_jobs.rs  # Periodic tasks (cleanup, notifications)
-│       ├── discovery.rs        # mDNS service discovery
-│       ├── openapi.rs          # Swagger/OpenAPI spec generation
-│       ├── requests.rs         # Request/response types
-│       └── validation.rs       # Input validation
-├── parkhub-web/                # React frontend
+│       ├── main.rs          CLI parsing, Tokio runtime, server startup
+│       ├── api.rs           All route handlers (~2500 lines, the core of the app)
+│       ├── db.rs            redb database layer — all table definitions, CRUD ops
+│       ├── jwt.rs           JWT module (exists but unused — sessions use UUID tokens)
+│       ├── config.rs        Configuration parsing
+│       ├── error.rs         Error types (AppError enum)
+│       └── openapi.rs       Swagger/OpenAPI spec generation
+├── parkhub-client/          Desktop GUI client (Slint toolkit, optional)
+├── parkhub-web/             React frontend
 │   ├── src/
-│   │   ├── pages/              # Page components
-│   │   ├── components/         # Reusable UI components
-│   │   ├── stores/             # Zustand state stores
-│   │   ├── i18n/               # Translations (de, en)
-│   │   └── App.tsx             # Router and app shell
+│   │   ├── pages/           Route-level components (Login, Dashboard, Bookings, Admin, etc.)
+│   │   ├── components/      Reusable UI (ThemeSelector, Layout shell, etc.)
+│   │   ├── stores/          Zustand stores
+│   │   │   ├── theme.ts     Dark/light mode toggle, persisted to localStorage
+│   │   │   └── palette.ts   10 color palettes, applied via CSS custom properties
+│   │   ├── i18n/            Translation files (de.ts, en.ts)
+│   │   └── App.tsx          Router (react-router-dom), auth guard, theme init
 │   ├── package.json
-│   └── vite.config.ts
-├── parkhub-client/             # Desktop client connection logic
-│   └── src/
-│       ├── main.rs
-│       ├── discovery.rs        # mDNS server discovery
-│       └── server_connection.rs
-├── parkhub-common/             # Shared types across crates
-│   └── src/
-│       ├── lib.rs
-│       ├── models.rs           # Shared data models
-│       ├── error.rs            # Common error types
-│       └── protocol.rs         # Client-server protocol types
-├── ui/                         # Slint UI definitions (desktop)
-├── config/                     # Default config files
-├── docs/                       # Documentation
-├── build.rs                    # Build script (Slint compilation)
-├── Cargo.toml                  # Workspace root
-├── Dockerfile                  # Multi-stage Docker build
+│   ├── vite.config.ts
+│   └── tailwind.config.js
+├── build.rs                 Embeds parkhub-web/dist/ into the server binary
+├── Cargo.toml               Workspace: parkhub-common, parkhub-server, parkhub-client
+├── Dockerfile               Multi-stage: node:22-alpine → rust:1.83-alpine → scratch
 └── docker-compose.yml
 ```
 
-## How the Database Works
+## How the Build Works
 
-ParkHub uses [redb](https://github.com/cberner/redb), an embedded key-value store written in pure Rust.
+1. `npm run build` in `parkhub-web/` produces static files in `dist/`
+2. `cargo build` triggers `build.rs`, which uses `include_dir` or similar to embed `parkhub-web/dist/` into the binary
+3. At runtime, the Axum server serves these embedded files for any non-API route
+4. Result: one binary, no separate frontend deployment
 
-Key properties:
-- **Single file** — all data lives in one `parkhub.redb` file
-- **ACID transactions** — reads and writes are transactional
-- **No migrations** — data is stored as serialized structs (via serde/bincode). Schema changes happen in application code.
-- **No external process** — no database server to install or manage
-- **Copy-on-write B-tree** — crash-safe without a WAL
-
-The database layer is in `parkhub-server/src/db.rs`. Tables are defined as redb `TableDefinition` constants. Each table maps a key (usually a UUID) to a serialized value.
-
-To back up the database, copy the `.redb` file while the server is stopped — or use file-system snapshots.
-
-## How the Frontend Gets Embedded
-
-The build process:
-
-1. `cd parkhub-web && npm run build` — Vite builds the React app to `parkhub-web/dist/`
-2. `cargo build --package parkhub-server` — The server compiles with [rust_embed](https://github.com/pyrossh/rust-embed)
-3. `rust_embed` includes every file from `parkhub-web/dist/` into the binary at compile time
-4. At runtime, `static_files.rs` serves these embedded files. Non-file paths fall back to `index.html` for SPA routing.
-
-This means the final binary contains the entire frontend. No separate web server needed.
-
-## Authentication Flow
-
-ParkHub uses **UUID session tokens** stored in redb (not stateless JWTs):
-
-1. User sends `POST /api/v1/auth/login` with username + password
-2. Server verifies password against Argon2id hash in the database
-3. Server generates a UUID `access_token` and a `refresh_token`, stores both in redb with an expiry timestamp
-4. Client receives both tokens. The `access_token` expires after 24 hours (configurable). The `refresh_token` lasts 30 days.
-5. Client sends `Authorization: Bearer <access_token>` on every request
-6. Server looks up the token in redb. If expired or missing → 401.
-7. When the access token expires, client sends the refresh token to `POST /api/v1/auth/refresh` to get a new pair.
-
-A `jwt.rs` module exists in the codebase but is currently unused — the server uses opaque UUID tokens instead.
-
-## Setting Up the Dev Environment
-
-### Prerequisites
-
-- Rust 1.83+ (via [rustup](https://rustup.rs))
-- Node.js 22+ and npm
-- Git
-
-### Backend
+## Backend Dev
 
 ```bash
-# Start the server in dev mode with auto-reload
-cargo watch -x "run --package parkhub-server"
+# Run the server with auto-reload on code changes
+cargo install cargo-watch    # one-time
+cargo watch -x "run --package parkhub-server -- --headless --debug"
 
-# Or without cargo-watch:
-cargo run --package parkhub-server
+# Or just run it directly
+cargo run --package parkhub-server -- --headless -p 7878
 ```
 
-The server runs on `http://localhost:7878` by default.
+The server starts on port 7878. API is at `/api/v1/*`. The database file gets created in `./data/` by default.
 
-### Frontend
+### Adding a New Endpoint
+
+1. Write the handler in `parkhub-server/src/api.rs`:
+
+```rust
+async fn my_handler(
+    State(state): State<SharedState>,
+    auth: AuthUser,               // extracted from Bearer token via middleware
+    Json(body): Json<MyRequest>,  // deserialize request body
+) -> (StatusCode, Json<ApiResponse<MyResponse>>) {
+    let state_guard = state.read().await;
+    // use state_guard.db to access the database
+    // ...
+    (StatusCode::OK, Json(ApiResponse::success(response)))
+}
+```
+
+2. Register it in `create_router()`:
+
+```rust
+// For authenticated routes — add inside the auth-protected router
+.route("/api/v1/my-endpoint", post(my_handler))
+
+// For public routes — add to the public router
+.route("/api/v1/my-public-endpoint", get(my_public_handler))
+```
+
+The auth middleware (`auth_middleware`) runs on all routes in the protected group. It reads the `Authorization: Bearer <uuid>` header, looks up the session in redb, and populates `AuthUser` with the user's ID, username, and role.
+
+### Adding a New Database Table
+
+In `parkhub-server/src/db.rs`:
+
+```rust
+// Define the table
+const MY_TABLE: TableDefinition<&str, &[u8]> = TableDefinition::new("my_table");
+
+// Add CRUD methods to impl Database
+pub async fn save_my_thing(&self, id: &str, thing: &MyThing) -> Result<()> {
+    let db = self.db.read().await;
+    let db = db.as_ref().ok_or_else(|| anyhow!("DB not open"))?;
+    let json = serde_json::to_vec(thing)?;
+    let encoded = self.maybe_encrypt(&json)?;  // handles encryption if enabled
+    let write_txn = db.begin_write()?;
+    {
+        let mut table = write_txn.open_table(MY_TABLE)?;
+        table.insert(id, encoded.as_slice())?;
+    }
+    write_txn.commit()?;
+    Ok(())
+}
+```
+
+All values are stored as JSON-serialized bytes. If encryption is enabled (`PARKHUB_DB_PASSPHRASE`), the bytes go through AES-256-GCM before writing.
+
+## Frontend Dev
 
 ```bash
 cd parkhub-web
 npm ci
-npm run dev
+npm run dev    # Vite dev server on http://localhost:5173
 ```
 
-Vite dev server runs on `http://localhost:5173` with hot module replacement. API requests proxy to the backend.
+Vite proxies `/api/*` to `http://localhost:7878` (configured in `vite.config.ts`), so run the backend separately.
 
-## Adding New API Endpoints
+### State Management
 
-1. Define the handler in `parkhub-server/src/api.rs`:
+Zustand stores in `src/stores/`:
 
-```rust
-async fn my_endpoint(
-    State(db): State<Arc<Database>>,
-    auth: AuthUser,
-) -> Result<Json<MyResponse>, AppError> {
-    // ...
-}
+- **theme.ts** — `isDark` boolean, `toggle()` function. Persisted to localStorage as `parkhub-theme`.
+- **palette.ts** — `paletteId` string, the 10 palette definitions, `applyPalette()` which sets CSS custom properties on `:root`.
+
+Usage in components:
+
+```tsx
+const { isDark, toggle } = useTheme();
+const { paletteId, setPalette } = usePalette();
 ```
 
-2. Register the route:
+### Translations (i18n)
 
-```rust
-// In the router builder
-.route("/api/v1/my-endpoint", get(my_endpoint))
-```
+Uses react-i18next. Translation files are TypeScript objects in `src/i18n/de.ts` and `en.ts`.
 
-3. Add to authenticated or public routes as appropriate.
-
-## Adding Translations
-
-Edit the translation files in `parkhub-web/src/i18n/`:
+To add a new string:
 
 ```typescript
 // de.ts
-export default {
-  "myFeature.title": "Mein Feature",
-  "myFeature.description": "Beschreibung",
-};
+"myPage.title": "Mein Titel",
 
 // en.ts
-export default {
-  "myFeature.title": "My Feature",
-  "myFeature.description": "Description",
-};
+"myPage.title": "My Title",
 ```
-
-Use in components:
 
 ```tsx
 const { t } = useTranslation();
-return <h1>{t("myFeature.title")}</h1>;
+return <h1>{t("myPage.title")}</h1>;
 ```
+
+To add a new language, create a new file (e.g., `fr.ts`) and register it in the i18n config.
+
+### Icons
+
+Using [Phosphor Icons](https://phosphoricons.com/) (`@phosphor-icons/react`). They're SVG-based and tree-shakeable.
+
+```tsx
+import { Car, Calendar, House } from "@phosphor-icons/react";
+<Car weight="fill" className="w-5 h-5" />
+```
+
+### Animations
+
+Framer Motion for page transitions, list animations, and interactive elements.
+
+```tsx
+import { motion } from "framer-motion";
+<motion.div variants={itemVariants} className="card p-6">
+  ...
+</motion.div>
+```
+
+Respects `prefers-reduced-motion` — all animations are disabled when the user or OS requests it.
 
 ## Testing
 
 ```bash
-# Backend tests
+# Backend
 cargo test
 
-# Frontend tests
+# Frontend
 cd parkhub-web && npm test
 ```
 
 ## Code Style
 
-- **Rust:** Follow standard `rustfmt` formatting (`cargo fmt`)
-- **TypeScript:** ESLint + Prettier (configured in `parkhub-web/`)
-- **Commits:** Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`)
+- **Rust:** `cargo fmt` (standard rustfmt). No clippy warnings.
+- **TypeScript:** ESLint + Prettier (config in `parkhub-web/`).
+- **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) — `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`.
 
 ---
 

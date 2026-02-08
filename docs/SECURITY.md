@@ -1,81 +1,96 @@
 # Security
 
-## Authentication and Authorization
+## Authentication
 
-- **JWT tokens** with configurable expiry (default: 24 hours)
-- **Refresh tokens** for token refresh (default: 30 days)
-- **Password hashing** with Argon2id (memory-hard, side-channel resistant)
-- **Role-based access control** — `user` and `admin` roles
-- Admin endpoints are protected by role middleware
+ParkHub uses **UUID session tokens**, not JWTs. There's a JWT module in the codebase (`jwt.rs`), but it's unused — kept for a potential future migration to stateless auth.
+
+Here's how login works:
+
+1. Client sends `POST /api/v1/auth/login` with `{username, password}`
+2. Server looks up the user in redb via the `users_by_username` index. If not found, tries `users_by_email`.
+3. Password is verified against the stored Argon2id hash (using the `argon2` crate with `OsRng`-generated salt)
+4. On success: server generates a UUID v4 as the access token, creates a `Session` struct with the user's ID, role, a refresh token (`rt_<uuid>`), and a 24-hour expiry
+5. Session is stored in redb's `sessions` table, keyed by the access token
+6. Client stores the token and sends `Authorization: Bearer <uuid>` on every request
+
+The auth middleware (`auth_middleware` in `api.rs`) runs on every protected route. It extracts the Bearer token, reads the session from the `sessions` table, checks expiry, and populates an `AuthUser` struct with `id`, `username`, and `role`.
+
+## Password Hashing
+
+Argon2id with default parameters from the `argon2` crate:
+
+- Algorithm: Argon2id (hybrid — resistant to both side-channel and GPU attacks)
+- Salt: 16 bytes from `OsRng`
+- Memory: 19 MiB (default)
+- Iterations: 2 (default)
+- Parallelism: 1 (default)
+
+The hash is stored in PHC string format: `$argon2id$v=19$m=19456,t=2,p=1$<salt>$<hash>`
+
+## Database Encryption
+
+Optional AES-256-GCM encryption at rest, enabled by setting `PARKHUB_DB_PASSPHRASE`:
+
+1. On first run, a 32-byte random salt is generated and stored in the `settings` table (this one value is unencrypted)
+2. Passphrase + salt → PBKDF2-SHA256 (600K iterations) → 256-bit encryption key
+3. Every value written to any redb table is encrypted: random 96-bit nonce + AES-256-GCM ciphertext
+4. Nonce is prepended to the stored bytes
+
+Table keys (UUIDs, usernames) are **not** encrypted — only values. This means someone with disk access can see user IDs and usernames but not the actual user data, bookings, etc.
 
 ## Input Validation
 
-- All API inputs are validated and sanitized server-side
-- Request body size limits prevent abuse
-- Type-safe deserialization via Serde rejects malformed data
-- Path parameters are validated before database queries
+- All request bodies are deserialized through Serde with typed structs. Unexpected fields are ignored, missing required fields return `400`.
+- Path parameters (UUIDs) are parsed and validated before any database lookup.
+- Request body size is limited by Axum defaults (2 MB).
+- String fields are not blindly trusted — the frontend sanitizes display, and the API returns `Content-Type: application/json` so there's no HTML injection vector.
 
 ## XSS Prevention
 
-- React's built-in JSX escaping prevents DOM-based XSS
-- API responses use `Content-Type: application/json` — no HTML injection
-- User-generated content is sanitized before storage and rendering
-- CSP headers restrict inline scripts
+- React auto-escapes all JSX interpolation. No `dangerouslySetInnerHTML` usage.
+- API responses are always JSON with `Content-Type: application/json`. Even if someone stored malicious HTML, it'd be sent as a JSON string, not rendered.
+- CSP headers restrict script sources to `'self'`.
 
 ## Rate Limiting
 
-Built-in Tower-based rate limiting:
+Tower-based middleware, applied per IP address:
 
-| Scope | Default Limit |
-|-------|---------------|
-| General API | 60 requests/min per IP |
-| Login attempts | 10 attempts/min per IP |
+| Scope | Default |
+|-------|---------|
+| All API requests | 60/min per IP |
+| Login endpoint | 10/min per IP |
 
-Configure in `config.toml`:
-
-```toml
-[rate_limit]
-enabled = true
-requests_per_minute = 60
-login_attempts_per_minute = 10
-```
-
-## HTTPS / HSTS
-
-- Built-in TLS support via `config.toml`
-- Recommended: TLS termination at reverse proxy (Nginx/Caddy)
-- HSTS headers sent when TLS is enabled
-- Automatic HTTP → HTTPS redirect
+Returns `429 Too Many Requests` when exceeded with a `Retry-After` header.
 
 ## Security Headers
 
-ParkHub sets the following headers by default:
+Set on all responses:
 
 ```
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
-X-XSS-Protection: 0
+X-XSS-Protection: 0          (modern browsers, CSP is preferred)
 Referrer-Policy: strict-origin-when-cross-origin
-Content-Security-Policy: default-src 'self'; ...
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'
 ```
 
-## GDPR Compliance
+## GDPR / DSGVO
 
-- **Data export** — Users can download all their data as JSON (`GET /api/v1/users/me/export`)
-- **Account deletion** — Full account and data removal (`DELETE /api/v1/users/me/delete`)
-- **Privacy policy** — Configurable privacy policy page (`GET /api/v1/privacy`)
-- **Minimal data collection** — Only essential data is stored
-- **No third-party tracking** — Zero external analytics or tracking scripts
-- **Data stays on-premise** — Self-hosted, no cloud dependencies
+ParkHub is designed for German/EU companies. GDPR compliance features:
+
+- **Data export** (`GET /api/v1/users/me/export`): Returns all user data as JSON — profile, bookings, vehicles, homeoffice settings
+- **Account deletion** (`DELETE /api/v1/users/me/delete`): Permanently removes the user and all associated data from all redb tables
+- **Privacy policy** (`GET /api/v1/privacy`): Configurable text served to users
+- **No external calls**: Zero analytics, no CDNs, no tracking pixels, no third-party anything. The binary serves everything locally.
+- **Data stays on your server**: Self-hosted only. No cloud, no telemetry, no phoning home.
 
 ## Responsible Disclosure
 
-If you discover a security vulnerability, please report it responsibly:
+Found a vulnerability? Don't open a public issue.
 
-1. **Do not** open a public GitHub issue
-2. Email: **security@parkhub.dev** (or use GitHub Security Advisories)
-3. Include: description, reproduction steps, impact assessment
-4. We aim to respond within 48 hours and patch within 7 days
+1. Email **security@parkhub.dev** or use [GitHub Security Advisories](https://github.com/nash87/parkhub/security/advisories)
+2. Include: what you found, how to reproduce it, what the impact is
+3. We'll respond within 48 hours and aim to patch within 7 days
 
 ---
 
