@@ -489,6 +489,7 @@ export const fr = {
   },
   about: {
     title: 'À propos de ParkHub',
+    preparingSetup: "Preparing setup...",
     subtitle: 'Gestion de parking open source pour votre organisation.',
     techStack: { title: 'Stack technique', frontend: 'Frontend', backend: 'Backend' },
     architecture: { title: 'Architecture' },
@@ -541,6 +542,7 @@ export const fr = {
   },
   onboarding: {
     title: 'Bienvenue sur ParkHub !',
+    preparingSetup: "Preparing setup...",
     finish: 'Commencer',
     steps: {
       password: {
@@ -664,6 +666,7 @@ export const fr = {
 
   usecase: {
     title: 'Comment utiliserez-vous ParkHub ?',
+    preparingSetup: "Preparing setup...",
     subtitle: 'Cela nous aide à personnaliser votre expérience',
     corporate: {
       name: 'Entreprise',

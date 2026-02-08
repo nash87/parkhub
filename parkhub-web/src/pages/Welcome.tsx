@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supportedLanguages } from '../i18n/index';
 import { useAccessibility, applyAccessibility } from '../stores/accessibility';
+import { useSetupStatus } from '../components/SetupGuard';
 import {
   TextAa,
   SunDim,
@@ -51,6 +52,8 @@ export function WelcomePage() {
     return () => clearInterval(interval);
   }, []);
 
+  const { setupComplete } = useSetupStatus();
+
   const selectLanguage = useCallback(
     (code: string) => {
       i18n.changeLanguage(code);
@@ -64,9 +67,14 @@ export function WelcomePage() {
         document.documentElement.dir = 'ltr';
       }
       document.documentElement.lang = code;
-      navigate('/login', { replace: true });
+      // Navigate to setup if first visit, otherwise login
+      if (!setupComplete) {
+        navigate('/setup', { replace: true });
+      } else {
+        navigate('/login', { replace: true });
+      }
     },
-    [i18n, navigate]
+    [i18n, navigate, setupComplete]
   );
 
   const setFontScale = (scale: 'small' | 'normal' | 'large' | 'xlarge') => {

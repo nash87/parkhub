@@ -483,6 +483,7 @@ export const tr = {
   },
   about: {
     title: 'ParkHub Hakkında',
+    preparingSetup: "Preparing setup...",
     subtitle: 'Kuruluşunuz için Açık Kaynak Otopark Yönetimi.',
     techStack: {
       title: 'Teknoloji Yığını',
@@ -545,6 +546,7 @@ export const tr = {
   },
   onboarding: {
     title: "ParkHub'a Hoş Geldiniz!",
+    preparingSetup: "Preparing setup...",
     finish: 'Başla',
     steps: {
       password: {
@@ -668,6 +670,7 @@ export const tr = {
 
   usecase: {
     title: 'How will you use ParkHub?',
+    preparingSetup: "Preparing setup...",
     subtitle: 'This helps us customize your experience',
     corporate: {
       name: 'Corporate',

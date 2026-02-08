@@ -483,6 +483,7 @@ export const hi = {
   },
   about: {
     title: 'ParkHub के बारे में',
+    preparingSetup: "Preparing setup...",
     subtitle: 'आपके संगठन के लिए ओपन सोर्स पार्किंग प्रबंधन।',
     techStack: {
       title: 'तकनीकी स्टैक',
@@ -545,6 +546,7 @@ export const hi = {
   },
   onboarding: {
     title: 'ParkHub में आपका स्वागत है!',
+    preparingSetup: "Preparing setup...",
     finish: 'शुरू करें',
     steps: {
       password: {
@@ -668,6 +670,7 @@ export const hi = {
 
   usecase: {
     title: 'How will you use ParkHub?',
+    preparingSetup: "Preparing setup...",
     subtitle: 'This helps us customize your experience',
     corporate: {
       name: 'Corporate',

@@ -489,6 +489,7 @@ export const zh = {
   },
   about: {
     title: '关于 ParkHub',
+    preparingSetup: "Preparing setup...",
     subtitle: '适用于您组织的开源停车管理。',
     techStack: { title: '技术栈', frontend: '前端', backend: '后端' },
     architecture: { title: '架构' },
@@ -541,6 +542,7 @@ export const zh = {
   },
   onboarding: {
     title: '欢迎使用 ParkHub！',
+    preparingSetup: "Preparing setup...",
     finish: '开始使用',
     steps: {
       password: {
@@ -664,6 +666,7 @@ export const zh = {
 
   usecase: {
     title: 'How will you use ParkHub?',
+    preparingSetup: "Preparing setup...",
     subtitle: 'This helps us customize your experience',
     corporate: {
       name: 'Corporate',

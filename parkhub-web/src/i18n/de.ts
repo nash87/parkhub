@@ -606,6 +606,7 @@ export const de = {
   // Einführung
   onboarding: {
     title: 'Willkommen bei ParkHub!',
+    preparingSetup: 'Einrichtung wird vorbereitet...',
     finish: 'Loslegen',
     steps: {
       password: {

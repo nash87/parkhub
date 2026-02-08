@@ -483,6 +483,7 @@ export const pt = {
   },
   about: {
     title: 'Sobre o ParkHub',
+    preparingSetup: "Preparing setup...",
     subtitle: 'Gestão de Estacionamento de Código Aberto para sua organização.',
     techStack: {
       title: 'Stack Tecnológica',
@@ -545,6 +546,7 @@ export const pt = {
   },
   onboarding: {
     title: 'Bem-vindo ao ParkHub!',
+    preparingSetup: "Preparing setup...",
     finish: 'Começar',
     steps: {
       password: {
@@ -668,6 +670,7 @@ export const pt = {
 
   usecase: {
     title: 'How will you use ParkHub?',
+    preparingSetup: "Preparing setup...",
     subtitle: 'This helps us customize your experience',
     corporate: {
       name: 'Corporate',

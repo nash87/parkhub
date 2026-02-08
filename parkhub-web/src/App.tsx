@@ -16,9 +16,10 @@ import { BookPage } from './pages/Book';
 import { BookingsPage } from './pages/Bookings';
 import { VehiclesPage } from './pages/Vehicles';
 import { ConsentBanner } from './components/ConsentBanner';
-import { OnboardingWizard } from './components/OnboardingWizard';
 import { SpinnerGap } from '@phosphor-icons/react';
 import { WelcomePage } from './pages/Welcome';
+import { SetupGuard, useSetupStatus } from './components/SetupGuard';
+import { SetupPage } from './pages/Setup';
 
 const AdminPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminPage })));
 const HomeofficePage = lazy(() => import('./pages/Homeoffice').then(m => ({ default: m.HomeofficePage })));
@@ -49,15 +50,30 @@ function LoadingScreen() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const { setupComplete } = useSetupStatus();
   if (isLoading) return <LoadingScreen />;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    // If setup not complete, redirect to setup flow instead of login
+    if (!setupComplete) {
+      const langChosen = localStorage.getItem('parkhub-lang-chosen');
+      return <Navigate to={langChosen ? '/setup' : '/welcome'} replace />;
+    }
+    return <Navigate to="/login" replace />;
+  }
   return <Layout>{children}</Layout>;
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { setupComplete } = useSetupStatus();
   if (isLoading) return <LoadingScreen />;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    if (!setupComplete) {
+      const langChosen = localStorage.getItem('parkhub-lang-chosen');
+      return <Navigate to={langChosen ? '/setup' : '/welcome'} replace />;
+    }
+    return <Navigate to="/login" replace />;
+  }
   if (user?.role !== 'admin' && user?.role !== 'superadmin') return <Navigate to="/" replace />;
   return <Layout>{children}</Layout>;
 }
@@ -80,10 +96,14 @@ function ThemeInitializer({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function OnboardingGuard() {
-  const { user } = useAuth();
-  if (user?.role !== 'admin' && user?.role !== 'superadmin') return null;
-  return <OnboardingWizard onComplete={() => {}} />;
+function LoginRedirectGuard() {
+  const { setupComplete } = useSetupStatus();
+  // If setup not complete, don't show login - redirect to setup flow
+  if (!setupComplete) {
+    const langChosen = localStorage.getItem('parkhub-lang-chosen');
+    return <Navigate to={langChosen ? '/setup' : '/welcome'} replace />;
+  }
+  return <LoginPage />;
 }
 
 function AppRoutes() {
@@ -91,7 +111,8 @@ function AppRoutes() {
     <Routes>
       {/* Public */}
       <Route path="/welcome" element={<WelcomePage />} />
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/login" element={<LoginRedirectGuard />} />
+      <Route path="/setup" element={<SetupPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<Suspense fallback={<LoadingScreen />}><ForgotPasswordPage /></Suspense>} />
       <Route path="/privacy" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><PrivacyPage /></Suspense></PublicPageWithLayout>} />
@@ -123,9 +144,9 @@ function App() {
       <BrowserRouter>
         <ThemeInitializer>
           <BrandingProvider>
+            <SetupGuard>
             <AuthProvider>
             <AppRoutes />
-            <OnboardingGuard />
             <ConsentBanner />
             <Toaster
               position="top-right"
@@ -142,6 +163,7 @@ function App() {
               }}
             />
           </AuthProvider>
+            </SetupGuard>
           </BrandingProvider>
         </ThemeInitializer>
       </BrowserRouter>

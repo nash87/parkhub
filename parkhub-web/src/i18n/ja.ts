@@ -483,6 +483,7 @@ export const ja = {
   },
   about: {
     title: 'ParkHubについて',
+    preparingSetup: "Preparing setup...",
     subtitle: '組織向けオープンソース駐車場管理。',
     techStack: {
       title: '技術スタック',
@@ -545,6 +546,7 @@ export const ja = {
   },
   onboarding: {
     title: 'ParkHubへようこそ！',
+    preparingSetup: "Preparing setup...",
     finish: '始める',
     steps: {
       password: {
@@ -668,6 +670,7 @@ export const ja = {
 
   usecase: {
     title: 'How will you use ParkHub?',
+    preparingSetup: "Preparing setup...",
     subtitle: 'This helps us customize your experience',
     corporate: {
       name: 'Corporate',

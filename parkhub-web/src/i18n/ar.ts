@@ -483,6 +483,7 @@ export const ar = {
   },
   about: {
     title: 'حول ParkHub',
+    preparingSetup: "Preparing setup...",
     subtitle: 'إدارة مواقف مفتوحة المصدر لمؤسستك.',
     techStack: {
       title: 'المكدس التقني',
@@ -545,6 +546,7 @@ export const ar = {
   },
   onboarding: {
     title: 'مرحباً بك في ParkHub!',
+    preparingSetup: "Preparing setup...",
     finish: 'ابدأ',
     steps: {
       password: {
@@ -668,6 +670,7 @@ export const ar = {
 
   usecase: {
     title: 'How will you use ParkHub?',
+    preparingSetup: "Preparing setup...",
     subtitle: 'This helps us customize your experience',
     corporate: {
       name: 'Corporate',

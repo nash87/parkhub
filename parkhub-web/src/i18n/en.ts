@@ -568,6 +568,7 @@ export const en = {
   // Onboarding
   onboarding: {
     title: 'Welcome to ParkHub!',
+    preparingSetup: 'Preparing setup...',
     finish: 'Get Started',
     steps: {
       password: {
