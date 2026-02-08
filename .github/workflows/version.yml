@@ -19,34 +19,43 @@ jobs:
       - name: Calculate CalVer
         id: calver
         run: |
-          TODAY=$(date -u +%Y.%m.%d)
-          # Find highest build number for today
+          YEAR=$(date -u +%Y)
+          MONTH=$(date -u +%-m)
+          DAY=$(date -u +%-d)
+          TODAY_TAG="v${YEAR}.${MONTH}.${DAY}"
           BUILD=0
-          for tag in $(git tag -l "v${TODAY}.*" 2>/dev/null); do
+          for tag in $(git tag -l "${TODAY_TAG}.*" 2>/dev/null); do
             NUM=${tag##*.}
             if [ "$NUM" -gt "$BUILD" ] 2>/dev/null; then
               BUILD=$NUM
             fi
           done
           BUILD=$((BUILD + 1))
-          VERSION="${TODAY}.${BUILD}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "New version: v$VERSION"
+          # Cargo version (no leading zeros): 2026.2.8
+          CARGO_VER="${YEAR}.${MONTH}.${DAY}"
+          # Display version: 2026.02.08.1  
+          DISPLAY_VER="$(date -u +%Y.%m.%d).${BUILD}"
+          # Tag: v2026.2.8.1
+          TAG_VER="${YEAR}.${MONTH}.${DAY}.${BUILD}"
+          echo "cargo_version=$CARGO_VER" >> $GITHUB_OUTPUT
+          echo "display_version=$DISPLAY_VER" >> $GITHUB_OUTPUT
+          echo "tag=v$TAG_VER" >> $GITHUB_OUTPUT
+          echo "Version: v$TAG_VER (cargo: $CARGO_VER, display: $DISPLAY_VER)"
 
       - name: Update version files
         run: |
-          VERSION="${{ steps.calver.outputs.version }}"
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
-          echo "$VERSION" > VERSION
-          cd parkhub-web && npm version "$VERSION" --no-git-tag-version --allow-same-version 2>/dev/null || true
+          CARGO_VER="${{ steps.calver.outputs.cargo_version }}"
+          DISPLAY_VER="${{ steps.calver.outputs.display_version }}"
+          sed -i "s/^version = \".*\"/version = \"$CARGO_VER\"/" Cargo.toml
+          echo "$DISPLAY_VER" > VERSION
 
       - name: Commit + Tag
         run: |
-          VERSION="v${{ steps.calver.outputs.version }}"
+          TAG="${{ steps.calver.outputs.tag }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
           git diff --cached --quiet && exit 0
-          git commit -m "chore: bump version to $VERSION"
-          git tag -a "$VERSION" -m "Release $VERSION"
+          git commit -m "chore: bump version to $TAG"
+          git tag -a "$TAG" -m "Release $TAG"
           git push origin main --follow-tags
