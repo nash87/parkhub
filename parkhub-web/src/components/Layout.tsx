@@ -1,5 +1,5 @@
 import { ReactNode, useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   House,
@@ -21,8 +21,10 @@ import {
   DotsThreeCircle,
   Translate,
   GithubLogo,
+  ArrowsClockwise,
 } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
+import { useUpdateStore } from '../stores/updateStore';
 import { useBranding } from '../context/BrandingContext';
 import { useTheme, applyTheme } from '../stores/theme';
 import { useTranslation } from 'react-i18next';
@@ -64,6 +66,8 @@ export function Layout({ children }: LayoutProps) {
   const { t, i18n } = useTranslation();
   const { branding } = useBranding();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { updateAvailable, latestVersion, checkForUpdates } = useUpdateStore();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -96,6 +100,17 @@ export function Layout({ children }: LayoutProps) {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  
+  // Check for updates periodically (admin only)
+  useEffect(() => {
+    if (!isAdmin) return;
+    const token = localStorage.getItem('parkhub_token');
+    if (!token) return;
+    checkForUpdates(token);
+    const interval = setInterval(() => checkForUpdates(token), 30 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [isAdmin, checkForUpdates]);
 
   function markAsRead(id: string) {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
@@ -168,6 +183,13 @@ export function Layout({ children }: LayoutProps) {
                       {unreadCount}
                     </motion.span>
                   )}
+                  {updateAvailable && unreadCount === 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-amber-500 rounded-full"
+                    />
+                  )}
                 </button>
 
                 <AnimatePresence>
@@ -183,6 +205,20 @@ export function Layout({ children }: LayoutProps) {
                         <p className="font-semibold text-gray-900 dark:text-white text-sm">{t('notifications.title')}</p>
                       </div>
                       <div className="max-h-72 overflow-y-auto">
+                        {updateAvailable && (
+                          <button
+                            onClick={() => { setNotifOpen(false); navigate('/admin?tab=system'); }}
+                            className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors border-b border-amber-100 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/10"
+                          >
+                            <ArrowsClockwise weight="fill" className="w-5 h-5 mt-0.5 flex-shrink-0 text-amber-500" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-900 dark:text-white font-medium">
+                                🔄 New version available: v{latestVersion}
+                              </p>
+                              <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">Click to update</p>
+                            </div>
+                          </button>
+                        )}
                         {notifications.map((n) => {
                           const NIcon = notifIcon[n.type];
                           return (
@@ -205,7 +241,7 @@ export function Layout({ children }: LayoutProps) {
                           );
                         })}
                       </div>
-                      {notifications.length === 0 && (
+                      {notifications.length === 0 && !updateAvailable && (
                         <div className="p-8 text-center">
                           <Bell weight="light" className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
                           <p className="text-sm text-gray-400">{t('notifications.empty')}</p>
