@@ -83,26 +83,23 @@ On first start, a welcome screen lets you choose your language. Then an onboardi
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/onboarding.png" alt="Onboarding Wizard / Ersteinrichtung" width="45%">
+  <img src="docs/screenshots/booking.png" alt="Booking / Stellplatz buchen" width="45%">
   &nbsp;&nbsp;
   <img src="docs/screenshots/dashboard.png" alt="Dashboard / Übersicht" width="45%">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/booking.png" alt="Booking / Stellplatz buchen" width="45%">
-  &nbsp;&nbsp;
   <img src="docs/screenshots/admin.png" alt="Admin Panel / Verwaltung" width="45%">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/themes.png" alt="Color Themes / Farbthemen" width="45%">
 </p>
 
 <details>
 <summary>More screenshots / Weitere Screenshots</summary>
 <br>
 <p align="center">
-  <img src="docs/screenshots/themes.png" alt="10 Color Themes / Farbthemen" width="45%">
-  &nbsp;&nbsp;
   <img src="docs/screenshots/dark-mode.png" alt="Dark Mode / Dunkelmodus" width="45%">
-</p>
-<p align="center">
+  &nbsp;&nbsp;
   <img src="docs/screenshots/mobile.png" alt="Mobile View / Mobilansicht (PWA)" width="45%">
 </p>
 </details>
