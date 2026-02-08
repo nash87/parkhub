@@ -22,7 +22,7 @@ export function AdminBrandingPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const logoVariants = ['/logos/variant-1.png', '/logos/variant-2.png', '/logos/variant-3.png', '/logos/variant-4.png'];
+  const logoVariants = Array.from({length: 13}, (_, i) => `/logos/variant-${i + 1}.png`);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -152,7 +152,7 @@ export function AdminBrandingPage() {
               <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 {t('admin.branding.selectLogo', 'Select Logo')}
               </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 max-h-80 overflow-y-auto pr-1">
                 {logoVariants.map((variant, idx) => (
                   <button
                     key={variant}
