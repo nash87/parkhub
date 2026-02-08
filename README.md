@@ -70,13 +70,13 @@ On first start, a welcome screen lets you choose your language. Then an onboardi
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/login.png" alt="Login" width="45%">
+  <img src="docs/screenshots/login.svg" alt="Login" width="45%">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="45%">
+  <img src="docs/screenshots/dashboard.svg" alt="Dashboard" width="45%">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/booking.png" alt="Booking" width="45%">
+  <img src="docs/screenshots/booking.svg" alt="Booking" width="45%">
   &nbsp;&nbsp;
   <img src="docs/screenshots/admin.svg" alt="Admin Panel" width="45%">
 </p>

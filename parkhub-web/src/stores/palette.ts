@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 
 export interface ColorPalette {
   id: string;
-  name: string; // i18n key
+  name: string;
   light: {
     primary: string;
     secondary: string;
@@ -98,20 +98,98 @@ export const usePalette = create<PaletteStore>()(
   )
 );
 
-function hexToRgb(hex: string): string {
+function hexToRgb(hex: string): [number, number, number] {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  return `${r} ${g} ${b}`;
+  return [r, g, b];
+}
+
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return [h, s, l];
+}
+
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  if (s === 0) {
+    const v = Math.round(l * 255);
+    return [v, v, v];
+  }
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  return [
+    Math.round(hue2rgb(p, q, h + 1/3) * 255),
+    Math.round(hue2rgb(p, q, h) * 255),
+    Math.round(hue2rgb(p, q, h - 1/3) * 255),
+  ];
+}
+
+function generateShades(hex: string): Record<string, string> {
+  const [r, g, b] = hexToRgb(hex);
+  const [h, s] = rgbToHsl(r, g, b);
+  
+  // shade level -> lightness
+  const shadeMap: Record<number, number> = {
+    50: 0.96,
+    100: 0.92,
+    200: 0.84,
+    300: 0.72,
+    400: 0.60,
+    500: 0.48,
+    600: 0.40,
+    700: 0.32,
+    800: 0.26,
+    900: 0.20,
+    950: 0.14,
+  };
+  
+  const result: Record<string, string> = {};
+  for (const [shade, lightness] of Object.entries(shadeMap)) {
+    const [sr, sg, sb] = hslToRgb(h, s, lightness);
+    result[shade] = `${sr} ${sg} ${sb}`;
+  }
+  return result;
 }
 
 export function applyPalette(paletteId: string, isDark: boolean) {
   const palette = PALETTES.find((p) => p.id === paletteId) || PALETTES[0];
   const colors = isDark ? palette.dark : palette.light;
   const root = document.documentElement;
-  root.style.setProperty("--color-primary", hexToRgb(colors.primary));
-  root.style.setProperty("--color-secondary", hexToRgb(colors.secondary));
-  root.style.setProperty("--color-accent", hexToRgb(colors.accent));
+  
+  // Generate full shade range from primary color
+  const shades = generateShades(colors.primary);
+  for (const [shade, rgb] of Object.entries(shades)) {
+    root.style.setProperty(`--color-primary-${shade}`, rgb);
+  }
+  
+  const toRgbStr = (hex: string) => {
+    const [r, g, b] = hexToRgb(hex);
+    return `${r} ${g} ${b}`;
+  };
+  
+  root.style.setProperty("--color-primary", toRgbStr(colors.primary));
+  root.style.setProperty("--color-secondary", toRgbStr(colors.secondary));
+  root.style.setProperty("--color-accent", toRgbStr(colors.accent));
   root.style.setProperty("--color-palette-bg", colors.bg);
   root.style.setProperty("--color-palette-surface", colors.surface);
 }

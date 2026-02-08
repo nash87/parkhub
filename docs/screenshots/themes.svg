@@ -1,4 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" fill="#f3f4f6">
-  <rect width="800" height="450" rx="12"/>
-  <text x="400" y="225" text-anchor="middle" font-family="system-ui" font-size="24" fill="#9ca3af">Screenshot: themes</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs><filter id="s"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.1"/></filter></defs>
+  <rect width="800" height="500" fill="#f8fafc"/>
+  <text x="400" y="40" text-anchor="middle" fill="#0f172a" font-family="system-ui" font-size="20" font-weight="700">Theme Palettes</text>
+  <text x="400" y="62" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="12">Choose a color palette for your workspace</text>
+  <!-- Palette cards grid -->
+  <g transform="translate(40,80)">
+    <!-- Default Blue -->
+    <rect width="220" height="100" rx="12" fill="white" filter="url(#s)" stroke="#3b82f6" stroke-width="2"/>
+    <text x="16" y="28" fill="#0f172a" font-family="system-ui" font-size="12" font-weight="600">Default Blue</text>
+    <rect x="16" y="40" width="32" height="20" rx="4" fill="#eff6ff"/><rect x="52" y="40" width="32" height="20" rx="4" fill="#93c5fd"/><rect x="88" y="40" width="32" height="20" rx="4" fill="#3b82f6"/><rect x="124" y="40" width="32" height="20" rx="4" fill="#1d4ed8"/><rect x="160" y="40" width="32" height="20" rx="4" fill="#172554"/>
+    <rect x="160" y="72" width="44" height="20" rx="10" fill="#dbeafe"/><text x="182" y="86" text-anchor="middle" fill="#2563eb" font-family="system-ui" font-size="9" font-weight="600">Active</text>
+    <!-- Solarized -->
+    <rect x="240" width="220" height="100" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="256" y="28" fill="#0f172a" font-family="system-ui" font-size="12" font-weight="600">Solarized</text>
+    <rect x="256" y="40" width="32" height="20" rx="4" fill="#d0e8f5"/><rect x="292" y="40" width="32" height="20" rx="4" fill="#5ba8c8"/><rect x="328" y="40" width="32" height="20" rx="4" fill="#268BD2"/><rect x="364" y="40" width="32" height="20" rx="4" fill="#1a6699"/><rect x="400" y="40" width="32" height="20" rx="4" fill="#0d3347"/>
+    <!-- Dracula -->
+    <rect x="480" width="220" height="100" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="496" y="28" fill="#0f172a" font-family="system-ui" font-size="12" font-weight="600">Dracula</text>
+    <rect x="496" y="40" width="32" height="20" rx="4" fill="#ede4fd"/><rect x="532" y="40" width="32" height="20" rx="4" fill="#c9aafc"/><rect x="568" y="40" width="32" height="20" rx="4" fill="#BD93F9"/><rect x="604" y="40" width="32" height="20" rx="4" fill="#8a5cd4"/><rect x="640" y="40" width="32" height="20" rx="4" fill="#3d1a6e"/>
+  </g>
+  <g transform="translate(40,200)">
+    <!-- Nord -->
+    <rect width="220" height="100" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="16" y="28" fill="#0f172a" font-family="system-ui" font-size="12" font-weight="600">Nord</text>
+    <rect x="16" y="40" width="32" height="20" rx="4" fill="#dee6f0"/><rect x="52" y="40" width="32" height="20" rx="4" fill="#9ab5cc"/><rect x="88" y="40" width="32" height="20" rx="4" fill="#5E81AC"/><rect x="124" y="40" width="32" height="20" rx="4" fill="#3f5b7a"/><rect x="160" y="40" width="32" height="20" rx="4" fill="#1f2d3d"/>
+    <!-- Gruvbox -->
+    <rect x="240" width="220" height="100" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="256" y="28" fill="#0f172a" font-family="system-ui" font-size="12" font-weight="600">Gruvbox</text>
+    <rect x="256" y="40" width="32" height="20" rx="4" fill="#faf0c0"/><rect x="292" y="40" width="32" height="20" rx="4" fill="#e8c45a"/><rect x="328" y="40" width="32" height="20" rx="4" fill="#D79921"/><rect x="364" y="40" width="32" height="20" rx="4" fill="#a07318"/><rect x="400" y="40" width="32" height="20" rx="4" fill="#4d370c"/>
+    <!-- Catppuccin -->
+    <rect x="480" width="220" height="100" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="496" y="28" fill="#0f172a" font-family="system-ui" font-size="12" font-weight="600">Catppuccin</text>
+    <rect x="496" y="40" width="32" height="20" rx="4" fill="#ece0fc"/><rect x="532" y="40" width="32" height="20" rx="4" fill="#b578f8"/><rect x="568" y="40" width="32" height="20" rx="4" fill="#8839EF"/><rect x="604" y="40" width="32" height="20" rx="4" fill="#6620c2"/><rect x="640" y="40" width="32" height="20" rx="4" fill="#330d61"/>
+  </g>
+  <g transform="translate(40,320)">
+    <!-- Tokyo Night -->
+    <rect width="220" height="100" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="16" y="28" fill="#0f172a" font-family="system-ui" font-size="12" font-weight="600">Tokyo Night</text>
+    <rect x="16" y="40" width="32" height="20" rx="4" fill="#d5e2fb"/><rect x="52" y="40" width="32" height="20" rx="4" fill="#7aabf2"/><rect x="88" y="40" width="32" height="20" rx="4" fill="#2E7DE9"/><rect x="124" y="40" width="32" height="20" rx="4" fill="#1e5bb0"/><rect x="160" y="40" width="32" height="20" rx="4" fill="#0f2d57"/>
+    <!-- One Dark -->
+    <rect x="240" width="220" height="100" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="256" y="28" fill="#0f172a" font-family="system-ui" font-size="12" font-weight="600">One Dark</text>
+    <rect x="256" y="40" width="32" height="20" rx="4" fill="#d5e2fb"/><rect x="292" y="40" width="32" height="20" rx="4" fill="#80aef5"/><rect x="328" y="40" width="32" height="20" rx="4" fill="#4078F2"/><rect x="364" y="40" width="32" height="20" rx="4" fill="#2d58b5"/><rect x="400" y="40" width="32" height="20" rx="4" fill="#162c5a"/>
+    <!-- Rose Pine -->
+    <rect x="480" width="220" height="100" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="496" y="28" fill="#0f172a" font-family="system-ui" font-size="12" font-weight="600">Rose Pine</text>
+    <rect x="496" y="40" width="32" height="20" rx="4" fill="#e8dff0"/><rect x="532" y="40" width="32" height="20" rx="4" fill="#b59dc6"/><rect x="568" y="40" width="32" height="20" rx="4" fill="#907AA9"/><rect x="604" y="40" width="32" height="20" rx="4" fill="#6a5980"/><rect x="640" y="40" width="32" height="20" rx="4" fill="#352c40"/>
+  </g>
 </svg>

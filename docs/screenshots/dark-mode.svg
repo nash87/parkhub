@@ -1,4 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" fill="#f3f4f6">
-  <rect width="800" height="450" rx="12"/>
-  <text x="400" y="225" text-anchor="middle" font-family="system-ui" font-size="24" fill="#9ca3af">Screenshot: dark-mode</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs><filter id="s"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.3"/></filter></defs>
+  <rect width="800" height="500" fill="#030712"/>
+  <!-- Sidebar -->
+  <rect width="200" height="500" fill="#111827" stroke="#1f2937" stroke-width="1"/>
+  <circle cx="36" cy="32" r="16" fill="#3b82f6" opacity="0.2"/>
+  <text x="36" y="37" text-anchor="middle" fill="#60a5fa" font-family="system-ui" font-size="14" font-weight="700">P</text>
+  <text x="60" y="37" fill="#f1f5f9" font-family="system-ui" font-size="14" font-weight="600">ParkHub</text>
+  <rect x="12" y="70" width="176" height="36" rx="8" fill="#1e3a5f" opacity="0.5"/>
+  <text x="44" y="93" fill="#60a5fa" font-family="system-ui" font-size="13" font-weight="500">Dashboard</text>
+  <text x="44" y="127" fill="#94a3b8" font-family="system-ui" font-size="13">Bookings</text>
+  <text x="44" y="157" fill="#94a3b8" font-family="system-ui" font-size="13">Parking Lots</text>
+  <text x="44" y="187" fill="#94a3b8" font-family="system-ui" font-size="13">Settings</text>
+  <!-- Header -->
+  <text x="224" y="38" fill="#f1f5f9" font-family="system-ui" font-size="20" font-weight="700">Dashboard</text>
+  <!-- Stats -->
+  <rect x="220" y="56" width="135" height="80" rx="12" fill="#111827" filter="url(#s)" stroke="#1f2937" stroke-width="1"/>
+  <text x="236" y="82" fill="#94a3b8" font-family="system-ui" font-size="11">Total Slots</text>
+  <text x="236" y="112" fill="#f1f5f9" font-family="system-ui" font-size="26" font-weight="700">248</text>
+  <rect x="370" y="56" width="135" height="80" rx="12" fill="#111827" filter="url(#s)" stroke="#1f2937" stroke-width="1"/>
+  <text x="386" y="82" fill="#94a3b8" font-family="system-ui" font-size="11">Available</text>
+  <text x="386" y="112" fill="#4ade80" font-family="system-ui" font-size="26" font-weight="700">156</text>
+  <rect x="520" y="56" width="135" height="80" rx="12" fill="#111827" filter="url(#s)" stroke="#1f2937" stroke-width="1"/>
+  <text x="536" y="82" fill="#94a3b8" font-family="system-ui" font-size="11">Occupied</text>
+  <text x="536" y="112" fill="#f87171" font-family="system-ui" font-size="26" font-weight="700">72</text>
+  <rect x="670" y="56" width="115" height="80" rx="12" fill="#111827" filter="url(#s)" stroke="#1f2937" stroke-width="1"/>
+  <text x="686" y="82" fill="#94a3b8" font-family="system-ui" font-size="11">Reserved</text>
+  <text x="686" y="112" fill="#fbbf24" font-family="system-ui" font-size="26" font-weight="700">20</text>
+  <!-- Grid -->
+  <rect x="220" y="152" width="565" height="330" rx="12" fill="#111827" filter="url(#s)" stroke="#1f2937" stroke-width="1"/>
+  <text x="240" y="180" fill="#f1f5f9" font-family="system-ui" font-size="14" font-weight="600">Parking Grid — Level 1</text>
+  <g transform="translate(240,196)">
+    <rect width="48" height="56" rx="8" fill="#22c55e"/><text x="24" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A1</text>
+    <rect x="56" width="48" height="56" rx="8" fill="#22c55e"/><text x="80" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A2</text>
+    <rect x="112" width="48" height="56" rx="8" fill="#374151"/><text x="136" y="33" text-anchor="middle" fill="#6b7280" font-family="system-ui" font-size="11" font-weight="600">A3</text>
+    <rect x="168" width="48" height="56" rx="8" fill="#22c55e"/><text x="192" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A4</text>
+    <rect x="224" width="48" height="56" rx="8" fill="#f59e0b"/><text x="248" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A5</text>
+    <rect x="280" width="48" height="56" rx="8" fill="#22c55e"/><text x="304" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A6</text>
+    <rect x="336" width="48" height="56" rx="8" fill="#374151"/><text x="360" y="33" text-anchor="middle" fill="#6b7280" font-family="system-ui" font-size="11" font-weight="600">A7</text>
+    <rect x="392" width="48" height="56" rx="8" fill="#22c55e"/><text x="416" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A8</text>
+    <rect x="448" width="48" height="56" rx="8" fill="#22c55e"/><text x="472" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A9</text>
+  </g>
+  <g transform="translate(240,262)">
+    <rect width="48" height="56" rx="8" fill="#374151"/><text x="24" y="33" text-anchor="middle" fill="#6b7280" font-family="system-ui" font-size="11" font-weight="600">B1</text>
+    <rect x="56" width="48" height="56" rx="8" fill="#22c55e"/><text x="80" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">B2</text>
+    <rect x="112" width="48" height="56" rx="8" fill="#22c55e"/><text x="136" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">B3</text>
+    <rect x="168" width="48" height="56" rx="8" fill="#22c55e"/><text x="192" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">B4</text>
+    <rect x="224" width="48" height="56" rx="8" fill="#374151"/><text x="248" y="33" text-anchor="middle" fill="#6b7280" font-family="system-ui" font-size="11" font-weight="600">B5</text>
+    <rect x="280" width="48" height="56" rx="8" fill="#f59e0b"/><text x="304" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">B6</text>
+    <rect x="336" width="48" height="56" rx="8" fill="#22c55e"/><text x="360" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">B7</text>
+    <rect x="392" width="48" height="56" rx="8" fill="#22c55e"/><text x="416" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">B8</text>
+    <rect x="448" width="48" height="56" rx="8" fill="#374151"/><text x="472" y="33" text-anchor="middle" fill="#6b7280" font-family="system-ui" font-size="11" font-weight="600">B9</text>
+  </g>
 </svg>

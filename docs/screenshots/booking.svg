@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs><filter id="s"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.1"/></filter></defs>
+  <rect width="800" height="500" fill="#f8fafc"/>
+  <!-- Sidebar stub -->
+  <rect width="200" height="500" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="36" y="37" text-anchor="middle" fill="#3b82f6" font-family="system-ui" font-size="14" font-weight="700">P</text>
+  <text x="60" y="37" fill="#0f172a" font-family="system-ui" font-size="14" font-weight="600">ParkHub</text>
+  <rect x="12" y="100" width="176" height="36" rx="8" fill="#eff6ff"/>
+  <text x="44" y="93" fill="#64748b" font-family="system-ui" font-size="13">Dashboard</text>
+  <text x="44" y="123" fill="#3b82f6" font-family="system-ui" font-size="13" font-weight="500">Bookings</text>
+  <!-- Content -->
+  <text x="224" y="38" fill="#0f172a" font-family="system-ui" font-size="20" font-weight="700">My Bookings</text>
+  <!-- Active booking card -->
+  <rect x="220" y="56" width="565" height="100" rx="12" fill="white" filter="url(#s)" stroke="#22c55e" stroke-width="2"/>
+  <rect x="232" y="68" width="60" height="24" rx="12" fill="#dcfce7"/>
+  <text x="262" y="84" text-anchor="middle" fill="#16a34a" font-family="system-ui" font-size="10" font-weight="600">ACTIVE</text>
+  <text x="310" y="84" fill="#0f172a" font-family="system-ui" font-size="14" font-weight="600">Slot A5 — Level 1</text>
+  <text x="236" y="108" fill="#64748b" font-family="system-ui" font-size="12">Started: 08:00 — Ends: 18:00</text>
+  <text x="236" y="128" fill="#64748b" font-family="system-ui" font-size="12">Duration: 10h — Cost: Free</text>
+  <rect x="680" y="80" width="80" height="32" rx="8" fill="#ef4444"/>
+  <text x="720" y="101" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">End Now</text>
+  <!-- Past bookings -->
+  <text x="224" y="190" fill="#0f172a" font-family="system-ui" font-size="14" font-weight="600">History</text>
+  <rect x="220" y="202" width="565" height="64" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="236" y="228" fill="#64748b" font-family="system-ui" font-size="12">Slot B3 — Feb 7, 09:00–17:00</text>
+  <text x="236" y="248" fill="#94a3b8" font-family="system-ui" font-size="11">8 hours</text>
+  <rect x="220" y="278" width="565" height="64" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="236" y="304" fill="#64748b" font-family="system-ui" font-size="12">Slot A1 — Feb 6, 08:30–16:30</text>
+  <text x="236" y="324" fill="#94a3b8" font-family="system-ui" font-size="11">8 hours</text>
+  <rect x="220" y="354" width="565" height="64" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="236" y="380" fill="#64748b" font-family="system-ui" font-size="12">Slot C2 — Feb 5, 07:00–19:00</text>
+  <text x="236" y="400" fill="#94a3b8" font-family="system-ui" font-size="11">12 hours</text>
+  <!-- New booking button -->
+  <rect x="636" y="170" width="150" height="36" rx="8" fill="#3b82f6"/>
+  <text x="711" y="193" text-anchor="middle" fill="white" font-family="system-ui" font-size="12" font-weight="600">+ New Booking</text>
+</svg>

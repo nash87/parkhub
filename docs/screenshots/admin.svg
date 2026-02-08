@@ -1,4 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" fill="#f3f4f6">
-  <rect width="800" height="450" rx="12"/>
-  <text x="400" y="225" text-anchor="middle" font-family="system-ui" font-size="24" fill="#9ca3af">Screenshot: admin</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs><filter id="s"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.1"/></filter></defs>
+  <rect width="800" height="500" fill="#f8fafc"/>
+  <rect width="200" height="500" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="36" y="37" text-anchor="middle" fill="#3b82f6" font-family="system-ui" font-size="14" font-weight="700">P</text>
+  <text x="60" y="37" fill="#0f172a" font-family="system-ui" font-size="14" font-weight="600">ParkHub</text>
+  <text x="44" y="93" fill="#64748b" font-family="system-ui" font-size="13">Dashboard</text>
+  <text x="44" y="123" fill="#64748b" font-family="system-ui" font-size="13">Bookings</text>
+  <text x="44" y="153" fill="#64748b" font-family="system-ui" font-size="13">Parking Lots</text>
+  <rect x="12" y="160" width="176" height="36" rx="8" fill="#eff6ff"/>
+  <text x="44" y="183" fill="#3b82f6" font-family="system-ui" font-size="13" font-weight="500">Admin</text>
+  <text x="224" y="38" fill="#0f172a" font-family="system-ui" font-size="20" font-weight="700">Administration</text>
+  <!-- Tab bar -->
+  <rect x="220" y="50" width="565" height="36" rx="8" fill="#f1f5f9"/>
+  <rect x="224" y="54" width="80" height="28" rx="6" fill="white" filter="url(#s)"/>
+  <text x="264" y="73" text-anchor="middle" fill="#3b82f6" font-family="system-ui" font-size="11" font-weight="600">Users</text>
+  <text x="345" y="73" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="11">Lots</text>
+  <text x="415" y="73" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="11">Settings</text>
+  <text x="495" y="73" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="11">Audit Log</text>
+  <!-- Users table -->
+  <rect x="220" y="100" width="565" height="380" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="220" y="100" width="565" height="40" rx="12" fill="#f8fafc"/>
+  <text x="248" y="126" fill="#64748b" font-family="system-ui" font-size="11" font-weight="600">USER</text>
+  <text x="430" y="126" fill="#64748b" font-family="system-ui" font-size="11" font-weight="600">ROLE</text>
+  <text x="560" y="126" fill="#64748b" font-family="system-ui" font-size="11" font-weight="600">STATUS</text>
+  <text x="700" y="126" fill="#64748b" font-family="system-ui" font-size="11" font-weight="600">ACTIONS</text>
+  <!-- Rows -->
+  <line x1="232" y1="145" x2="773" y2="145" stroke="#f1f5f9" stroke-width="1"/>
+  <circle cx="252" cy="166" r="14" fill="#dbeafe"/><text x="252" y="170" text-anchor="middle" fill="#3b82f6" font-family="system-ui" font-size="10" font-weight="600">A</text>
+  <text x="276" y="163" fill="#0f172a" font-family="system-ui" font-size="12" font-weight="500">admin</text>
+  <text x="276" y="178" fill="#94a3b8" font-family="system-ui" font-size="10">admin@parkhub.local</text>
+  <rect x="420" y="156" width="52" height="22" rx="11" fill="#dbeafe"/><text x="446" y="171" text-anchor="middle" fill="#2563eb" font-family="system-ui" font-size="9" font-weight="600">Admin</text>
+  <rect x="545" y="156" width="52" height="22" rx="11" fill="#dcfce7"/><text x="571" y="171" text-anchor="middle" fill="#16a34a" font-family="system-ui" font-size="9" font-weight="600">Active</text>
+  <line x1="232" y1="195" x2="773" y2="195" stroke="#f1f5f9" stroke-width="1"/>
+  <circle cx="252" cy="216" r="14" fill="#e0e7ff"/><text x="252" y="220" text-anchor="middle" fill="#6366f1" font-family="system-ui" font-size="10" font-weight="600">J</text>
+  <text x="276" y="213" fill="#0f172a" font-family="system-ui" font-size="12" font-weight="500">john.doe</text>
+  <text x="276" y="228" fill="#94a3b8" font-family="system-ui" font-size="10">john@company.com</text>
+  <rect x="420" y="206" width="52" height="22" rx="11" fill="#f1f5f9"/><text x="446" y="221" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="9" font-weight="600">User</text>
+  <rect x="545" y="206" width="52" height="22" rx="11" fill="#dcfce7"/><text x="571" y="221" text-anchor="middle" fill="#16a34a" font-family="system-ui" font-size="9" font-weight="600">Active</text>
+  <line x1="232" y1="245" x2="773" y2="245" stroke="#f1f5f9" stroke-width="1"/>
+  <circle cx="252" cy="266" r="14" fill="#fce7f3"/><text x="252" y="270" text-anchor="middle" fill="#ec4899" font-family="system-ui" font-size="10" font-weight="600">S</text>
+  <text x="276" y="263" fill="#0f172a" font-family="system-ui" font-size="12" font-weight="500">sarah.m</text>
+  <text x="276" y="278" fill="#94a3b8" font-family="system-ui" font-size="10">sarah@company.com</text>
+  <rect x="420" y="256" width="52" height="22" rx="11" fill="#f1f5f9"/><text x="446" y="271" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="9" font-weight="600">User</text>
+  <rect x="545" y="256" width="52" height="22" rx="11" fill="#dcfce7"/><text x="571" y="271" text-anchor="middle" fill="#16a34a" font-family="system-ui" font-size="9" font-weight="600">Active</text>
+  <!-- Add user button -->
+  <rect x="660" y="454" width="120" height="34" rx="8" fill="#3b82f6"/>
+  <text x="720" y="475" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">+ Add User</text>
 </svg>
