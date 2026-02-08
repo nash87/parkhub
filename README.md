@@ -21,29 +21,29 @@
 
 ---
 
-ParkHub is a self-hosted parking management system built for companies of any size. It ships as a single binary with an embedded database — no PostgreSQL, no Redis, no external services. Deploy it in seconds and manage your corporate parking with a modern, accessible web interface.
+ParkHub is a self-hosted parking management system for companies. It ships as a single binary with an embedded database — no PostgreSQL, no Redis, no external services. Drop it on a server and it runs.
 
 ## Key Features
 
-| | Feature | Description |
-|---|---|---|
-| &#x25A3; | **Real-time Slot Management** | Interactive visual parking map with live availability |
-| &#x1F4C5; | **Smart Booking System** | One-time, multi-day, and permanent reservations with check-in & QR codes |
-| &#x1F3A8; | **10 Color Themes** | Solarized, Dracula, Nord, Gruvbox, Catppuccin, Tokyo Night, One Dark, Rose Pine, Everforest, Default Blue |
-| &#x25D1; | **Dark / Light Mode** | Full dark theme with automatic system detection |
-| &#x1F310; | **Internationalization** | German & English with extensible i18n framework |
-| &#x267F; | **Accessibility** | Colorblind modes (protanopia, deuteranopia, tritanopia), font scaling, reduced motion, high contrast |
-| &#x1F3E2; | **Corporate Branding** | Custom logo, colors, and company name via admin panel |
-| &#x1F3E0; | **Homeoffice Integration** | Set WFH patterns, auto-release parking spots for colleagues |
-| &#x1F6E1; | **GDPR / DSGVO** | Data export, account deletion, privacy policy — fully compliant |
-| &#x1F4F1; | **PWA-Ready** | Install as native app on any device |
-| &#x1F4E6; | **Single Binary** | ~30 MB, embedded redb database, zero external dependencies |
-| &#x1F4E1; | **REST API** | Full API with Swagger/OpenAPI documentation |
-| &#x1F4C6; | **iCal Export** | Subscribe to your bookings in any calendar app |
-| &#x1F4CA; | **Admin Dashboard** | Reports, statistics, CSV export, user management |
-| &#x23F3; | **Waitlist System** | Automatic notification when a spot becomes available |
-| &#x1F6A6; | **Rate Limiting** | Built-in request throttling per IP and per user |
-| &#x1F512; | **Security Hardened** | XSS prevention, input validation, HSTS, security headers |
+| Feature | Description |
+|---|---|
+| **Real-time Slot Management** | Interactive visual parking map with live availability |
+| **Smart Booking System** | One-time, multi-day, and permanent reservations with check-in & QR codes |
+| **10 Color Themes** | Solarized, Dracula, Nord, Gruvbox, Catppuccin, Tokyo Night, One Dark, Rose Pine, Everforest, Default Blue |
+| **Dark / Light Mode** | Full dark theme with automatic system detection |
+| **Internationalization** | German & English with extensible i18n framework |
+| **Accessibility** | Colorblind modes (protanopia, deuteranopia, tritanopia), font scaling, reduced motion, high contrast |
+| **Corporate Branding** | Custom logo, colors, and company name via admin panel |
+| **Homeoffice Integration** | Set WFH patterns, auto-release parking spots for colleagues |
+| **GDPR / DSGVO** | Data export, account deletion, privacy policy — fully compliant |
+| **PWA-Ready** | Install as native app on any device |
+| **Single Binary** | ~30 MB, embedded redb database, zero external dependencies |
+| **REST API** | Full API with Swagger/OpenAPI documentation |
+| **iCal Export** | Subscribe to your bookings in any calendar app |
+| **Admin Dashboard** | Reports, statistics, CSV export, user management |
+| **Waitlist System** | Automatic notification when a spot becomes available |
+| **Rate Limiting** | Built-in request throttling per IP and per user |
+| **Security Hardened** | XSS prevention, input validation, HSTS, security headers |
 
 ## Quick Start
 
@@ -58,7 +58,9 @@ parkhub-server
 open http://localhost:7878
 ```
 
-Default port is **7878**. The first user to register becomes the admin.
+Default port is **7878**. An admin account (`admin` / `admin`) is created on first start. Change the password immediately.
+
+On first login, an onboarding wizard guides you through initial setup: company branding, creating your first parking lot, and configuring slots.
 
 ## Screenshots
 
@@ -156,11 +158,11 @@ See [Configuration Reference](docs/CONFIGURATION.md) for all options.
 
 ## API Overview
 
-All endpoints are under `/api/v1/`. Authentication uses JWT Bearer tokens.
+All endpoints are under `/api/v1/`. Authentication uses Bearer tokens.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/auth/login` | Authenticate and receive JWT |
+| `POST` | `/auth/login` | Authenticate and receive tokens |
 | `POST` | `/auth/register` | Create new account |
 | `GET` | `/lots` | List parking lots |
 | `GET` | `/lots/:id/slots` | Get slots for a lot |
@@ -195,7 +197,7 @@ See the full [API Documentation](docs/API.md) for all 40+ endpoints with example
 │                                                          │
 │  ┌─────────┐  ┌──────────┐  ┌─────────┐  ┌───────────┐  │
 │  │  Auth   │  │ Bookings │  │  Admin  │  │  Metrics  │  │
-│  │  JWT    │  │  iCal    │  │ Reports │  │ Prometheus│  │
+│  │  Token  │  │  iCal    │  │ Reports │  │ Prometheus│  │
 │  └─────────┘  └──────────┘  └─────────┘  └───────────┘  │
 │                                                          │
 │  ┌─────────────────────────────────────────────────────┐  │
@@ -220,7 +222,7 @@ See the full [API Documentation](docs/API.md) for all 40+ endpoints with example
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, code of conduct, and the PR process.
+Contributions welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and the PR process.
 
 ## License
 

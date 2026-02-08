@@ -1,17 +1,14 @@
-# Installation Guide
+# Installation
 
-Complete guide to installing and running ParkHub.
+## Requirements
 
-## System Requirements
+ParkHub is a single binary. It needs basically nothing:
 
-| Requirement | Minimum | Recommended |
-|-------------|---------|-------------|
-| CPU | 1 core | 2+ cores |
-| RAM | 128 MB | 256 MB |
-| Disk | 50 MB | 1 GB (includes data) |
-| OS | Linux (x86_64, aarch64), macOS, Windows | Linux x86_64 |
+- Any Linux (x86_64 or aarch64), macOS, or Windows machine
+- ~50 MB disk (binary + database file)
+- 128 MB RAM is plenty
 
-## Binary Installation
+## Binary Install
 
 ### Linux / macOS
 
@@ -19,20 +16,15 @@ Complete guide to installing and running ParkHub.
 curl -fsSL https://github.com/nash87/parkhub/releases/latest/download/install.sh | bash
 ```
 
-The script downloads the appropriate binary for your platform and places it in `/usr/local/bin/`.
+Downloads the right binary for your architecture and puts it in `/usr/local/bin/`.
 
-Manual download:
+If you prefer to do it manually:
 
 ```bash
 # Linux x86_64
 wget https://github.com/nash87/parkhub/releases/latest/download/parkhub-server-linux-amd64
 chmod +x parkhub-server-linux-amd64
 sudo mv parkhub-server-linux-amd64 /usr/local/bin/parkhub-server
-
-# macOS (Apple Silicon)
-wget https://github.com/nash87/parkhub/releases/latest/download/parkhub-server-darwin-arm64
-chmod +x parkhub-server-darwin-arm64
-sudo mv parkhub-server-darwin-arm64 /usr/local/bin/parkhub-server
 ```
 
 ### Windows
@@ -41,11 +33,22 @@ sudo mv parkhub-server-darwin-arm64 /usr/local/bin/parkhub-server
 irm https://github.com/nash87/parkhub/releases/latest/download/install.ps1 | iex
 ```
 
-Or download `parkhub-server-windows-amd64.exe` from the [releases page](https://github.com/nash87/parkhub/releases).
+Or grab `parkhub-server-windows-amd64.exe` from the [releases page](https://github.com/nash87/parkhub/releases).
+
+### Running
+
+```bash
+parkhub-server                     # GUI mode (if compiled with gui feature)
+parkhub-server --headless          # Console only
+parkhub-server -p 8080             # Custom port
+parkhub-server --data-dir /data    # Custom data directory
+parkhub-server --unattended        # Skip setup wizard, use defaults
+parkhub-server --debug             # Verbose logging
+```
+
+The first user to register gets the `admin` role.
 
 ## Docker
-
-### Quick Start
 
 ```bash
 docker run -d \
@@ -56,9 +59,9 @@ docker run -d \
   ghcr.io/nash87/parkhub:latest
 ```
 
-### Docker Compose
+The image is built with a multi-stage Dockerfile: Node 22 Alpine builds the frontend, Rust 1.83 Alpine builds the server with musl for a static binary. Final image is scratch-like, ~20 MB.
 
-See the included [`docker-compose.yml`](../docker-compose.yml) or the [Deployment Guide](DEPLOYMENT.md).
+### Docker Compose
 
 ```yaml
 services:
@@ -69,7 +72,7 @@ services:
     volumes:
       - parkhub-data:/data
     environment:
-      - PARKHUB_DATA_DIR=/data
+      PARKHUB_DATA_DIR: /data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:7878/health"]
@@ -83,44 +86,48 @@ volumes:
 
 ## Building from Source
 
-### Prerequisites
-
+You need:
 - Rust 1.83+ (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
 - Node.js 22+ and npm
-- Git
-
-### Build Steps
+- On Linux: `musl-dev openssl-dev pkg-config` for static linking
 
 ```bash
 git clone https://github.com/nash87/parkhub.git
 cd parkhub
 
-# Build the frontend
+# Build the React frontend with Vite
 cd parkhub-web
 npm ci
-npm run build
+npm run build    # outputs to parkhub-web/dist/
 cd ..
 
-# Build the server (includes the frontend via build.rs)
+# Build the Rust server
+# build.rs embeds parkhub-web/dist/ into the binary at compile time
 cargo build --release --package parkhub-server
 
-# Binary is at ./target/release/parkhub-server
+# Binary at ./target/release/parkhub-server
+./target/release/parkhub-server
 ```
 
-## Kubernetes Deployment
+The workspace has three crates:
+- `parkhub-common` — shared types (User, Booking, ParkingLot, etc.)
+- `parkhub-server` — the Axum server, database layer, and API
+- `parkhub-client` — desktop client (optional, uses Slint GUI toolkit)
+
+## Kubernetes
 
 <details>
-<summary>Kubernetes manifests</summary>
+<summary>Deployment + Service + PVC</summary>
+
+Important: run exactly **1 replica**. redb is a single-writer database — multiple writers will corrupt the data file.
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: parkhub
-  labels:
-    app: parkhub
 spec:
-  replicas: 1
+  replicas: 1    # DO NOT increase. redb is single-writer.
   selector:
     matchLabels:
       app: parkhub
@@ -132,6 +139,7 @@ spec:
       containers:
         - name: parkhub
           image: ghcr.io/nash87/parkhub:latest
+          args: ["--headless"]
           ports:
             - containerPort: 7878
           volumeMounts:
@@ -152,6 +160,13 @@ spec:
               port: 7878
             initialDelaySeconds: 5
             periodSeconds: 10
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
       volumes:
         - name: data
           persistentVolumeClaim:
@@ -173,8 +188,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: parkhub-data
 spec:
-  accessModes:
-    - ReadWriteOnce
+  accessModes: [ReadWriteOnce]
   resources:
     requests:
       storage: 1Gi
@@ -182,7 +196,19 @@ spec:
 
 </details>
 
-## Reverse Proxy Setup
+## Reverse Proxy
+
+ParkHub serves everything on a single port. Put any reverse proxy in front for TLS.
+
+### Caddy (easiest)
+
+```caddyfile
+parking.example.com {
+    reverse_proxy localhost:7878
+}
+```
+
+That's it. Caddy handles Let's Encrypt automatically.
 
 ### Nginx
 
@@ -204,14 +230,6 @@ server {
 }
 ```
 
-### Caddy
-
-```caddyfile
-parking.example.com {
-    reverse_proxy localhost:7878
-}
-```
-
 ### Traefik
 
 ```yaml
@@ -230,18 +248,15 @@ http:
           - url: "http://127.0.0.1:7878"
 ```
 
-## TLS / HTTPS
+## Built-in TLS
 
-ParkHub supports built-in TLS:
+ParkHub can terminate TLS itself if you don't want a reverse proxy:
 
-```toml
-[tls]
-enabled = true
-cert = "/etc/parkhub/cert.pem"
-key = "/etc/parkhub/key.pem"
+```bash
+parkhub-server --tls-cert /etc/parkhub/cert.pem --tls-key /etc/parkhub/key.pem
 ```
 
-For production, a reverse proxy with Let's Encrypt is recommended (see above).
+For production, a reverse proxy with auto-renewing certs is usually easier.
 
 ## systemd Service
 
@@ -254,13 +269,9 @@ After=network.target
 Type=simple
 User=parkhub
 Group=parkhub
-ExecStart=/usr/local/bin/parkhub-server
-WorkingDirectory=/var/lib/parkhub
-Environment=PARKHUB_DATA_DIR=/var/lib/parkhub
+ExecStart=/usr/local/bin/parkhub-server --headless --data-dir /var/lib/parkhub
 Restart=always
 RestartSec=5
-
-# Security hardening
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
@@ -272,6 +283,9 @@ WantedBy=multi-user.target
 ```
 
 ```bash
+sudo useradd -r -s /usr/sbin/nologin parkhub
+sudo mkdir -p /var/lib/parkhub
+sudo chown parkhub:parkhub /var/lib/parkhub
 sudo cp parkhub.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now parkhub

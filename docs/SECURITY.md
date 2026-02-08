@@ -3,7 +3,7 @@
 ## Authentication and Authorization
 
 - **JWT tokens** with configurable expiry (default: 24 hours)
-- **Refresh tokens** for seamless re-authentication (default: 30 days)
+- **Refresh tokens** for token refresh (default: 30 days)
 - **Password hashing** with Argon2id (memory-hard, side-channel resistant)
 - **Role-based access control** — `user` and `admin` roles
 - Admin endpoints are protected by role middleware

@@ -1,6 +1,6 @@
 # API Documentation
 
-ParkHub exposes a RESTful JSON API under `/api/v1/`. All authenticated endpoints require a JWT Bearer token.
+ParkHub exposes a RESTful JSON API under `/api/v1/`.
 
 ## Base URL
 
@@ -8,23 +8,102 @@ ParkHub exposes a RESTful JSON API under `/api/v1/`. All authenticated endpoints
 http://localhost:7878/api/v1
 ```
 
+## Response Format
+
+Every response wraps data in a standard envelope:
+
+```json
+{
+  "success": true,
+  "data": { ... },
+  "error": null,
+  "meta": null
+}
+```
+
+Errors:
+
+```json
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable message",
+    "details": null
+  },
+  "meta": null
+}
+```
+
 ## Authentication
+
+Authenticated endpoints require a Bearer token in the `Authorization` header:
+
+```
+Authorization: Bearer <access_token>
+```
 
 ### Login
 
 ```bash
 curl -X POST http://localhost:7878/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "your-password"}'
+  -d '{"username": "admin", "password": "admin"}'
 ```
 
 **Response:**
 
 ```json
 {
-  "token": "eyJ...",
-  "refresh_token": "abc...",
-  "user": { "id": "...", "username": "admin", "role": "admin" }
+  "success": true,
+  "data": {
+    "user": {
+      "id": "a1b2c3d4-...",
+      "username": "admin",
+      "email": "admin@parkhub.local",
+      "name": "Admin",
+      "picture": null,
+      "phone": null,
+      "role": "admin",
+      "created_at": "2026-02-08T00:00:00Z",
+      "updated_at": "2026-02-08T00:00:00Z",
+      "last_login": "2026-02-08T07:54:25Z",
+      "preferences": {
+        "default_duration_minutes": null,
+        "favorite_slots": [],
+        "notifications_enabled": false,
+        "email_reminders": false,
+        "language": "",
+        "theme": ""
+      },
+      "is_active": true,
+      "department": null
+    },
+    "tokens": {
+      "access_token": "37db5bfb-1b74-40c3-86aa-...",
+      "refresh_token": "rt_25c04699-adb9-42ba-...",
+      "expires_at": "2026-02-09T07:54:19Z",
+      "token_type": "Bearer"
+    }
+  },
+  "error": null,
+  "meta": null
+}
+```
+
+**Error (wrong credentials):**
+
+```json
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "INVALID_CREDENTIALS",
+    "message": "Invalid username or password",
+    "details": null
+  },
+  "meta": null
 }
 ```
 
@@ -33,15 +112,19 @@ curl -X POST http://localhost:7878/api/v1/auth/login \
 ```bash
 curl -X POST http://localhost:7878/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username": "john", "email": "john@example.com", "password": "secure123", "first_name": "John", "last_name": "Doe"}'
+  -d '{"username": "john", "email": "john@example.com", "password": "SecurePass1", "name": "John Doe"}'
 ```
+
+The password must be at least 8 characters with uppercase, lowercase, and a digit.
+
+**Response:** Same envelope as login — returns `data.user` and `data.tokens`.
 
 ### Refresh Token
 
 ```bash
 curl -X POST http://localhost:7878/api/v1/auth/refresh \
   -H "Content-Type: application/json" \
-  -d '{"refresh_token": "abc..."}'
+  -d '{"refresh_token": "rt_25c04699-..."}'
 ```
 
 ### Forgot Password
@@ -52,6 +135,8 @@ curl -X POST http://localhost:7878/api/v1/auth/forgot-password \
   -d '{"email": "john@example.com"}'
 ```
 
+Requires SMTP to be configured. See [Configuration](CONFIGURATION.md).
+
 ## Users
 
 ### Get Current User
@@ -59,6 +144,38 @@ curl -X POST http://localhost:7878/api/v1/auth/forgot-password \
 ```bash
 curl http://localhost:7878/api/v1/users/me \
   -H "Authorization: Bearer $TOKEN"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "e487f433-...",
+    "username": "testuser",
+    "email": "test@test.com",
+    "name": "Test User",
+    "picture": null,
+    "phone": null,
+    "role": "user",
+    "created_at": "2026-02-08T07:54:19Z",
+    "updated_at": "2026-02-08T07:54:19Z",
+    "last_login": "2026-02-08T07:54:19Z",
+    "preferences": {
+      "default_duration_minutes": null,
+      "favorite_slots": [],
+      "notifications_enabled": false,
+      "email_reminders": false,
+      "language": "",
+      "theme": ""
+    },
+    "is_active": true,
+    "department": null
+  },
+  "error": null,
+  "meta": null
+}
 ```
 
 ### Get User by ID
@@ -74,7 +191,7 @@ curl http://localhost:7878/api/v1/users/:id \
 curl -X PATCH http://localhost:7878/api/v1/users/me/password \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"current_password": "old", "new_password": "new-secure-password"}'
+  -d '{"current_password": "old", "new_password": "NewSecure1"}'
 ```
 
 ## Parking Lots
@@ -85,6 +202,19 @@ curl -X PATCH http://localhost:7878/api/v1/users/me/password \
 curl http://localhost:7878/api/v1/lots \
   -H "Authorization: Bearer $TOKEN"
 ```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [],
+  "error": null,
+  "meta": null
+}
+```
+
+When lots exist, `data` is an array of lot objects.
 
 ### Get Lot Details
 
@@ -128,6 +258,17 @@ curl http://localhost:7878/api/v1/lots/:lot_id/slots/:slot_id/qr \
 ```bash
 curl http://localhost:7878/api/v1/bookings \
   -H "Authorization: Bearer $TOKEN"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [],
+  "error": null,
+  "meta": null
+}
 ```
 
 ### Create Booking
@@ -281,7 +422,7 @@ curl http://localhost:7878/api/v1/admin/users \
 curl -X POST http://localhost:7878/api/v1/admin/users \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"username": "jane", "email": "jane@example.com", "password": "temp123", "role": "user"}'
+  -d '{"username": "jane", "email": "jane@example.com", "password": "TempPass1", "role": "user"}'
 ```
 
 ### Update User
@@ -396,19 +537,10 @@ These do not require authentication:
 | `GET` | `/api/v1/branding/logo` | Company logo |
 | `GET` | `/api/v1/setup/status` | First-run setup status |
 
-## Error Responses
+## Error Codes
 
-All errors follow a consistent format:
-
-```json
-{
-  "error": "not_found",
-  "message": "Booking not found"
-}
-```
-
-| Code | Meaning |
-|------|---------|
+| HTTP Code | Meaning |
+|-----------|---------|
 | `400` | Bad request / validation error |
 | `401` | Unauthorized / invalid token |
 | `403` | Forbidden / insufficient role |
