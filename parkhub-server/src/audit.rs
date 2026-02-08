@@ -85,7 +85,7 @@ pub struct AuditEntry {
 
 impl AuditEntry {
     /// Create a new audit entry builder
-    pub fn new(event_type: AuditEventType) -> AuditEntryBuilder {
+    pub fn builder(event_type: AuditEventType) -> AuditEntryBuilder {
         AuditEntryBuilder {
             event_type,
             user_id: None,
@@ -206,28 +206,28 @@ pub mod events {
     use super::*;
 
     pub fn login_success(user_id: Uuid, username: &str, ip: IpAddr) -> AuditEntry {
-        AuditEntry::new(AuditEventType::LoginSuccess)
+        AuditEntry::builder(AuditEventType::LoginSuccess)
             .user(user_id, username)
             .ip(ip)
             .log()
     }
 
     pub fn login_failed(_username: &str, ip: IpAddr, reason: &str) -> AuditEntry {
-        AuditEntry::new(AuditEventType::LoginFailed)
+        AuditEntry::builder(AuditEventType::LoginFailed)
             .ip(ip)
             .error(reason)
             .log()
     }
 
     pub fn booking_created(user_id: Uuid, username: &str, booking_id: Uuid) -> AuditEntry {
-        AuditEntry::new(AuditEventType::BookingCreated)
+        AuditEntry::builder(AuditEventType::BookingCreated)
             .user(user_id, username)
             .resource("booking", &booking_id.to_string())
             .log()
     }
 
     pub fn unauthorized_access(ip: IpAddr, path: &str) -> AuditEntry {
-        AuditEntry::new(AuditEventType::UnauthorizedAccess)
+        AuditEntry::builder(AuditEventType::UnauthorizedAccess)
             .ip(ip)
             .details(serde_json::json!({ "path": path }))
             .error("Unauthorized access attempt")
@@ -235,7 +235,7 @@ pub mod events {
     }
 
     pub fn rate_limit_exceeded(ip: IpAddr, endpoint: &str) -> AuditEntry {
-        AuditEntry::new(AuditEventType::RateLimitExceeded)
+        AuditEntry::builder(AuditEventType::RateLimitExceeded)
             .ip(ip)
             .details(serde_json::json!({ "endpoint": endpoint }))
             .error("Rate limit exceeded")
@@ -250,7 +250,7 @@ mod tests {
 
     #[test]
     fn test_audit_entry_builder() {
-        let entry = AuditEntry::new(AuditEventType::LoginSuccess)
+        let entry = AuditEntry::builder(AuditEventType::LoginSuccess)
             .user(Uuid::new_v4(), "testuser")
             .ip(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)))
             .log();
@@ -262,7 +262,7 @@ mod tests {
 
     #[test]
     fn test_failed_audit_entry() {
-        let entry = AuditEntry::new(AuditEventType::LoginFailed)
+        let entry = AuditEntry::builder(AuditEventType::LoginFailed)
             .ip(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)))
             .error("Invalid password")
             .log();

@@ -368,7 +368,7 @@ async fn login(
             match state_guard.db.get_user_by_email(&request.username).await {
                 Ok(Some(u)) => u,
                 _ => {
-                    AuditEntry::new(AuditEventType::LoginFailed)
+                    AuditEntry::builder(AuditEventType::LoginFailed)
                         .details(serde_json::json!({"username": &request.username}))
                         .error("Invalid credentials")
                         .log();
@@ -383,7 +383,7 @@ async fn login(
     };
 
     if !verify_password(&request.password, &user.password_hash) {
-        AuditEntry::new(AuditEventType::LoginFailed)
+        AuditEntry::builder(AuditEventType::LoginFailed)
             .user(user.id, &user.username)
             .error("Invalid password")
             .log();
@@ -402,7 +402,7 @@ async fn login(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to create session")));
     }
 
-    AuditEntry::new(AuditEventType::LoginSuccess)
+    AuditEntry::builder(AuditEventType::LoginSuccess)
         .user(user.id, &user.username)
         .log();
 
@@ -443,7 +443,7 @@ async fn register(
     }
 
     // Validate password strength
-    if let Err(_) = crate::validation::validate_password_strength(&request.password) {
+    if crate::validation::validate_password_strength(&request.password).is_err() {
         return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("WEAK_PASSWORD", "Password must be at least 8 characters with uppercase, lowercase, and digit")));
     }
 
@@ -479,7 +479,7 @@ async fn register(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to create session")));
     }
 
-    AuditEntry::new(AuditEventType::UserCreated)
+    AuditEntry::builder(AuditEventType::UserCreated)
         .user(user.id, &user.username)
         .log();
 
@@ -636,7 +636,7 @@ async fn create_lot(
             }
         }
     }
-    AuditEntry::new(AuditEventType::LotCreated)
+    AuditEntry::builder(AuditEventType::LotCreated)
         .user(auth_user.user_id, &user.username)
         .resource("lot", &lot.id.to_string())
         .log();
@@ -853,7 +853,7 @@ async fn create_booking(
     let _ = state_guard.db.save_parking_slot(&updated_slot).await;
 
     // Audit log
-    AuditEntry::new(AuditEventType::BookingCreated)
+    AuditEntry::builder(AuditEventType::BookingCreated)
         .user(auth_user.user_id, "")
         .resource("booking", &booking.id.to_string())
         .log();
@@ -981,7 +981,7 @@ async fn update_booking(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to update booking")));
     }
 
-    AuditEntry::new(AuditEventType::BookingUpdated)
+    AuditEntry::builder(AuditEventType::BookingUpdated)
         .user(auth_user.user_id, "")
         .resource("booking", &booking.id.to_string())
         .log();
@@ -1022,7 +1022,7 @@ async fn cancel_booking(
         let _ = state_guard.db.save_parking_slot(&slot).await;
     }
 
-    AuditEntry::new(AuditEventType::BookingCancelled)
+    AuditEntry::builder(AuditEventType::BookingCancelled)
         .user(auth_user.user_id, "")
         .resource("booking", &booking.id.to_string())
         .log();
@@ -1186,7 +1186,7 @@ async fn upload_vehicle_photo(
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Database error"))),
     }
 
-    while let Ok(Some(field)) = multipart.next_field().await {
+    if let Ok(Some(field)) = multipart.next_field().await {
         if field.name() == Some("photo") {
             if let Ok(data) = field.bytes().await {
                 let b64 = base64::engine::general_purpose::STANDARD.encode(&data);
@@ -1427,7 +1427,7 @@ async fn admin_create_user(
         tracing::error!("Failed to create user: {}", e);
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to create user")));
     }
-    AuditEntry::new(AuditEventType::UserCreated)
+    AuditEntry::builder(AuditEventType::UserCreated)
         .user(auth_user.user_id, &user.username)
         .resource("user", &new_user.id.to_string())
         .log();
@@ -1598,7 +1598,7 @@ async fn checkin_booking(
         let _ = state_guard.db.save_parking_slot(&slot).await;
     }
 
-    AuditEntry::new(AuditEventType::CheckIn)
+    AuditEntry::builder(AuditEventType::CheckIn)
         .user(auth_user.user_id, "")
         .resource("booking", &updated_booking.id.to_string())
         .log();
@@ -1831,7 +1831,7 @@ async fn admin_update_user(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to update user")));
     }
 
-    AuditEntry::new(AuditEventType::UserUpdated)
+    AuditEntry::builder(AuditEventType::UserUpdated)
         .user(auth_user.user_id, &admin.username)
         .resource("user", &user_id)
         .log();
@@ -1923,7 +1923,7 @@ async fn export_user_data(
         })).collect::<Vec<_>>(),
     });
 
-    AuditEntry::new(AuditEventType::UserUpdated)
+    AuditEntry::builder(AuditEventType::UserUpdated)
         .user(auth_user.user_id, &user.username)
         .details(serde_json::json!({"action": "gdpr_data_export"}))
         .log();
@@ -1981,7 +1981,7 @@ async fn delete_own_account(
     let _ = state.db.delete_user(&uid).await;
     deleted.insert("user_account".into(), serde_json::json!(true));
 
-    AuditEntry::new(AuditEventType::UserDeleted)
+    AuditEntry::builder(AuditEventType::UserDeleted)
         .user(auth_user.user_id, &user.username)
         .details(serde_json::json!({"action": "gdpr_account_deletion", "deleted": deleted.clone()}))
         .log();
@@ -2109,7 +2109,7 @@ async fn complete_setup(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to complete setup")));
     }
 
-    AuditEntry::new(AuditEventType::ConfigChanged)
+    AuditEntry::builder(AuditEventType::ConfigChanged)
         .user(auth_user.user_id, &user.username)
         .details(serde_json::json!({"action": "setup_completed"}))
         .log();
@@ -2138,7 +2138,7 @@ async fn change_password(
     };
 
     if !verify_password(&req.current_password, &user.password_hash) {
-        AuditEntry::new(AuditEventType::PasswordChanged)
+        AuditEntry::builder(AuditEventType::PasswordChanged)
             .user(auth_user.user_id, &user.username)
             .error("Invalid current password")
             .log();
@@ -2157,7 +2157,7 @@ async fn change_password(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to update password")));
     }
 
-    AuditEntry::new(AuditEventType::PasswordChanged)
+    AuditEntry::builder(AuditEventType::PasswordChanged)
         .user(auth_user.user_id, &user.username)
         .log();
 
@@ -2298,7 +2298,7 @@ async fn admin_delete_lot(
     // Delete the lot itself
     match state_guard.db.delete_parking_lot(&id).await {
         Ok(true) => {
-            AuditEntry::new(AuditEventType::ConfigChanged)
+            AuditEntry::builder(AuditEventType::ConfigChanged)
                 .user(auth_user.user_id, &user.username)
                 .resource("lot", &id)
                 .details(serde_json::json!({
@@ -2416,7 +2416,6 @@ async fn get_branding_admin(
 }
 
 /// PUT /api/v1/admin/branding - Update branding config
-
 /// Partial branding update request - all fields optional
 #[derive(Debug, Clone, Deserialize)]
 pub struct UpdateBrandingRequest {
@@ -2485,7 +2484,7 @@ async fn update_branding(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save branding")));
     }
 
-    AuditEntry::new(AuditEventType::ConfigChanged)
+    AuditEntry::builder(AuditEventType::ConfigChanged)
         .user(auth_user.user_id, &user.username)
         .details(serde_json::json!({"action": "branding_updated"}))
         .log();
@@ -2508,7 +2507,7 @@ async fn upload_branding_logo(
         return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
     }
 
-    while let Ok(Some(field)) = multipart.next_field().await {
+    if let Ok(Some(field)) = multipart.next_field().await {
         let content_type = field.content_type().unwrap_or("application/octet-stream").to_string();
 
         // Validate content type
@@ -2553,7 +2552,7 @@ async fn upload_branding_logo(
         let config_data = serde_json::to_vec(&config).unwrap();
         let _ = state_guard.db.save_branding("config", &config_data).await;
 
-        AuditEntry::new(AuditEventType::ConfigChanged)
+        AuditEntry::builder(AuditEventType::ConfigChanged)
             .user(auth_user.user_id, &user.username)
             .details(serde_json::json!({"action": "logo_uploaded", "type": content_type, "size": data.len()}))
             .log();

@@ -228,14 +228,16 @@ async fn main() -> Result<()> {
     } else if cli.unattended || cli.headless {
         // Unattended/headless mode - auto-configure with defaults
         info!("Auto-configuring with defaults (unattended mode)...");
-        let mut config = ServerConfig::default();
-        config.server_name = hostname::get()
-            .map(|h| h.to_string_lossy().to_string())
-            .unwrap_or_else(|_| "ParkHub Server".to_string());
-        config.admin_password_hash = hash_password("admin")?;
-        config.encryption_enabled = false; // Disable encryption for unattended setup
-        config.enable_tls = false; // Disable TLS for easier initial setup
-        config.generate_dummy_users = true;
+        let config = ServerConfig {
+            server_name: hostname::get()
+                .map(|h| h.to_string_lossy().to_string())
+                .unwrap_or_else(|_| "ParkHub Server".to_string()),
+            admin_password_hash: hash_password("admin")?,
+            encryption_enabled: false, // Disable encryption for unattended setup
+            enable_tls: false, // Disable TLS for easier initial setup
+            generate_dummy_users: true,
+            ..Default::default()
+        };
         config.save(&config_path)?;
         info!("Default config saved. Admin credentials: admin/admin");
         config
@@ -255,11 +257,12 @@ async fn main() -> Result<()> {
         {
             // Create default configuration in headless mode
             warn!("Running in headless mode - using default configuration");
-            let mut config = ServerConfig::default();
-            // Generate a random password for headless mode
-            config.admin_password_hash = hash_password("admin")?;
-            // Use environment variable for encryption passphrase in headless mode
-            config.encryption_passphrase = std::env::var("PARKHUB_DB_PASSPHRASE").ok();
+            let encryption_passphrase = std::env::var("PARKHUB_DB_PASSPHRASE").ok();
+            let mut config = ServerConfig {
+                admin_password_hash: hash_password("admin")?,
+                encryption_passphrase,
+                ..Default::default()
+            };
             if config.encryption_enabled && config.encryption_passphrase.is_none() {
                 warn!("Database encryption enabled but PARKHUB_DB_PASSPHRASE not set");
                 warn!("Using default passphrase - NOT RECOMMENDED FOR PRODUCTION");
@@ -1293,90 +1296,5 @@ async fn generate_dummy_users(db: &Database, username_style: UsernameStyle, data
     }
 
     info!("Created {} demo vehicles with placeholder photos", demo_vehicles.len().min(user_ids.len()));
-    Ok(())
-}
-
-/// Create a sample parking lot for testing
-async fn create_sample_parking_lot(db: &Database) -> Result<()> {
-    use chrono::Utc;
-    use parkhub_common::models::{
-        LotLayout, LotRow, LotStatus, ParkingLot, ParkingSlot, RowSide, SlotConfig, SlotStatus,
-    };
-    use uuid::Uuid;
-
-    let lot_id = Uuid::new_v4();
-
-    // Create 10 parking slots
-    let mut slots = Vec::new();
-    let mut top_slot_configs = Vec::new();
-    let mut bottom_slot_configs = Vec::new();
-
-    for i in 1..=10 {
-        let slot_id = Uuid::new_v4();
-        let slot_number = format!("P{}", i);
-
-        slots.push(ParkingSlot {
-            id: slot_id,
-            lot_id,
-            slot_number: slot_number.clone(),
-            status: SlotStatus::Available,
-            current_booking: None,
-            reserved_for_department: None,
-        });
-
-        let config = SlotConfig {
-            id: slot_id.to_string(),
-            number: slot_number,
-            status: SlotStatus::Available,
-            vehicle_plate: None,
-            homeoffice_user: None,
-        };
-
-        if i <= 5 {
-            top_slot_configs.push(config);
-        } else {
-            bottom_slot_configs.push(config);
-        }
-    }
-
-    let layout = LotLayout {
-        rows: vec![
-            LotRow {
-                id: Uuid::new_v4().to_string(),
-                label: Some("Row A".to_string()),
-                side: RowSide::Top,
-                slots: top_slot_configs,
-            },
-            LotRow {
-                id: Uuid::new_v4().to_string(),
-                label: Some("Row B".to_string()),
-                side: RowSide::Bottom,
-                slots: bottom_slot_configs,
-            },
-        ],
-        road_label: Some("Main Road".to_string()),
-    };
-
-    let lot = ParkingLot {
-        id: lot_id,
-        name: "Company Parking".to_string(),
-        address: "123 Main Street".to_string(),
-        total_slots: 10,
-        available_slots: 10,
-        layout: Some(layout),
-        status: LotStatus::Open,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    };
-
-    // Save parking lot
-    db.save_parking_lot(&lot).await?;
-
-    // Save all slots
-    for slot in &slots {
-        db.save_parking_slot(slot).await?;
-    }
-
-    info!("Sample parking lot created with {} slots", slots.len());
     Ok(())
 }
