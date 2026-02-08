@@ -56,15 +56,19 @@ ParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, *
 ## Quick Start
 
 ```bash
-# Download the latest release
+# Interactive installer (Linux / macOS)
 curl -fsSL https://github.com/nash87/parkhub/releases/latest/download/install.sh | bash
 
-# Start the server
-parkhub-server
-
-# Open your browser
-open http://localhost:7878
+# Windows (PowerShell)
+irm https://github.com/nash87/parkhub/releases/latest/download/install.ps1 | iex
 ```
+
+The installer offers two modes:
+
+- **Quick Start** — Default settings, ready in 2 minutes. Detects your IP and shows the access URL.
+- **Custom Installation** — Configure port, TLS, admin credentials, use-case type, organization name, and more.
+
+After installation, open the displayed URL to start the **onboarding wizard**.
 
 Default port is **7878**. An admin account (`admin` / `admin`) is created on first start. Change the password immediately.
 

@@ -4,6 +4,30 @@ All notable changes to ParkHub are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] — 2026-02-08
+
+### Added
+
+- **License plate city code autocomplete**: Dropdown with 400+ German Unterscheidungszeichen
+  - Filtered dropdown appears on first keystroke, max 10 items
+  - Prefix highlighting, keyboard navigation (arrow keys, Enter, Escape)
+  - Auto-formatting: city code → dash → letters → space → numbers
+  - Selected city name shown below input (e.g. "Göttingen" for GÖ)
+  - Dark mode compatible dropdown styling
+- **Interactive install script** (): Modern two-mode installer
+  - Quick Start mode: Default settings, ready in 2 minutes
+  - Custom Installation mode: Configure port, TLS, admin credentials, use-case, etc.
+  - Auto-detects host IP and shows access URL
+  - Color-coded output with progress indicators
+  - OS and architecture detection (Linux/macOS)
+- **Windows installer overhaul** (): Same two-mode flow for Windows
+
+### Changed
+
+- License plate input now uses structured city code selection instead of free-form typing
+- Install scripts default to port 7878 (was 8080)
+- Install scripts show onboarding wizard URL after installation
+
 ## [1.1.0] — 2026-02-08
 
 ### Added

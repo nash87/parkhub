@@ -8,7 +8,9 @@ ParkHub is a single binary. It needs basically nothing:
 - ~50 MB disk (binary + database file)
 - 128 MB RAM is plenty
 
-## Binary Install
+## Interactive Installer
+
+The installer provides two modes: **Quick Start** and **Custom Installation**.
 
 ### Linux / macOS
 
@@ -16,7 +18,27 @@ ParkHub is a single binary. It needs basically nothing:
 curl -fsSL https://github.com/nash87/parkhub/releases/latest/download/install.sh | bash
 ```
 
-Downloads the right binary for your architecture and puts it in `/usr/local/bin/`.
+#### Quick Start Mode (default)
+
+Downloads the right binary for your architecture, creates a default config, starts the server, and shows the access URL with your detected IP address. Ready in about 2 minutes.
+
+#### Custom Installation Mode
+
+Lets you configure before first start:
+
+| Setting | Default |
+|---------|---------|
+| Port | 7878 |
+| Data directory | ~/.local/share/parkhubserver |
+| TLS | Disabled |
+| Admin username | admin |
+| Admin password | Auto-generated |
+| Use-case type | Corporate |
+| Organization name | My Parking |
+| Self-registration | Enabled |
+| Demo data | Disabled |
+
+All settings are written to `config.toml` in the data directory.
 
 If you prefer to do it manually:
 
