@@ -327,6 +327,7 @@ export const de = {
       newLot: 'Neuer Parkplatz',
       createLot: 'Neuen Parkplatz anlegen',
       edit: 'Bearbeiten',
+      noLots: 'Noch keine Parkplätze konfiguriert.',
     },
     users: {
       title: 'Benutzer verwalten',
@@ -672,6 +673,12 @@ export const de = {
         company: 'Firma',
         dummyData: 'Beispieldaten',
         registration: 'Registrierung',
+        company_corporate: 'Firma',
+        company_residential: 'Gebäude',
+        company_family: 'Haushalt',
+        company_rental: 'Objekt',
+        company_public: 'Anlage',
+
       },
     },
   },

@@ -189,7 +189,30 @@ function AdminLots() {
       </div>
       <AnimatePresence>{showNewEditor && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-          <div className="card p-6"><h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('admin.lots.createLot')}</h3><LotLayoutEditor onSave={() => setShowNewEditor(false)} onCancel={() => setShowNewEditor(false)} /></div>
+          <div className="card p-6"><h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('admin.lots.createLot')}</h3><LotLayoutEditor onSave={async (layout, name) => {
+                if (!name?.trim()) return;
+                try {
+                  const token = localStorage.getItem('parkhub_token');
+                  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+                  if (token) headers['Authorization'] = `Bearer ${token}`;
+                  const totalSlots = layout.rows.reduce((sum, r) => sum + r.slots.length, 0);
+                  const createRes = await fetch('/api/v1/lots', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ name, address: name, total_slots: totalSlots }),
+                  });
+                  const createData = await createRes.json();
+                  if (createData.success && createData.data?.id && layout.rows.length > 0) {
+                    await fetch(`/api/v1/lots/${createData.data.id}/layout`, {
+                      method: 'PUT',
+                      headers,
+                      body: JSON.stringify(layout),
+                    });
+                  }
+                  await loadLots();
+                  setShowNewEditor(false);
+                } catch { setShowNewEditor(false); }
+              }} onCancel={() => setShowNewEditor(false)} /></div>
         </motion.div>
       )}</AnimatePresence>
       {lots.length === 0 && !showNewEditor && (
@@ -207,7 +230,22 @@ function AdminLots() {
           </div>
           <AnimatePresence>{editingLotId === lot.id && editingLayout && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-              <div className="card p-6 mt-2 border-l-4 border-l-primary-500"><LotLayoutEditor initialLayout={editingLayout.layout} lotName={editingLayout.name} onSave={() => setEditingLotId(null)} onCancel={() => setEditingLotId(null)} /></div>
+              <div className="card p-6 mt-2 border-l-4 border-l-primary-500"><LotLayoutEditor initialLayout={editingLayout.layout} lotName={editingLayout.name} onSave={async (layout, _name) => {
+                    try {
+                      const token = localStorage.getItem('parkhub_token');
+                      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+                      if (token) headers['Authorization'] = `Bearer ${token}`;
+                      if (layout.rows.length > 0) {
+                        await fetch(`/api/v1/lots/${editingLotId}/layout`, {
+                          method: 'PUT',
+                          headers,
+                          body: JSON.stringify(layout),
+                        });
+                      }
+                      await loadLots();
+                      setEditingLotId(null);
+                    } catch { setEditingLotId(null); }
+                  }} onCancel={() => setEditingLotId(null)} /></div>
             </motion.div>
           )}</AnimatePresence>
         </div>

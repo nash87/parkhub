@@ -215,11 +215,11 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       }
       setStep(1);
     } else if (step === 1) {
-      // Company setup
-      await handleCompanySave();
+      // Use-case selection - always proceed (default is corporate)
       setStep(2);
     } else if (step === 2) {
-      // Use-case selection - always proceed (default is corporate)
+      // Organization name setup
+      await handleCompanySave();
       setStep(3);
     } else if (step === 3) {
       // Dummy data question
@@ -245,8 +245,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
   const steps = [
     { icon: Lock, key: 'password' },
-    { icon: Buildings, key: 'company' },
     { icon: Buildings, key: 'usecase' },
+    { icon: Buildings, key: 'company' },
     { icon: Database, key: 'dummyData' },
     { icon: Car, key: 'lot' },
     { icon: Users, key: 'users' },
@@ -332,30 +332,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             )}
 
-            {/* Step 1: Company Setup */}
+            {/* Step 1: Use-Case Selection */}
             {step === 1 && (
-              <div className="space-y-4">
-                <div className="text-center mb-4">
-                  <div className="w-16 h-16 mx-auto rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-3">
-                    <Buildings weight="fill" className="w-8 h-8 text-primary-600 dark:text-primary-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {t('onboarding.steps.company.title')}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {t('onboarding.steps.company.desc')}
-                  </p>
-                </div>
-                <div>
-                  <label className="label">{t('onboarding.steps.company.nameLabel')}</label>
-                  <input type="text" className="input" value={companyName}
-                    onChange={e => setCompanyName(e.target.value)} placeholder={t('onboarding.steps.company.namePlaceholder')} />
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Use-Case Selection */}
-            {step === 2 && (
               <div className="space-y-4">
                 <div className="text-center mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -400,6 +378,28 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                       )}
                     </button>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Organization Name Setup */}
+            {step === 2 && (
+              <div className="space-y-4">
+                <div className="text-center mb-4">
+                  <div className="w-16 h-16 mx-auto rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-3">
+                    <Buildings weight="fill" className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {t(`onboarding.steps.company.title_${useCase}`, t('onboarding.steps.company.title'))}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {t(`onboarding.steps.company.desc_${useCase}`, t('onboarding.steps.company.desc'))}
+                  </p>
+                </div>
+                <div>
+                  <label className="label">{t(`onboarding.steps.company.nameLabel_${useCase}`, t('onboarding.steps.company.nameLabel'))}</label>
+                  <input type="text" className="input" value={companyName}
+                    onChange={e => setCompanyName(e.target.value)} placeholder={t(`onboarding.steps.company.namePlaceholder_${useCase}`, t('onboarding.steps.company.namePlaceholder'))} />
                 </div>
               </div>
             )}
@@ -509,7 +509,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   </div>
                   {companyName && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">{t('onboarding.steps.done.company')}:</span>
+                      <span className="text-gray-500">{t(`onboarding.steps.done.company_${useCase}`, t('onboarding.steps.done.company'))}:</span>
                       <span className="font-medium">{companyName}</span>
                     </div>
                   )}

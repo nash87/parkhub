@@ -298,6 +298,7 @@ export const en = {
       newLot: 'New Parking Lot',
       createLot: 'Create new parking lot',
       edit: 'Edit',
+      noLots: 'No parking lots configured yet.',
     },
     users: {
       title: 'Manage Users',
@@ -634,6 +635,12 @@ export const en = {
         company: 'Company',
         dummyData: 'Sample data',
         registration: 'Registration',
+        company_corporate: 'Company',
+        company_residential: 'Building',
+        company_family: 'Household',
+        company_rental: 'Property',
+        company_public: 'Facility',
+
       },
     },
   },
