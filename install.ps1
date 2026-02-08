@@ -14,6 +14,7 @@ $Repo = "nash87/parkhub"
 $ServiceName = "ParkHub"
 $Version = "1.0.0"
 $DefaultPort = 7878
+$DefaultInstallDir = Join-Path $env:ProgramFiles "ParkHub"
 $DefaultDataDir = Join-Path $env:LOCALAPPDATA "ParkHub\data"
 
 function Write-Info($msg)  { Write-Host "  i  $msg" -ForegroundColor Cyan }
@@ -43,50 +44,70 @@ function Get-LatestVersion {
     }
 }
 
-function Install-Binary($ver) {
-    $asset = "parkhub-windows-x86_64.zip"
+function Install-Binary($ver, $installDir) {
+    $asset = "parkhub-windows-amd64.exe"
     $url = "https://github.com/$Repo/releases/download/$ver/$asset"
-    $tmpDir = Join-Path $env:TEMP "parkhub-install"
-    $zipPath = Join-Path $tmpDir $asset
 
-    New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null
+    New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+
+    $target = Join-Path $installDir "parkhub-server.exe"
 
     Write-Step "Downloading $asset..."
     try {
-        Invoke-WebRequest -Uri $url -OutFile $zipPath -UseBasicParsing
+        Invoke-WebRequest -Uri $url -OutFile $target -UseBasicParsing
     } catch {
         Write-Warn "Download failed (release may not exist yet)"
         return $false
     }
 
-    $installDir = Join-Path $env:LOCALAPPDATA "ParkHub"
-    New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+    Write-OK "Installed to $target"
+    return $true
+}
 
-    Write-Step "Extracting to $installDir..."
-    Expand-Archive -Path $zipPath -DestinationPath $installDir -Force
-
-    $exe = Get-ChildItem -Path $installDir -Filter "*.exe" -Recurse | Select-Object -First 1
-    if (-not $exe) {
-        Write-Err "Could not find parkhub-server.exe in archive"
-        return $false
-    }
-
-    $target = Join-Path $installDir "parkhub-server.exe"
-    if ($exe.FullName -ne $target) {
-        Move-Item -Path $exe.FullName -Destination $target -Force
-    }
-
-    # Add to PATH
+function Add-ToPath($installDir) {
     $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
     if ($userPath -notlike "*$installDir*") {
         [Environment]::SetEnvironmentVariable("Path", "$userPath;$installDir", "User")
         $env:Path += ";$installDir"
         Write-OK "Added to PATH"
+    } else {
+        Write-Info "Already in PATH"
     }
+}
 
-    Write-OK "Installed to $target"
-    Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue
-    return $true
+function Install-AsService($installDir) {
+    $exe = Join-Path $installDir "parkhub-server.exe"
+    Write-Step "Installing Windows service..."
+    & $exe install
+    if ($LASTEXITCODE -eq 0) {
+        Write-OK "Service 'ParkHub' installed"
+        Write-Step "Starting service..."
+        Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
+        Write-OK "Service started"
+    } else {
+        Write-Warn "Service installation failed"
+    }
+}
+
+function Add-FirewallRule($port) {
+    Write-Step "Adding firewall rule for port $port..."
+    try {
+        New-NetFirewallRule -DisplayName "ParkHub Server" -Direction Inbound -Action Allow -Protocol TCP -LocalPort $port -ErrorAction Stop | Out-Null
+        Write-OK "Firewall rule added"
+    } catch {
+        Write-Warn "Failed to add firewall rule: $_"
+    }
+}
+
+function New-StartMenuShortcut($installDir) {
+    $startMenu = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\ParkHub"
+    New-Item -ItemType Directory -Force -Path $startMenu | Out-Null
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut("$startMenu\ParkHub Server.lnk")
+    $shortcut.TargetPath = Join-Path $installDir "parkhub-server.exe"
+    $shortcut.WorkingDirectory = $installDir
+    $shortcut.Save()
+    Write-OK "Start Menu shortcut created"
 }
 
 function New-Config($port, $dataDir) {
@@ -111,7 +132,7 @@ session_timeout = 86400
     }
 }
 
-function Start-ParkHub($port, $dataDir) {
+function Show-Completion($port) {
     $ip = Get-HostIP
     $url = "http://${ip}:${port}"
 
@@ -132,12 +153,16 @@ function Invoke-QuickStart {
     Write-Host "  🚀 Quick Start" -ForegroundColor White
     Write-Host ""
 
-    Write-Info "Platform: Windows/$([System.Environment]::Is64BitOperatingSystem ? 'x64' : 'x86')"
+    Write-Info "Platform: Windows/x64"
 
     $ver = Get-LatestVersion
-    Install-Binary $ver | Out-Null
+    Install-Binary $ver $DefaultInstallDir | Out-Null
     New-Config $DefaultPort $DefaultDataDir
-    Start-ParkHub $DefaultPort $DefaultDataDir
+    Add-ToPath $DefaultInstallDir
+    Install-AsService $DefaultInstallDir
+    Add-FirewallRule $DefaultPort
+    New-StartMenuShortcut $DefaultInstallDir
+    Show-Completion $DefaultPort
 }
 
 function Invoke-CustomInstall {
@@ -145,7 +170,9 @@ function Invoke-CustomInstall {
     Write-Host "  ⚙️  Custom Installation" -ForegroundColor White
     Write-Host ""
 
-    Write-Info "Platform: Windows"
+    # Install directory
+    $installDir = Read-Host "  Install directory [$DefaultInstallDir]"
+    if ([string]::IsNullOrEmpty($installDir)) { $installDir = $DefaultInstallDir }
 
     # Port
     $port = Read-Host "  Port [$DefaultPort]"
@@ -155,78 +182,30 @@ function Invoke-CustomInstall {
     $dataDir = Read-Host "  Data directory [$DefaultDataDir]"
     if ([string]::IsNullOrEmpty($dataDir)) { $dataDir = $DefaultDataDir }
 
-    # TLS
-    $tls = Read-Host "  Enable TLS? [y/N]"
-    if ([string]::IsNullOrEmpty($tls)) { $tls = "n" }
-
-    # Admin
-    $adminUser = Read-Host "  Admin username [admin]"
-    if ([string]::IsNullOrEmpty($adminUser)) { $adminUser = "admin" }
-
-    $adminPass = Read-Host "  Admin password [auto-generate]" -AsSecureString
-    $plainPass = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPass))
-    if ([string]::IsNullOrEmpty($plainPass)) {
-        $plainPass = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 16 | ForEach-Object { [char]$_ })
-        Write-Info "Generated password: $plainPass"
-    }
-
-    # Use case
-    Write-Host ""
-    Write-Host "  Use-case type:" -ForegroundColor White
-    Write-Host "    [1] Corporate"
-    Write-Host "    [2] Residential"
-    Write-Host "    [3] Family"
-    Write-Host "    [4] Rental"
-    Write-Host "    [5] Public"
-    $useCaseNum = Read-Host "  Your choice [1]"
-    if ([string]::IsNullOrEmpty($useCaseNum)) { $useCaseNum = "1" }
-    $useCaseMap = @{ "1" = "corporate"; "2" = "residential"; "3" = "family"; "4" = "rental"; "5" = "public" }
-    $useCase = $useCaseMap[$useCaseNum]
-    if (-not $useCase) { $useCase = "corporate" }
-
-    # Organization
-    $orgName = Read-Host "  Organization name [My Parking]"
-    if ([string]::IsNullOrEmpty($orgName)) { $orgName = "My Parking" }
-
-    # Self-registration
-    $selfReg = Read-Host "  Enable self-registration? [Y/n]"
-    if ([string]::IsNullOrEmpty($selfReg)) { $selfReg = "y" }
-    $selfRegBool = $selfReg -match "^[Yy]"
-
-    # Demo data
-    $demoData = Read-Host "  Load demo data? [y/N]"
-    if ([string]::IsNullOrEmpty($demoData)) { $demoData = "n" }
-    $demoBool = $demoData -match "^[Yy]"
+    # Options
+    $doService = Read-Host "  Install as Windows Service? [Y/n]"
+    if ([string]::IsNullOrEmpty($doService)) { $doService = "y" }
+    $doPath = Read-Host "  Add to PATH? [Y/n]"
+    if ([string]::IsNullOrEmpty($doPath)) { $doPath = "y" }
+    $doFirewall = Read-Host "  Add firewall rule? [Y/n]"
+    if ([string]::IsNullOrEmpty($doFirewall)) { $doFirewall = "y" }
+    $doShortcut = Read-Host "  Create Start Menu shortcut? [Y/n]"
+    if ([string]::IsNullOrEmpty($doShortcut)) { $doShortcut = "y" }
 
     Write-Host ""
-    Write-Host "  📋 Summary" -ForegroundColor White
-    Write-Info "Port:              $port"
-    Write-Info "Data directory:    $dataDir"
-    Write-Info "TLS:               $tls"
-    Write-Info "Admin:             $adminUser"
-    Write-Info "Use-case:          $useCase"
-    Write-Info "Organization:      $orgName"
-    Write-Info "Self-registration: $selfRegBool"
-    Write-Info "Demo data:         $demoBool"
-    Write-Host ""
-
     $confirm = Read-Host "  Proceed? [Y/n]"
-    if ($confirm -match "^[Nn]") {
-        Write-Warn "Aborted."
-        return
-    }
+    if ($confirm -match "^[Nn]") { Write-Warn "Aborted."; return }
 
     $ver = Get-LatestVersion
-    Install-Binary $ver | Out-Null
+    Install-Binary $ver $installDir | Out-Null
     New-Config $port $dataDir
-    Start-ParkHub $port $dataDir
 
-    Write-Host "  Admin credentials:" -ForegroundColor White
-    Write-Host "    Username: $adminUser" -ForegroundColor Cyan
-    Write-Host "    Password: $plainPass" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "  ⚠  Save these credentials! Change password after first login." -ForegroundColor Red
-    Write-Host ""
+    if ($doPath -match "^[Yy]") { Add-ToPath $installDir }
+    if ($doService -match "^[Yy]") { Install-AsService $installDir }
+    if ($doFirewall -match "^[Yy]") { Add-FirewallRule $port }
+    if ($doShortcut -match "^[Yy]") { New-StartMenuShortcut $installDir }
+
+    Show-Completion $port
 }
 
 # Main
@@ -239,10 +218,10 @@ Write-Host ""
 Write-Host "  Choose installation mode:"
 Write-Host ""
 Write-Host "    [1] Quick Start (recommended)" -ForegroundColor White
-Write-Host "        Default settings, ready in 2 minutes" -ForegroundColor DarkGray
+Write-Host "        Download, install as service, ready to go" -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "    [2] Custom Installation" -ForegroundColor White
-Write-Host "        Configure settings before first start" -ForegroundColor DarkGray
+Write-Host "        Choose directory, port, service options" -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "    [q] Quit" -ForegroundColor White
 Write-Host ""

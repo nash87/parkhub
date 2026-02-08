@@ -35,6 +35,9 @@ mod validation;
 mod email;
 mod background_jobs;
 
+#[cfg(all(windows, feature = "windows-svc"))]
+mod windows_svc;
+
 use config::ServerConfig;
 use db::{Database, DatabaseConfig};
 use discovery::MdnsService;
@@ -63,6 +66,9 @@ pub struct AppState {
 /// CLI arguments for the server
 #[derive(Debug, Clone)]
 struct CliArgs {
+    /// Windows service subcommand (install, uninstall, run)
+    #[cfg(windows)]
+    service_command: Option<String>,
     /// Show help message
     help: bool,
     /// Run in debug mode with verbose logging
@@ -90,6 +96,8 @@ impl CliArgs {
             port: None,
             data_dir: None,
             version: false,
+            #[cfg(windows)]
+            service_command: None,
         };
 
         let mut i = 1;
@@ -105,6 +113,11 @@ impl CliArgs {
                         cli.port = args[i + 1].parse().ok();
                         i += 1;
                     }
+                }
+                // Windows service subcommands
+                #[cfg(windows)]
+                "install" | "uninstall" | "run" => {
+                    cli.service_command = Some(args[i].clone());
                 }
                 "--data-dir" => {
                     if i + 1 < args.len() {
@@ -170,6 +183,29 @@ async fn main() -> Result<()> {
     if cli.version {
         CliArgs::print_version();
         return Ok(());
+    }
+
+    // Handle Windows service commands
+    #[cfg(all(windows, feature = "windows-svc"))]
+    if let Some(ref cmd) = cli.service_command {
+        match cmd.as_str() {
+            "install" => {
+                windows_svc::windows_service::install_service()
+                    .map_err(|e| anyhow::anyhow!("Failed to install service: {}", e))?;
+                return Ok(());
+            }
+            "uninstall" => {
+                windows_svc::windows_service::uninstall_service()
+                    .map_err(|e| anyhow::anyhow!("Failed to uninstall service: {}", e))?;
+                return Ok(());
+            }
+            "run" => {
+                windows_svc::windows_service::run_as_service()
+                    .map_err(|e| anyhow::anyhow!("Failed to run as service: {}", e))?;
+                return Ok(());
+            }
+            _ => {}
+        }
     }
 
     // Set DPI awareness before creating any windows (Windows-specific)

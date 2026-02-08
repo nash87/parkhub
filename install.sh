@@ -270,6 +270,7 @@ quick_start() {
     install_binary || true
     create_config "$DEFAULT_PORT" "$DEFAULT_DATA_DIR"
     start_server "$DEFAULT_PORT" "$DEFAULT_DATA_DIR"
+    setup_service "$DEFAULT_DATA_DIR" "$DEFAULT_PORT"
 }
 
 # Custom Installation
@@ -366,6 +367,7 @@ custom_install() {
     apply_custom_config "$port" "$data_dir" "$tls" "$admin_user" "$admin_pass" \
                         "$use_case" "$org_name" "$self_reg" "$demo_data"
     start_server "$port" "$data_dir"
+    setup_service "$data_dir" "$port"
 
     echo -e "  ${BOLD}Admin credentials:${NC}"
     echo -e "    Username: ${CYAN}${admin_user}${NC}"
@@ -424,6 +426,60 @@ EOF
 }
 
 # Main
+
+# Setup launchd service (optional, asked after install on macOS)
+setup_launchd() {
+    if [ "$OS" != "macos" ]; then
+        return
+    fi
+
+    echo ""
+    read -rp "  Create launchd service (auto-start on boot)? [y/N]: " yn
+    case "$yn" in
+        [Yy]*)
+            local data_dir="${1:-$DEFAULT_DATA_DIR}"
+            sudo mkdir -p /var/lib/parkhub
+
+            sudo tee /Library/LaunchDaemons/com.parkhub.server.plist > /dev/null << PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.parkhub.server</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/parkhub-server</string>
+        <string>--headless</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>WorkingDirectory</key>
+    <string>/var/lib/parkhub</string>
+    <key>StandardOutPath</key>
+    <string>/var/log/parkhub.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/parkhub-error.log</string>
+</dict>
+</plist>
+PLIST
+
+            sudo launchctl load /Library/LaunchDaemons/com.parkhub.server.plist
+
+            ok "LaunchDaemon created and loaded"
+            info "Manage: sudo launchctl {start|stop} com.parkhub.server"
+            info "Logs:   tail -f /var/log/parkhub.log"
+            ;;
+    esac
+}
+
+# Offer service installation based on OS
+setup_service() {
+    setup_systemd "$@"
+    setup_launchd "$@"
+}
 main() {
     clear 2>/dev/null || true
     echo ""

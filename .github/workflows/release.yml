@@ -50,16 +50,37 @@ jobs:
       - name: Rename binary
         shell: bash
         run: |
-          src="target/\${{ matrix.target }}/release/parkhub-server"
-          [[ "\${{ matrix.os }}" == "windows-latest" ]] && src="\${src}.exe"
-          cp "\$src" "\${{ matrix.name }}"
+          src="target/${{ matrix.target }}/release/parkhub-server"
+          [[ "${{ matrix.os }}" == "windows-latest" ]] && src="${src}.exe"
+          cp "$src" "${{ matrix.name }}"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
           path: ${{ matrix.name }}
 
-  release:
+  nsis-installer:
     needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: parkhub-windows-amd64.exe
+          path: .github/nsis/
+      - name: Rename binary for NSIS
+        shell: bash
+        run: mv .github/nsis/parkhub-windows-amd64.exe .github/nsis/parkhub-server.exe
+      - name: Create NSIS installer
+        uses: joncloud/makensis-action@v4
+        with:
+          script-file: .github/nsis/parkhub.nsi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ParkHub-Setup.exe
+          path: .github/nsis/ParkHub-Setup.exe
+
+  release:
+    needs: [build, nsis-installer]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -72,3 +93,4 @@ jobs:
             parkhub-macos-amd64/parkhub-macos-amd64
             parkhub-macos-arm64/parkhub-macos-arm64
             parkhub-windows-amd64.exe/parkhub-windows-amd64.exe
+            ParkHub-Setup.exe/ParkHub-Setup.exe

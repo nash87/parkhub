@@ -125,11 +125,13 @@ windows-sys = { version = "0.59", features = [
     "Win32_UI_Shell",
     "Win32_UI_HiDpi"
 ] }
+windows-service = { version = "0.7", optional = true }
 
 [features]
 default = ["gui"]
 gui = ["slint", "slint-build", "tray-icon"]
 headless = []
+windows-svc = ["windows-service"]
 
 [dev-dependencies]
 tempfile = "3"
