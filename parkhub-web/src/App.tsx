@@ -18,6 +18,7 @@ import { VehiclesPage } from './pages/Vehicles';
 import { ConsentBanner } from './components/ConsentBanner';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { SpinnerGap } from '@phosphor-icons/react';
+import { WelcomePage } from './pages/Welcome';
 
 const AdminPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminPage })));
 const HomeofficePage = lazy(() => import('./pages/Homeoffice').then(m => ({ default: m.HomeofficePage })));
@@ -89,6 +90,7 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public */}
+      <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<Suspense fallback={<LoadingScreen />}><ForgotPasswordPage /></Suspense>} />
