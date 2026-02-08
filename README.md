@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="parkhub-web/public/logo.png" alt="ParkHub" width="600">
+  <img src="docs/logo-128.png" alt="ParkHub" width="128">
 </p>
 
 <h1 align="center">ParkHub</h1>
