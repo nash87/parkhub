@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { BrandingProvider } from './context/BrandingContext';
 import { useTheme, applyTheme } from './stores/theme';
 import { useAccessibility, applyAccessibility } from './stores/accessibility';
+import { usePalette, applyPalette } from "./stores/palette";
 import { useTranslation } from 'react-i18next';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/Login';
@@ -26,6 +27,7 @@ const TermsPage = lazy(() => import('./pages/Terms').then(m => ({ default: m.Ter
 const LegalPage = lazy(() => import('./pages/Legal').then(m => ({ default: m.LegalPage })));
 const AboutPage = lazy(() => import('./pages/About').then(m => ({ default: m.AboutPage })));
 const HelpPage = lazy(() => import('./pages/Help').then(m => ({ default: m.HelpPage })));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPassword").then(m => ({ default: m.ForgotPasswordPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,10 +67,12 @@ function PublicPageWithLayout({ children }: { children: React.ReactNode }) {
 
 function ThemeInitializer({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
+  const palette = usePalette();
   const accessibility = useAccessibility();
   const { i18n } = useTranslation();
 
   useEffect(() => { applyTheme(theme.isDark); }, [theme.isDark]);
+  useEffect(() => { applyPalette(palette.paletteId, theme.isDark); }, [palette.paletteId, theme.isDark]);
   useEffect(() => { applyAccessibility(accessibility); }, [accessibility.colorMode, accessibility.fontScale, accessibility.reducedMotion, accessibility.highContrast]);
   useEffect(() => { document.documentElement.lang = i18n.language?.startsWith('en') ? 'en' : 'de'; }, [i18n.language]);
 
@@ -87,6 +91,7 @@ function AppRoutes() {
       {/* Public */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<Suspense fallback={<LoadingScreen />}><ForgotPasswordPage /></Suspense>} />
       <Route path="/privacy" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><PrivacyPage /></Suspense></PublicPageWithLayout>} />
       <Route path="/terms" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><TermsPage /></Suspense></PublicPageWithLayout>} />
       <Route path="/legal" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><LegalPage /></Suspense></PublicPageWithLayout>} />

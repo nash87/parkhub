@@ -7,6 +7,7 @@ import { useBranding } from '../context/BrandingContext';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useTheme } from '../stores/theme';
+import { ThemeSelector } from "../components/ThemeSelector";
 
 export function LoginPage() {
   const { t, i18n } = useTranslation();
@@ -51,6 +52,7 @@ export function LoginPage() {
         <button onClick={toggleLang} className="p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 text-sm font-medium" aria-label={t('language.toggle', 'Switch language')}>
           <Globe weight="bold" className="w-4 h-4" />{currentLang.toUpperCase()}
         </button>
+<ThemeSelector compact />
         <button onClick={toggleTheme} className="p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label={t('theme.toggle')}>
           {isDark ? <Sun weight="fill" className="w-5 h-5" /> : <Moon weight="fill" className="w-5 h-5" />}
         </button>

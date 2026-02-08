@@ -146,6 +146,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/auth/login", post(login))
         .route("/api/v1/auth/register", post(register))
         .route("/api/v1/auth/refresh", post(refresh_token))
+        .route("/api/v1/auth/forgot-password", post(forgot_password))
         .route("/api/v1/privacy", get(get_privacy_policy))
         .route("/api/v1/about", get(get_about))
         .route("/api/v1/help", get(get_help))
@@ -279,6 +280,15 @@ async fn auth_middleware(
 // ═══════════════════════════════════════════════════════════════════════════════
 // HEALTH & DISCOVERY
 // ═══════════════════════════════════════════════════════════════════════════════
+
+
+async fn forgot_password(
+    Json(body): Json<serde_json::Value>,
+) -> Json<ApiResponse<()>> {
+    // Stub: SMTP not configured, always return success to not leak user existence
+    tracing::info!("Forgot password request for: {:?}", body.get("email"));
+    Json(ApiResponse::success(()))
+}
 
 async fn health_check() -> &'static str {
     "OK"

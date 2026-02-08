@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   CalendarBlank, Clock, Car, X, SpinnerGap, CheckCircle, XCircle, ArrowClockwise,
   Warning, MapPin, CalendarPlus, Repeat, PencilSimple, Timer, CalendarCheck,
+  MagnifyingGlass, Funnel,
 } from '@phosphor-icons/react';
 import { api, Booking, Vehicle } from '../api/client';
 import { useTranslation } from 'react-i18next';
@@ -110,6 +111,11 @@ export function BookingsPage() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [searchLot, setSearchLot] = useState('');
+
 
   useEffect(() => { loadData(); }, []);
 
@@ -131,9 +137,19 @@ export function BookingsPage() {
     setCancelling(null);
   }
 
-  const activeBookings = bookings.filter(b => b.status === 'active' && !isFuture(new Date(b.start_time)));
-  const upcomingBookings = bookings.filter(b => b.status === 'active' && isFuture(new Date(b.start_time)));
-  const pastBookings = bookings.filter(b => b.status === 'completed' || b.status === 'cancelled');
+
+  // Apply filters
+  const filteredBookings = bookings.filter(b => {
+    if (filterStatus !== 'all' && b.status !== filterStatus) return false;
+    if (searchLot && !b.lot_name.toLowerCase().includes(searchLot.toLowerCase())) return false;
+    if (filterDateFrom && new Date(b.start_time) < new Date(filterDateFrom)) return false;
+    if (filterDateTo && new Date(b.end_time) > new Date(filterDateTo + 'T23:59:59')) return false;
+    return true;
+  });
+
+  const activeBookings = filteredBookings.filter(b => b.status === 'active' && !isFuture(new Date(b.start_time)));
+  const upcomingBookings = filteredBookings.filter(b => b.status === 'active' && isFuture(new Date(b.start_time)));
+  const pastBookings = filteredBookings.filter(b => b.status === 'completed' || b.status === 'cancelled');
 
   if (loading) return <div className="space-y-6"><div className="h-8 w-64 skeleton" />{[1,2,3].map(i => <div key={i} className="h-40 skeleton rounded-2xl" />)}</div>;
 
@@ -142,6 +158,31 @@ export function BookingsPage() {
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('bookings.title')}</h1><p className="text-gray-500 dark:text-gray-400 mt-1">{t('bookings.subtitle')}</p></div>
         <button onClick={loadData} className="btn btn-secondary"><ArrowClockwise weight="bold" className="w-4 h-4" />{t('common.refresh')}</button>
+      </div>
+
+
+      {/* Filters */}
+      <div className="card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Funnel weight="bold" className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('common.filter')}</span>
+          <span className="ml-auto text-xs text-gray-400">{t('bookingFilters.totalCount', { count: filteredBookings.length })}</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="relative">
+            <MagnifyingGlass weight="regular" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input type="text" value={searchLot} onChange={(e) => setSearchLot(e.target.value)} placeholder={t('bookingFilters.searchLot')} className="input pl-9 text-sm" />
+          </div>
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input text-sm">
+            <option value="all">{t('bookingFilters.statusAll')}</option>
+            <option value="active">{t('bookingFilters.statusActive')}</option>
+            <option value="confirmed">{t('bookingFilters.statusConfirmed')}</option>
+            <option value="cancelled">{t('bookingFilters.statusCancelled')}</option>
+            <option value="completed">{t('bookingFilters.statusCompleted')}</option>
+          </select>
+          <input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="input text-sm" placeholder={t('bookingFilters.dateFrom')} />
+          <input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="input text-sm" placeholder={t('bookingFilters.dateTo')} />
+        </div>
       </div>
 
       <div>

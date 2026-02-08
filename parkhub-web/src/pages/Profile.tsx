@@ -6,6 +6,7 @@ import { useAccessibility, ColorMode, FontScale } from '../stores/accessibility'
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ThemeSelector } from "../components/ThemeSelector";
 
 export function ProfilePage() {
   const { t } = useTranslation();
@@ -105,6 +106,7 @@ export function ProfilePage() {
         <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.avgDuration')}</p><p className="stat-value text-amber-600 dark:text-amber-400 mt-1">-</p></div><ChartBar weight="fill" className="w-8 h-8 text-amber-200 dark:text-amber-800" /></div></div>
       </motion.div>
 
+{/* Color Palette */}      <motion.div variants={itemVariants} className="card p-6">        <ThemeSelector />      </motion.div>
       {/* Accessibility Settings */}
       <motion.div variants={itemVariants} className="card p-6 space-y-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Eye weight="fill" className="w-5 h-5 text-primary-600" />{t('accessibility.title')}</h3>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Car, Clock, CheckCircle, SpinnerGap, MapPin, CalendarBlank, Repeat,
+  Car, Clock, CheckCircle, SpinnerGap, MapPin, CalendarBlank, Repeat, Heart, Star,
 } from '@phosphor-icons/react';
 import { api, ParkingLot, ParkingLotDetailed, Vehicle, SlotConfig } from '../api/client';
 import { ParkingLotGrid } from '../components/ParkingLotGrid';
@@ -82,6 +82,20 @@ export function BookPage() {
   const [dauerInterval, setDauerInterval] = useState<DauerInterval>('monthly');
   const [dauerDays, setDauerDays] = useState<number[]>([1, 3]);
 
+  const [favoriteSlots, setFavoriteSlots] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('parkhub-favorite-slots') || '[]'); } catch { return []; }
+  });
+
+  function toggleFavorite(slotId: string) {
+    setFavoriteSlots(prev => {
+      const next = prev.includes(slotId) ? prev.filter(s => s !== slotId) : [...prev, slotId];
+      localStorage.setItem('parkhub-favorite-slots', JSON.stringify(next));
+      toast.success(next.includes(slotId) ? t('favorites.added') : t('favorites.removed'));
+      return next;
+    });
+  }
+
+
   const DURATION_OPTIONS = [
     { value: 30, label: t('book.min30') },
     { value: 60, label: t('book.hour1') },
@@ -157,6 +171,25 @@ export function BookPage() {
         <p className="text-gray-500 dark:text-gray-400 mt-1">{t('book.subtitle')}</p>
       </div>
 
+
+      {/* Favorite Slots */}
+      {favoriteSlots.length > 0 && detailedLot?.layout && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card p-4 border-l-4 border-l-amber-400">
+          <div className="flex items-center gap-2 mb-3">
+            <Star weight="fill" className="w-5 h-5 text-amber-500" />
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('favorites.title')}</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {detailedLot.layout.rows.flatMap(r => r.slots).filter(s => favoriteSlots.includes(s.id) && s.status === 'available').map(slot => (
+              <button key={slot.id} onClick={() => handleSlotSelect(slot)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${selectedSlot?.id === slot.id ? 'bg-primary-600 text-white' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40'}`}>
+                {slot.number}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       {/* Step 1 */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
         <div className="flex items-center gap-3 mb-6">
@@ -191,7 +224,10 @@ export function BookPage() {
             {selectedSlot && (
               <div className="mb-4 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-200 dark:border-primary-800 flex items-center gap-3">
                 <CheckCircle weight="fill" className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                <span className="text-sm font-medium text-primary-700 dark:text-primary-300" dangerouslySetInnerHTML={{ __html: t('book.slotSelected', { slot: selectedSlot.number }) }} />
+                <span className="text-sm font-medium text-primary-700 dark:text-primary-300 flex-1" dangerouslySetInnerHTML={{ __html: t('book.slotSelected', { slot: selectedSlot.number }) }} />
+                <button onClick={() => toggleFavorite(selectedSlot.id)} className="p-1.5 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors" aria-label="Toggle favorite">
+                  <Heart weight={favoriteSlots.includes(selectedSlot.id) ? 'fill' : 'regular'} className={`w-5 h-5 ${favoriteSlots.includes(selectedSlot.id) ? 'text-red-500' : 'text-primary-400'}`} />
+                </button>
               </div>
             )}
             <ParkingLotGrid layout={detailedLot.layout} selectedSlotId={selectedSlot?.id} onSlotSelect={handleSlotSelect} interactive />
