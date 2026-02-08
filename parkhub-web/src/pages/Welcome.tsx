@@ -40,6 +40,8 @@ export function WelcomePage() {
   const [fade, setFade] = useState(true);
   const [showAccessibility, setShowAccessibility] = useState(false);
 
+  const { setupComplete } = useSetupStatus();
+
   // Cycle welcome words
   useEffect(() => {
     const interval = setInterval(() => {
@@ -52,23 +54,21 @@ export function WelcomePage() {
     return () => clearInterval(interval);
   }, []);
 
-  const { setupComplete } = useSetupStatus();
+  // Clear stale state from previous installs on fresh setup
+  useEffect(() => {
+    if (setupComplete === false) {
+      localStorage.removeItem("parkhub-lang-chosen");
+      localStorage.removeItem("parkhub_token");
+      localStorage.removeItem("parkhub-palette");
+      localStorage.removeItem("parkhub-usecase");
+      localStorage.removeItem("parkhub-favorite-slots");
+    }
+  }, [setupComplete]);
 
   // If setup is already complete, redirect to login/dashboard
   if (setupComplete) {
     return <Navigate to="/" replace />;
   }
-
-  // Clear stale state from previous installs on fresh setup
-  useEffect(() => {
-    if (setupComplete === false) {
-      localStorage.removeItem('parkhub-lang-chosen');
-      localStorage.removeItem('parkhub_token');
-      localStorage.removeItem('parkhub-palette');
-      localStorage.removeItem('parkhub-usecase');
-      localStorage.removeItem('parkhub-favorite-slots');
-    }
-  }, [setupComplete]);
 
   const selectLanguage = useCallback(
     (code: string) => {
