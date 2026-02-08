@@ -1,65 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
-  <defs>
-    <filter id="s"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.1"/></filter>
-  </defs>
-  <rect width="800" height="500" fill="#f8fafc"/>
-  <!-- Sidebar -->
-  <rect width="200" height="500" fill="white" stroke="#e2e8f0" stroke-width="1"/>
-  <circle cx="36" cy="32" r="16" fill="#3b82f6" opacity="0.15"/>
-  <text x="36" y="37" text-anchor="middle" fill="#3b82f6" font-family="system-ui" font-size="14" font-weight="700">P</text>
-  <text x="60" y="37" fill="#0f172a" font-family="system-ui" font-size="14" font-weight="600">ParkHub</text>
-  <!-- Nav items -->
-  <rect x="12" y="70" width="176" height="36" rx="8" fill="#eff6ff"/>
-  <text x="44" y="93" fill="#3b82f6" font-family="system-ui" font-size="13" font-weight="500">Dashboard</text>
-  <text x="44" y="127" fill="#64748b" font-family="system-ui" font-size="13">Bookings</text>
-  <text x="44" y="157" fill="#64748b" font-family="system-ui" font-size="13">Parking Lots</text>
-  <text x="44" y="187" fill="#64748b" font-family="system-ui" font-size="13">Users</text>
-  <text x="44" y="217" fill="#64748b" font-family="system-ui" font-size="13">Settings</text>
-  <!-- Header -->
-  <text x="224" y="38" fill="#0f172a" font-family="system-ui" font-size="20" font-weight="700">Dashboard</text>
-  <!-- Stat cards -->
-  <rect x="220" y="56" width="135" height="80" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="236" y="82" fill="#64748b" font-family="system-ui" font-size="11">Total Slots</text>
-  <text x="236" y="112" fill="#0f172a" font-family="system-ui" font-size="26" font-weight="700">248</text>
-  <rect x="370" y="56" width="135" height="80" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="386" y="82" fill="#64748b" font-family="system-ui" font-size="11">Available</text>
-  <text x="386" y="112" fill="#22c55e" font-family="system-ui" font-size="26" font-weight="700">156</text>
-  <rect x="520" y="56" width="135" height="80" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="536" y="82" fill="#64748b" font-family="system-ui" font-size="11">Occupied</text>
-  <text x="536" y="112" fill="#ef4444" font-family="system-ui" font-size="26" font-weight="700">72</text>
-  <rect x="670" y="56" width="115" height="80" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="686" y="82" fill="#64748b" font-family="system-ui" font-size="11">Reserved</text>
-  <text x="686" y="112" fill="#f59e0b" font-family="system-ui" font-size="26" font-weight="700">20</text>
-  <!-- Parking grid -->
-  <rect x="220" y="152" width="565" height="330" rx="12" fill="white" filter="url(#s)" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="240" y="180" fill="#0f172a" font-family="system-ui" font-size="14" font-weight="600">Parking Grid — Level 1</text>
-  <!-- Slot grid -->
-  <g transform="translate(240,196)">
-    <rect width="48" height="56" rx="8" fill="#22c55e"/><text x="24" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A1</text>
-    <rect x="56" width="48" height="56" rx="8" fill="#22c55e"/><text x="80" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A2</text>
-    <rect x="112" width="48" height="56" rx="8" fill="#d1d5db"/><text x="136" y="33" text-anchor="middle" fill="#6b7280" font-family="system-ui" font-size="11" font-weight="600">A3</text>
-    <rect x="168" width="48" height="56" rx="8" fill="#22c55e"/><text x="192" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A4</text>
-    <rect x="224" width="48" height="56" rx="8" fill="#f59e0b"/><text x="248" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A5</text>
-    <rect x="280" width="48" height="56" rx="8" fill="#22c55e"/><text x="304" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A6</text>
-    <rect x="336" width="48" height="56" rx="8" fill="#d1d5db"/><text x="360" y="33" text-anchor="middle" fill="#6b7280" font-family="system-ui" font-size="11" font-weight="600">A7</text>
-    <rect x="392" width="48" height="56" rx="8" fill="#22c55e"/><text x="416" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A8</text>
-    <rect x="448" width="48" height="56" rx="8" fill="#22c55e"/><text x="472" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">A9</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <rect width="800" height="500" fill="#0f172a"/>
+  <!-- Nav bar -->
+  <rect width="800" height="56" fill="#1e293b"/>
+  <rect x="20" y="14" width="32" height="28" rx="10" fill="#3b82f6"/>
+  <text x="32" y="34" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">P</text>
+  <text x="62" y="35" font-family="system-ui, sans-serif" font-size="16" font-weight="700" fill="#f8fafc">ParkHub</text>
+  <text x="170" y="35" font-family="system-ui, sans-serif" font-size="13" fill="#3b82f6" font-weight="600">Dashboard</text>
+  <text x="270" y="35" font-family="system-ui, sans-serif" font-size="13" fill="#94a3b8">Buchen</text>
+  <text x="340" y="35" font-family="system-ui, sans-serif" font-size="13" fill="#94a3b8">Buchungen</text>
+  <text x="430" y="35" font-family="system-ui, sans-serif" font-size="13" fill="#94a3b8">Fahrzeuge</text>
+  <circle cx="750" cy="28" r="16" fill="#334155"/>
+  <text x="750" y="33" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#94a3b8">FM</text>
+  <!-- Welcome -->
+  <text x="30" y="92" font-family="system-ui, sans-serif" font-size="22" font-weight="700" fill="#f8fafc">Hallo, Florian 👋</text>
+  <text x="30" y="112" font-family="system-ui, sans-serif" font-size="13" fill="#94a3b8">Sonntag, 8. Februar 2026 · Unternehmen</text>
+  <!-- Book Now CTA -->
+  <rect x="30" y="128" width="740" height="72" rx="16" fill="#3b82f6"/>
+  <rect x="50" y="144" width="44" height="44" rx="14" fill="rgba(255,255,255,0.2)"/>
+  <text x="72" y="172" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" fill="#fff">📅</text>
+  <text x="110" y="165" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#fff">Jetzt Stellplatz buchen</text>
+  <text x="110" y="184" font-family="system-ui, sans-serif" font-size="12" fill="rgba(255,255,255,0.8)"><tspan font-weight="600" fill="#fff">8</tspan> verfügbar · Schnell und einfach buchen</text>
+  <text x="740" y="172" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" fill="rgba(255,255,255,0.8)">→</text>
+  <!-- Stats Grid - 3 cards -->
+  <g transform="translate(30, 215)">
+    <rect width="235" height="100" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="20" y="30" font-family="system-ui, sans-serif" font-size="12" fill="#94a3b8">Verfügbare Stellplätze</text>
+    <text x="20" y="60" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#34d399">8</text>
+    <text x="58" y="60" font-family="system-ui, sans-serif" font-size="14" fill="#94a3b8">/ 12</text>
+    <rect x="185" y="15" width="36" height="36" rx="10" fill="#064e3b"/>
+    <text x="203" y="39" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#34d399">✓</text>
+    <!-- Progress bar -->
+    <rect x="20" y="78" width="195" height="6" rx="3" fill="#334155"/>
+    <rect x="20" y="78" width="130" height="6" rx="3" fill="#34d399"/>
   </g>
-  <g transform="translate(240,262)">
-    <rect width="48" height="56" rx="8" fill="#d1d5db"/><text x="24" y="33" text-anchor="middle" fill="#6b7280" font-family="system-ui" font-size="11" font-weight="600">B1</text>
-    <rect x="56" width="48" height="56" rx="8" fill="#22c55e"/><text x="80" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">B2</text>
-    <rect x="112" width="48" height="56" rx="8" fill="#22c55e"/><text x="136" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">B3</text>
-    <rect x="168" width="48" height="56" rx="8" fill="#22c55e"/><text x="192" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">B4</text>
-    <rect x="224" width="48" height="56" rx="8" fill="#d1d5db"/><text x="248" y="33" text-anchor="middle" fill="#6b7280" font-family="system-ui" font-size="11" font-weight="600">B5</text>
-    <rect x="280" width="48" height="56" rx="8" fill="#f59e0b"/><text x="304" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">B6</text>
-    <rect x="336" width="48" height="56" rx="8" fill="#22c55e"/><text x="360" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">B7</text>
-    <rect x="392" width="48" height="56" rx="8" fill="#22c55e"/><text x="416" y="33" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="600">B8</text>
-    <rect x="448" width="48" height="56" rx="8" fill="#d1d5db"/><text x="472" y="33" text-anchor="middle" fill="#6b7280" font-family="system-ui" font-size="11" font-weight="600">B9</text>
+  <g transform="translate(282, 215)">
+    <rect width="235" height="100" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="20" y="30" font-family="system-ui, sans-serif" font-size="12" fill="#94a3b8">Auslastung</text>
+    <text x="20" y="60" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#f8fafc">33%</text>
+    <rect x="185" y="15" width="36" height="36" rx="10" fill="#1e3a5f"/>
+    <text x="203" y="39" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#60a5fa">📊</text>
+    <rect x="20" y="78" width="195" height="6" rx="3" fill="#334155"/>
+    <rect x="20" y="78" width="65" height="6" rx="3" fill="#3b82f6"/>
   </g>
-  <!-- Legend -->
-  <g transform="translate(240,440)">
-    <rect width="12" height="12" rx="3" fill="#22c55e"/><text x="18" y="11" fill="#64748b" font-family="system-ui" font-size="10">Available</text>
-    <rect x="90" width="12" height="12" rx="3" fill="#d1d5db"/><text x="108" y="11" fill="#64748b" font-family="system-ui" font-size="10">Occupied</text>
-    <rect x="180" width="12" height="12" rx="3" fill="#f59e0b"/><text x="198" y="11" fill="#64748b" font-family="system-ui" font-size="10">Reserved</text>
+  <g transform="translate(535, 215)">
+    <rect width="235" height="100" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="20" y="30" font-family="system-ui, sans-serif" font-size="12" fill="#94a3b8">Aktive Buchungen</text>
+    <text x="20" y="60" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#60a5fa">2</text>
+    <rect x="185" y="15" width="36" height="36" rx="10" fill="#451a03"/>
+    <text x="203" y="39" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#f59e0b">🕐</text>
+    <text x="20" y="85" font-family="system-ui, sans-serif" font-size="12" fill="#60a5fa" font-weight="500">Alle anzeigen →</text>
   </g>
+  <!-- Active Bookings -->
+  <rect x="30" y="330" width="740" height="155" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="50" y="358" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#f8fafc">Aktive Buchungen</text>
+  <text x="720" y="358" font-family="system-ui, sans-serif" font-size="12" fill="#60a5fa" text-anchor="end">Alle anzeigen</text>
+  <!-- Booking 1 -->
+  <rect x="50" y="372" width="700" height="48" rx="12" fill="#0f172a"/>
+  <rect x="65" y="381" width="38" height="30" rx="10" fill="#1e3a5f"/>
+  <text x="84" y="401" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#60a5fa">A3</text>
+  <text x="118" y="395" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#f8fafc">Hauptparkplatz</text>
+  <text x="118" y="411" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8">GÖ-AB 1234</text>
+  <text x="680" y="395" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#f8fafc" text-anchor="end">bis 18:00</text>
+  <text x="680" y="411" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8" text-anchor="end">in 4 Stunden</text>
+  <!-- Booking 2 -->
+  <rect x="50" y="428" width="700" height="48" rx="12" fill="#0f172a"/>
+  <rect x="65" y="437" width="38" height="30" rx="10" fill="#1e3a5f"/>
+  <text x="84" y="457" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#60a5fa">B1</text>
+  <text x="118" y="451" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#f8fafc">Tiefgarage Nord</text>
+  <text x="118" y="467" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8">H-XY 567</text>
+  <text x="680" y="451" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#f8fafc" text-anchor="end">bis 17:00</text>
+  <text x="680" y="467" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8" text-anchor="end">in 3 Stunden</text>
 </svg>

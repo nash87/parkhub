@@ -77,31 +77,36 @@ On first start, a welcome screen lets you choose your language. Then an onboardi
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/login.svg" alt="Login" width="45%">
+  <img src="docs/screenshots/welcome.svg" alt="Welcome / Willkommen — Language Selection" width="45%">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/dashboard.svg" alt="Dashboard" width="45%">
+  <img src="docs/screenshots/login.svg" alt="Login / Anmeldung" width="45%">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/booking.svg" alt="Booking" width="45%">
+  <img src="docs/screenshots/onboarding.svg" alt="Onboarding Wizard / Ersteinrichtung" width="45%">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/admin.svg" alt="Admin Panel" width="45%">
+  <img src="docs/screenshots/dashboard.svg" alt="Dashboard / Übersicht" width="45%">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/booking.svg" alt="Booking / Stellplatz buchen" width="45%">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/admin.svg" alt="Admin Panel / Verwaltung" width="45%">
 </p>
 
 <details>
-<summary>More screenshots</summary>
+<summary>More screenshots / Weitere Screenshots</summary>
 <br>
 <p align="center">
-  <img src="docs/screenshots/vehicles.svg" alt="Vehicles" width="45%">
+  <img src="docs/screenshots/themes.svg" alt="10 Color Themes / Farbthemen" width="45%">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/themes.svg" alt="Themes" width="45%">
+  <img src="docs/screenshots/dark-mode.svg" alt="Dark Mode / Dunkelmodus" width="45%">
 </p>
 <p align="center">
-  <img src="docs/screenshots/dark-mode.svg" alt="Dark Mode" width="45%">
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/profile.svg" alt="Profile" width="45%">
+  <img src="docs/screenshots/mobile.svg" alt="Mobile View / Mobilansicht (PWA)" width="45%">
 </p>
 </details>
+
 
 ## Installation
 
