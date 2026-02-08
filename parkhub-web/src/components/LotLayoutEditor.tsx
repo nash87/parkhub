@@ -31,7 +31,7 @@ function buildSlots(count: number, startNum: number, existing?: SlotConfig[]): S
   return Array.from({ length: count }, (_, i) => {
     const ex = existing?.[i];
     return {
-      id: ex?.id || `slot-${Date.now()}-${i}`,
+      id: ex?.id || `slot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       number: String(startNum + i),
       status: ex?.status || 'available',
     };
