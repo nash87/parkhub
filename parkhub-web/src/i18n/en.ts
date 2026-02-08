@@ -757,4 +757,17 @@ export const en = {
     },
   },
   lotEditor: {    lotName: "Parking Lot Name",    namePlaceholder: "e.g. Company Parking",    driveway: "Driveway",    drivewayLabel: "Driveway Label",    rows: "Rows",    addTopRow: "Top Row",    addBottomRow: "Bottom Row",    top: "Top",    bottom: "Bottom",    rowPlaceholder: "Row",    moveUp: "Move Up",    moveDown: "Move Down",    duplicate: "Duplicate",    delete: "Delete",    copy: " (Copy)",    slotCount: "Slot Count",    startNumber: "Start Number",    slotRange: "Start: {{start}}, End: {{end}} ({{count}} slots)",    slotsClickStatus: "Slots",    editSlots: "Edit Slots",    doneEditing: "Done Editing",    statusAvailable: "Available",    statusDisabled: "Disabled",    statusBlocked: "Blocked",    noRows: "No rows added yet.",    hidePreview: "Hide Preview",    showPreview: "Show Preview",  },
+  booking: {
+    fullDay: "Full Day",
+    morning: "Morning",
+    afternoon: "Afternoon",
+    custom: "Custom",
+    startTime: "Start Time",
+    endTime: "End Time",
+    selectDate: "Select Date",
+    timeRange: "Time Range",
+  },
+  vehicle: {
+    formatHint: "Format: GÖ-AB 1234",
+  },
 };

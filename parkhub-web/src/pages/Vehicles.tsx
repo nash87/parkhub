@@ -5,6 +5,7 @@ import { api, Vehicle, generateCarPhotoSvg } from '../api/client';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { LicensePlateInput } from '../components/LicensePlateInput';
 
 const colorMap: Record<string, string> = {
   'Schwarz': 'bg-gray-900', 'Weiß': 'bg-white border border-gray-300', 'Silber': 'bg-gray-400',
@@ -74,7 +75,7 @@ function AddVehicleModal({ open, onClose, onSave }: { open: boolean; onClose: ()
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <PhotoUpload photoUrl={photoUrl} color={formData.color} onPhotoChange={setPhotoUrl} t={t} />
-              <div><label className="label">{t('vehicles.plate')} *</label><input type="text" value={formData.plate} onChange={(e) => setFormData({ ...formData, plate: e.target.value.toUpperCase() })} placeholder={t('vehicles.platePlaceholder')} className="input font-mono text-lg tracking-wider" required autoFocus /></div>
+              <div><label className="label">{t('vehicles.plate')} *</label><LicensePlateInput value={formData.plate} onChange={(plate) => setFormData({ ...formData, plate })} required autoFocus /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="label">{t('vehicles.make')}</label><input type="text" value={formData.make} onChange={(e) => setFormData({ ...formData, make: e.target.value })} placeholder={t('vehicles.makePlaceholder')} className="input" /></div>
                 <div><label className="label">{t('vehicles.model')}</label><input type="text" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} placeholder={t('vehicles.modelPlaceholder')} className="input" /></div>

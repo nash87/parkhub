@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Car, Clock, CheckCircle, SpinnerGap, MapPin, CalendarBlank, Repeat, Heart, Star,
+  Car, Clock, CheckCircle, SpinnerGap, MapPin, CalendarBlank, Repeat, Heart, Star, Sun, Moon,
 } from '@phosphor-icons/react';
 import { api, ParkingLot, ParkingLotDetailed, Vehicle, SlotConfig } from '../api/client';
 import { ParkingLotGrid } from '../components/ParkingLotGrid';
+import { LicensePlateInput } from '../components/LicensePlateInput';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { format, addMinutes, addDays, differenceInDays } from 'date-fns';
+import { format, addDays, differenceInDays } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
 
 function BookingSuccessModal({ open, onDashboard, onNewBooking, summary }: {
@@ -71,12 +72,16 @@ export function BookPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<string>('');
   const [customPlate, setCustomPlate] = useState('');
-  const [duration, setDuration] = useState(60);
+  const [duration] = useState(60);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successSummary, setSuccessSummary] = useState({ lot: '', slot: '', type: '', time: '', plate: '' });
   const [bookingType, setBookingType] = useState<BookingType>('einmalig');
+  const [bookingDate, setBookingDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [timeOption, setTimeOption] = useState<'fullDay' | 'morning' | 'afternoon' | 'custom'>('fullDay');
+  const [customStartTime, setCustomStartTime] = useState('08:00');
+  const [customEndTime, setCustomEndTime] = useState('18:00');
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(addDays(new Date(), 3), 'yyyy-MM-dd'));
   const [dauerInterval, setDauerInterval] = useState<DauerInterval>('monthly');
@@ -96,14 +101,7 @@ export function BookPage() {
   }
 
 
-  const DURATION_OPTIONS = [
-    { value: 30, label: t('book.min30') },
-    { value: 60, label: t('book.hour1') },
-    { value: 120, label: t('book.hour2') },
-    { value: 240, label: t('book.hour4') },
-    { value: 480, label: t('book.hour8') },
-    { value: 720, label: t('book.hour12') },
-  ];
+
 
   useEffect(() => { loadInitialData(); }, []);
   useEffect(() => { if (selectedLot) loadDetailedLot(selectedLot); }, [selectedLot]);
@@ -126,12 +124,25 @@ export function BookPage() {
   async function handleBook() {
     if (!selectedSlot) return;
     setBooking(true);
-    const startTime = new Date();
+    let computedStart: string;
     let durationMinutes = duration;
-    if (bookingType === 'mehrtaegig') durationMinutes = differenceInDays(new Date(endDate), new Date(startDate)) * 24 * 60;
-    else if (bookingType === 'dauer') durationMinutes = dauerInterval === 'monthly' ? 30 * 24 * 60 : 7 * 24 * 60;
 
-    const startIso = bookingType === 'mehrtaegig' ? new Date(startDate).toISOString() : startTime.toISOString();
+    if (bookingType === 'einmalig') {
+      const timeMap = { fullDay: ['08:00', '18:00'], morning: ['08:00', '12:00'], afternoon: ['12:00', '18:00'], custom: [customStartTime, customEndTime] };
+      const [sTime, eTime] = timeMap[timeOption];
+      computedStart = new Date(`${bookingDate}T${sTime}:00`).toISOString();
+      const end = new Date(`${bookingDate}T${eTime}:00`);
+      const start = new Date(`${bookingDate}T${sTime}:00`);
+      durationMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
+    } else if (bookingType === 'mehrtaegig') {
+      durationMinutes = differenceInDays(new Date(endDate), new Date(startDate)) * 24 * 60;
+      computedStart = new Date(startDate).toISOString();
+    } else {
+      durationMinutes = dauerInterval === 'monthly' ? 30 * 24 * 60 : 7 * 24 * 60;
+      computedStart = new Date().toISOString();
+    }
+
+    const startIso = computedStart;
 
     const res = await api.createBooking({
       lot_id: selectedLot,
@@ -144,9 +155,10 @@ export function BookPage() {
     if (res.success) {
       const plate = selectedVehicle ? (vehicles.find(v => v.id === selectedVehicle)?.plate || '') : customPlate;
       const typeLabel = bookingType === 'einmalig' ? t('book.single') : bookingType === 'mehrtaegig' ? t('book.multiDay') : t('book.recurring');
-      const endT = addMinutes(new Date(), duration);
+      const timeMap = { fullDay: ['08:00', '18:00'], morning: ['08:00', '12:00'], afternoon: ['12:00', '18:00'], custom: [customStartTime, customEndTime] };
+      const [sT, eT] = timeMap[timeOption];
       const timeLabel = bookingType === 'einmalig'
-        ? `${format(new Date(), 'HH:mm')} – ${format(endT, 'HH:mm')}`
+        ? `${format(new Date(bookingDate), 'd. MMM yyyy', { locale: dateFnsLocale })} ${timeOption === 'fullDay' ? t('booking.fullDay') : `${sT} – ${eT}`}`
         : bookingType === 'mehrtaegig'
         ? `${format(new Date(startDate), 'd. MMM', { locale: dateFnsLocale })} – ${format(new Date(endDate), 'd. MMM yyyy', { locale: dateFnsLocale })}`
         : `${dauerInterval === 'weekly' ? t('book.weekly') : t('book.monthly')}`;
@@ -159,7 +171,6 @@ export function BookPage() {
   }
 
   const selectedLotData = lots.find(l => l.id === selectedLot);
-  const endTime = addMinutes(new Date(), duration);
   const dayNames = (t('dayNamesShort', { returnObjects: true }) as string[]);
 
   if (loading) return <div className="flex items-center justify-center h-64"><SpinnerGap weight="bold" className="w-8 h-8 text-primary-600 animate-spin" /></div>;
@@ -262,15 +273,39 @@ export function BookPage() {
               </div>
 
               {bookingType === 'einmalig' && (
-                <div>
-                  <label className="label flex items-center gap-2"><Clock weight="regular" className="w-4 h-4" />{t('book.duration')}</label>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                    {DURATION_OPTIONS.map((opt) => (
-                      <button key={opt.value} onClick={() => setDuration(opt.value)}
-                        className={`py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${duration === opt.value ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>{opt.label}</button>
-                    ))}
+                <div className="space-y-4">
+                  <div>
+                    <label className="label flex items-center gap-2"><CalendarBlank weight="regular" className="w-4 h-4" />{t('booking.selectDate')}</label>
+                    <input type="date" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} min={format(new Date(), 'yyyy-MM-dd')} className="input max-w-xs" />
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{t('book.untilTime', { time: format(endTime, 'HH:mm'), day: format(endTime, 'EEEE', { locale: dateFnsLocale }) })}</p>
+                  <div>
+                    <label className="label flex items-center gap-2"><Clock weight="regular" className="w-4 h-4" />{t('booking.timeRange')}</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {([
+                        { value: 'fullDay' as const, label: t('booking.fullDay'), icon: Sun, time: '08:00-18:00' },
+                        { value: 'morning' as const, label: t('booking.morning'), icon: Sun, time: '08:00-12:00' },
+                        { value: 'afternoon' as const, label: t('booking.afternoon'), icon: Moon, time: '12:00-18:00' },
+                        { value: 'custom' as const, label: t('booking.custom'), icon: Clock, time: '' },
+                      ]).map(({ value, label, icon: Icon }) => (
+                        <button key={value} onClick={() => setTimeOption(value)}
+                          className={`py-3 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${timeOption === value ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                          <Icon weight={timeOption === value ? 'fill' : 'regular'} className="w-4 h-4" />{label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {timeOption === 'custom' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t('booking.startTime')}</label>
+                        <input type="time" value={customStartTime} onChange={(e) => setCustomStartTime(e.target.value)} className="input" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t('booking.endTime')}</label>
+                        <input type="time" value={customEndTime} onChange={(e) => setCustomEndTime(e.target.value)} className="input" />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -322,7 +357,7 @@ export function BookPage() {
                     {vehicles.map((v) => <option key={v.id} value={v.id}>{v.plate} {v.make && v.model ? `(${v.make} ${v.model})` : ''}</option>)}
                   </select>
                 )}
-                {!selectedVehicle && <input type="text" value={customPlate} onChange={(e) => setCustomPlate(e.target.value.toUpperCase())} placeholder={t('book.enterPlate')} className="input mt-2" />}
+                {!selectedVehicle && <div className="mt-2"><LicensePlateInput value={customPlate} onChange={setCustomPlate} /></div>}
               </div>
             </div>
           </motion.div>
@@ -341,7 +376,7 @@ export function BookPage() {
               <div>
                 <p className="text-white/70 text-sm">{bookingType === 'einmalig' ? t('book.durationLabel') : bookingType === 'mehrtaegig' ? t('book.periodLabel') : t('book.intervalLabel')}</p>
                 <p className="font-medium">
-                  {bookingType === 'einmalig' && <>{DURATION_OPTIONS.find(o => o.value === duration)?.label} — {format(endTime, 'HH:mm')}</>}
+                  {bookingType === 'einmalig' && <>{format(new Date(bookingDate), 'd. MMM yyyy', { locale: dateFnsLocale })} — {timeOption === 'fullDay' ? t('booking.fullDay') : timeOption === 'morning' ? t('booking.morning') : timeOption === 'afternoon' ? t('booking.afternoon') : `${customStartTime} – ${customEndTime}`}</>}
                   {bookingType === 'mehrtaegig' && <>{format(new Date(startDate), 'd. MMM', { locale: dateFnsLocale })} — {format(new Date(endDate), 'd. MMM yyyy', { locale: dateFnsLocale })}</>}
                   {bookingType === 'dauer' && <>{dauerInterval === 'weekly' ? `${t('book.weeklyShort')} (${dauerDays.map(d => dayNames[d]).join(', ')})` : t('book.monthly')} ab {format(new Date(startDate), 'd. MMM yyyy', { locale: dateFnsLocale })}</>}
                 </p>
