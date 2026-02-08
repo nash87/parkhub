@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/screenshots/logo-banner.png" alt="ParkHub" width="600">
+  <img src="docs/screenshots/logo-banner.svg" alt="ParkHub" width="600">
 </p>
 
 <h1 align="center">ParkHub</h1>
@@ -24,7 +24,8 @@
 ParkHub is a self-hosted parking management system for everyone — companies, residential buildings, families, rental properties, and public facilities. It ships as a single binary with an embedded database — no PostgreSQL, no Redis, no external services. Drop it on a server and it runs.
 
 ## Key Features
-nParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, **Rental**, and **Public** — each with tailored labels and terminology.
+
+ParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, **Rental**, and **Public** — each with tailored labels and terminology.
 
 
 | Feature | Description |
@@ -33,10 +34,10 @@ nParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, 
 | **Smart Booking System** | One-time, multi-day, and permanent reservations with check-in & QR codes |
 | **10 Color Themes** | Solarized, Dracula, Nord, Gruvbox, Catppuccin, Tokyo Night, One Dark, Rose Pine, Everforest, Default Blue |
 | **Dark / Light Mode** | Full dark theme with automatic system detection |
-| **Internationalization** | German & English with extensible i18n framework |
+| **Internationalization** | 10 languages: English, German, Spanish, French, Portuguese, Turkish, Arabic, Hindi, Japanese, Chinese |
 | **Accessibility** | Colorblind modes (protanopia, deuteranopia, tritanopia), font scaling, reduced motion, high contrast |
-| **Corporate Branding** | Custom logo, colors, and company name via admin panel |
-| **Homeoffice Integration** | Set WFH patterns, auto-release parking spots for colleagues |
+| **Branding & Customization** | Custom logo, colors, and organization name via admin panel |
+| **Homeoffice Integration** | Set WFH patterns, auto-release parking spots for others |
 | **GDPR / DSGVO** | Data export, account deletion, privacy policy — fully compliant |
 | **PWA-Ready** | Install as native app on any device |
 | **Single Binary** | ~30 MB, embedded redb database, zero external dependencies |
@@ -44,6 +45,8 @@ nParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, 
 | **iCal Export** | Subscribe to your bookings in any calendar app |
 | **Admin Dashboard** | Reports, statistics, CSV export, user management |
 | **Waitlist System** | Automatic notification when a spot becomes available |
+| **Welcome Screen** | Guided first-run experience with language selection |
+| **Auto-Onboarding Wizard** | Step-by-step setup: password, use-case, organization, dummy data, registration mode |
 | **Rate Limiting** | Built-in request throttling per IP and per user |
 | **Security Hardened** | XSS prevention, input validation, HSTS, security headers |
 
@@ -62,7 +65,7 @@ open http://localhost:7878
 
 Default port is **7878**. An admin account (`admin` / `admin`) is created on first start. Change the password immediately.
 
-On first login, an onboarding wizard guides you through initial setup: company branding, creating your first parking lot, and configuring slots.
+On first start, a welcome screen lets you choose your language. Then an onboarding wizard guides you through setup: password change, use-case selection, organization name, and configuration options.
 
 ## Screenshots
 
@@ -75,21 +78,21 @@ On first login, an onboarding wizard guides you through initial setup: company b
 <p align="center">
   <img src="docs/screenshots/booking.png" alt="Booking" width="45%">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/admin.png" alt="Admin Panel" width="45%">
+  <img src="docs/screenshots/admin.svg" alt="Admin Panel" width="45%">
 </p>
 
 <details>
 <summary>More screenshots</summary>
 <br>
 <p align="center">
-  <img src="docs/screenshots/vehicles.png" alt="Vehicles" width="45%">
+  <img src="docs/screenshots/vehicles.svg" alt="Vehicles" width="45%">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/themes.png" alt="Themes" width="45%">
+  <img src="docs/screenshots/themes.svg" alt="Themes" width="45%">
 </p>
 <p align="center">
-  <img src="docs/screenshots/dark-mode.png" alt="Dark Mode" width="45%">
+  <img src="docs/screenshots/dark-mode.svg" alt="Dark Mode" width="45%">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/profile.png" alt="Profile" width="45%">
+  <img src="docs/screenshots/profile.svg" alt="Profile" width="45%">
 </p>
 </details>
 

@@ -49,7 +49,7 @@ parking.example.com {
 
 Start: `docker compose up -d`. Caddy gets a Let's Encrypt cert automatically.
 
-If you don't need HTTPS (e.g., behind a corporate VPN), skip Caddy:
+If you don't need HTTPS (e.g., behind a VPN), skip Caddy:
 
 ```yaml
 services:
@@ -137,7 +137,7 @@ services:
 
 ## Scaling
 
-You can't. redb is a single-writer embedded database. Run exactly one instance. If you need horizontal scaling, ParkHub isn't the right tool — but for its intended use case (a company with dozens to hundreds of employees), a single instance handles it easily.
+You can't. redb is a single-writer embedded database. Run exactly one instance. If you need horizontal scaling, ParkHub isn't the right tool — but for its intended use case (an organization with dozens to hundreds of users), a single instance handles it easily.
 
 ---
 

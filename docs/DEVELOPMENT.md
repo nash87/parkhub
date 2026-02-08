@@ -23,7 +23,7 @@ parkhub/
 │   │   ├── stores/          Zustand stores
 │   │   │   ├── theme.ts     Dark/light mode toggle, persisted to localStorage
 │   │   │   └── palette.ts   10 color palettes, applied via CSS custom properties
-│   │   ├── i18n/            Translation files (de.ts, en.ts)
+│   │   ├── i18n/            Translation files (10 languages: ar, de, en, es, fr, hi, ja, pt, tr, zh)
 │   │   └── App.tsx          Router (react-router-dom), auth guard, theme init
 │   ├── package.json
 │   ├── vite.config.ts

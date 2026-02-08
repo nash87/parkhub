@@ -509,7 +509,7 @@ curl -s http://localhost:7878/api/v1/admin/branding \
 curl -s -X PUT http://localhost:7878/api/v1/admin/branding \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"company_name": "Acme Corp"}' | jq .
+  -d '{"organization_name": "My Organization"}' | jq .
 
 # Upload logo
 curl -s -X POST http://localhost:7878/api/v1/admin/branding/logo \
@@ -525,7 +525,7 @@ Wipes everything and starts fresh. Dangerous. Requires confirmation.
 curl -s -X POST http://localhost:7878/api/v1/admin/reset \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"confirm": true}' | jq .
+  -d '{"confirm": "RESET"}' | jq .
 ```
 
 ---
@@ -549,7 +549,7 @@ Permanently removes your account and all associated data.
 curl -s -X DELETE http://localhost:7878/api/v1/users/me/delete \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"confirm": true}' | jq .
+  -d '{"confirm": "RESET"}' | jq .
 ```
 
 ---
@@ -567,7 +567,7 @@ curl -s -X DELETE http://localhost:7878/api/v1/users/me/delete \
 | `GET` | `/api/v1/privacy` | Privacy policy text |
 | `GET` | `/api/v1/about` | About/version info |
 | `GET` | `/api/v1/help` | FAQ / help content |
-| `GET` | `/api/v1/branding` | Company name + logo URL |
+| `GET` | `/api/v1/branding` | Organization name + logo URL |
 | `GET` | `/api/v1/branding/logo` | Logo image file |
 | `GET` | `/api/v1/setup/status` | Whether first-run setup is complete |
 

@@ -32,7 +32,7 @@ Place a `config.toml` in the working directory or specify `--config /path/to/con
 
 ```toml
 [app]
-name = "Your Company Parking"
+name = "Your Parking"
 
 [server]
 # active = "local"  or  "production"
@@ -70,7 +70,7 @@ Caution: if you lose the passphrase, the data is gone. There's no recovery mecha
 
 Customizable via the admin panel (Settings → Branding):
 
-- **Company name** — shown in the header, login page, and browser tab
+- **Organization name** — shown in the header, login page, and browser tab
 - **Logo** — PNG or SVG, uploaded via the admin UI or API
 - **Primary color** — overrides the theme's primary color globally
 
@@ -84,12 +84,12 @@ curl http://localhost:7878/api/v1/branding
 curl -X PUT http://localhost:7878/api/v1/admin/branding \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"company_name": "Acme Corp"}'
+  -d '{"company_name": "My Organization"}'
 
 # Upload logo (admin only)
 curl -X POST http://localhost:7878/api/v1/admin/branding/logo \
   -H "Authorization: Bearer $TOKEN" \
-  -F "logo=@company-logo.png"
+  -F "logo=@logo.png"
 ```
 
 ## Rate Limiting
