@@ -15,7 +15,8 @@ pub fn validate_license_plate(plate: &str) -> Result<(), validator::ValidationEr
     if normalized.len() < 2 || normalized.len() > 10 {
         return Err(validator::ValidationError::new("invalid_license_plate"));
     }
-    if !normalized.chars().all(|c| c.is_ascii_alphanumeric()) {
+    // Allow letters (including German umlauts ÄÖÜ) and digits
+    if !normalized.chars().all(|c| c.is_alphanumeric()) {
         return Err(validator::ValidationError::new("invalid_license_plate"));
     }
     Ok(())
