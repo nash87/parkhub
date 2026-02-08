@@ -80,53 +80,89 @@ On first start, a welcome screen lets you choose your language. Then an onboardi
 
 ## Screenshots
 
-### Welcome & Login
+### Dashboard & Booking
 
-| Login | Dashboard |
-|-------|-----------|
-| ![Login](docs/screenshots/login-desktop.png) | ![Dashboard](docs/screenshots/dashboard-desktop.png) |
-
-### Booking & Management
-
-| Booking | Bookings List |
-|---------|---------------|
-| ![Booking](docs/screenshots/booking-desktop.png) | ![Bookings](docs/screenshots/bookings-list.png) |
+<table>
+<tr><th>Light Mode</th><th>Dark Mode</th></tr>
+<tr>
+<td><img src="docs/screenshots/dashboard-light.png" alt="Dashboard Light" width="400"></td>
+<td><img src="docs/screenshots/dashboard-dark.png" alt="Dashboard Dark" width="400"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/book-light.png" alt="Booking Light" width="400"></td>
+<td><img src="docs/screenshots/book-dark.png" alt="Booking Dark" width="400"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/bookings-light.png" alt="Bookings Light" width="400"></td>
+<td><img src="docs/screenshots/bookings-dark.png" alt="Bookings Dark" width="400"></td>
+</tr>
+</table>
 
 ### Admin Panel
 
-| Overview | Users | Lots |
-|----------|-------|------|
-| ![Overview](docs/screenshots/admin-overview.png) | ![Users](docs/screenshots/admin-users.png) | ![Lots](docs/screenshots/admin-lots.png) |
+<table>
+<tr><th>Light Mode</th><th>Dark Mode</th></tr>
+<tr>
+<td><img src="docs/screenshots/admin-overview-light.png" alt="Admin Light" width="400"></td>
+<td><img src="docs/screenshots/admin-overview-dark.png" alt="Admin Dark" width="400"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/admin-users-light.png" alt="Users Light" width="400"></td>
+<td><img src="docs/screenshots/admin-users-dark.png" alt="Users Dark" width="400"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/admin-lots-light.png" alt="Lots Light" width="400"></td>
+<td><img src="docs/screenshots/admin-lots-dark.png" alt="Lots Dark" width="400"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/admin-branding-light.png" alt="Branding Light" width="400"></td>
+<td><img src="docs/screenshots/admin-branding-dark.png" alt="Branding Dark" width="400"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/admin-system-light.png" alt="System Light" width="400"></td>
+<td><img src="docs/screenshots/admin-system-dark.png" alt="System Dark" width="400"></td>
+</tr>
+</table>
 
-| Branding | System |
-|----------|--------|
-| ![Branding](docs/screenshots/admin-branding.png) | ![System](docs/screenshots/admin-system.png) |
+### Vehicles & Info Pages
 
-### Themes & Palettes
+<table>
+<tr><th>Light Mode</th><th>Dark Mode</th></tr>
+<tr>
+<td><img src="docs/screenshots/vehicles-light.png" alt="Vehicles Light" width="400"></td>
+<td><img src="docs/screenshots/vehicles-dark.png" alt="Vehicles Dark" width="400"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/privacy-light.png" alt="Privacy Light" width="400"></td>
+<td><img src="docs/screenshots/privacy-dark.png" alt="Privacy Dark" width="400"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/about-light.png" alt="About Light" width="400"></td>
+<td><img src="docs/screenshots/about-dark.png" alt="About Dark" width="400"></td>
+</tr>
+</table>
 
-| Light Mode | Dark Mode |
-|------------|-----------|
-| ![Light](docs/screenshots/themes-light.png) | ![Dark](docs/screenshots/themes-dark.png) |
+### Login
 
-| Solarized | Dracula | Nord |
-|-----------|---------|------|
-| ![Solarized](docs/screenshots/palette-solarized.png) | ![Dracula](docs/screenshots/palette-dracula.png) | ![Nord](docs/screenshots/palette-nord.png) |
-
-### Info Pages
-
-| Privacy | About |
-|---------|-------|
-| ![Privacy](docs/screenshots/privacy-page.png) | ![About](docs/screenshots/about-page.png) |
+| Login |
+|:-----:|
+| <img src="docs/screenshots/login-light.png" alt="Login" width="400"> |
 
 ### Mobile & Responsive
 
-| Mobile Dashboard | Mobile Booking | Mobile Admin | Mobile Dark |
-|-----------------|----------------|--------------|-------------|
-| ![Mobile Dashboard](docs/screenshots/mobile-dashboard.png) | ![Mobile Booking](docs/screenshots/mobile-booking.png) | ![Mobile Admin](docs/screenshots/mobile-admin.png) | ![Mobile Dark](docs/screenshots/mobile-dark.png) |
-
-| Tablet Dashboard |
-|-----------------|
-| ![Tablet](docs/screenshots/tablet-dashboard.png) |
+<table>
+<tr><th>Mobile Light</th><th>Mobile Dark</th><th>Tablet</th></tr>
+<tr>
+<td><img src="docs/screenshots/dashboard-mobile-light.png" alt="Mobile Light" width="250"></td>
+<td><img src="docs/screenshots/dashboard-mobile-dark.png" alt="Mobile Dark" width="250"></td>
+<td><img src="docs/screenshots/dashboard-tablet.png" alt="Tablet" width="300"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/book-mobile-light.png" alt="Book Mobile" width="250"></td>
+<td><img src="docs/screenshots/book-mobile-dark.png" alt="Book Mobile Dark" width="250"></td>
+<td><img src="docs/screenshots/book-tablet.png" alt="Book Tablet" width="300"></td>
+</tr>
+</table>
 
 
 ## Installation
