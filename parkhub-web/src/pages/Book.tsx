@@ -150,6 +150,7 @@ export function BookPage() {
       start_time: startIso,
       duration_minutes: durationMinutes,
       vehicle_id: selectedVehicle || undefined,
+      license_plate: customPlate || undefined,
     });
 
     if (res.success) {
