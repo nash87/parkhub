@@ -16,63 +16,37 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get current version
-        id: current
+      - name: Calculate CalVer
+        id: calver
         run: |
-          CURRENT=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "version=${CURRENT#v}" >> $GITHUB_OUTPUT
-          echo "Current version: $CURRENT"
-
-      - name: Determine bump type
-        id: bump
-        run: |
-          CURRENT_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$CURRENT_TAG" ]; then
-            COMMITS=$(git log --oneline)
-          else
-            COMMITS=$(git log ${CURRENT_TAG}..HEAD --oneline)
-          fi
-
-          if echo "$COMMITS" | grep -qiE "^[a-f0-9]+ (feat|fix|refactor|perf|docs|style|test|chore)(\(.+\))?!:"; then
-            echo "type=major" >> $GITHUB_OUTPUT
-          elif echo "$COMMITS" | grep -qiE "^[a-f0-9]+ feat(\(.+\))?:"; then
-            echo "type=minor" >> $GITHUB_OUTPUT
-          elif echo "$COMMITS" | grep -qiE "^[a-f0-9]+ fix(\(.+\))?:"; then
-            echo "type=patch" >> $GITHUB_OUTPUT
-          else
-            echo "type=none" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Bump version
-        if: steps.bump.outputs.type != 'none'
-        id: new_version
-        run: |
-          IFS='.' read -r major minor patch <<< "${{ steps.current.outputs.version }}"
-          case "${{ steps.bump.outputs.type }}" in
-            major) major=$((major + 1)); minor=0; patch=0 ;;
-            minor) minor=$((minor + 1)); patch=0 ;;
-            patch) patch=$((patch + 1)) ;;
-          esac
-          NEW="${major}.${minor}.${patch}"
-          echo "version=$NEW" >> $GITHUB_OUTPUT
-          echo "New version: v$NEW"
+          TODAY=$(date -u +%Y.%m.%d)
+          # Find highest build number for today
+          BUILD=0
+          for tag in $(git tag -l "v${TODAY}.*" 2>/dev/null); do
+            NUM=${tag##*.}
+            if [ "$NUM" -gt "$BUILD" ] 2>/dev/null; then
+              BUILD=$NUM
+            fi
+          done
+          BUILD=$((BUILD + 1))
+          VERSION="${TODAY}.${BUILD}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "New version: v$VERSION"
 
       - name: Update version files
-        if: steps.bump.outputs.type != 'none'
         run: |
-          NEW="${{ steps.new_version.outputs.version }}"
-          sed -i "s/^version = \".*\"/version = \"$NEW\"/" Cargo.toml
-          echo "$NEW" > VERSION
-          cd parkhub-web && npm version $NEW --no-git-tag-version --allow-same-version 2>/dev/null || true
-          cd ..
+          VERSION="${{ steps.calver.outputs.version }}"
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+          echo "$VERSION" > VERSION
+          cd parkhub-web && npm version "$VERSION" --no-git-tag-version --allow-same-version 2>/dev/null || true
 
       - name: Commit + Tag
-        if: steps.bump.outputs.type != 'none'
         run: |
-          NEW="v${{ steps.new_version.outputs.version }}"
+          VERSION="v${{ steps.calver.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "chore: bump version to $NEW" || true
-          git tag -a "$NEW" -m "Release $NEW"
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: bump version to $VERSION"
+          git tag -a "$VERSION" -m "Release $VERSION"
           git push origin main --follow-tags
