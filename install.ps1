@@ -76,6 +76,9 @@ function Install-Binary($ver, $installDir) {
         return $false
     }
 
+    # Unblock downloaded file (Windows SmartScreen / antivirus workaround)
+    try { Unblock-File -Path $target -ErrorAction SilentlyContinue } catch {}
+    Write-Info "File unblocked (SmartScreen/antivirus workaround)"
     Write-OK "Installed to $target"
     return $true
 }
