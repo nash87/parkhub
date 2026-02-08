@@ -1,0 +1,6 @@
+# Override GitHub language detection
+*.slint linguist-vendored
+parkhub-client/** linguist-vendored
+*.rs linguist-language=Rust
+*.ts linguist-language=TypeScript
+*.tsx linguist-language=TypeScript
