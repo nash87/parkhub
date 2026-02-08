@@ -94,7 +94,11 @@ function ThemeInitializer({ children }: { children: React.ReactNode }) {
 }
 
 function LoginRedirectGuard() {
-  // Always show login page - no redirect to /setup to avoid infinite loops
+  const { setupComplete } = useSetupStatus();
+  // If setup not complete, redirect to welcome/onboarding instead of showing login
+  if (setupComplete === false) {
+    return <Navigate to="/welcome" replace />;
+  }
   return <LoginPage />;
 }
 
