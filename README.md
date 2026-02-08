@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="parkhub-web/public/logo.svg" alt="ParkHub" width="600">
+  <img src="parkhub-web/public/logo.png" alt="ParkHub" width="600">
 </p>
 
 <h1 align="center">ParkHub</h1>
@@ -76,33 +76,53 @@ On first start, a welcome screen lets you choose your language. Then an onboardi
 
 ## Screenshots
 
-<p align="center">
-  <img src="docs/screenshots/welcome.png" alt="Welcome / Willkommen — Language Selection" width="45%">
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/login.png" alt="Login / Anmeldung" width="45%">
-</p>
+### Welcome & Login
 
-<p align="center">
-  <img src="docs/screenshots/booking.png" alt="Booking / Stellplatz buchen" width="45%">
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/dashboard.png" alt="Dashboard / Übersicht" width="45%">
-</p>
+| Login | Dashboard |
+|-------|-----------|
+| ![Login](docs/screenshots/login-desktop.png) | ![Dashboard](docs/screenshots/dashboard-desktop.png) |
 
-<p align="center">
-  <img src="docs/screenshots/admin.png" alt="Admin Panel / Verwaltung" width="45%">
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/themes.png" alt="Color Themes / Farbthemen" width="45%">
-</p>
+### Booking & Management
 
-<details>
-<summary>More screenshots / Weitere Screenshots</summary>
-<br>
-<p align="center">
-  <img src="docs/screenshots/dark-mode.png" alt="Dark Mode / Dunkelmodus" width="45%">
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/mobile.png" alt="Mobile View / Mobilansicht (PWA)" width="45%">
-</p>
-</details>
+| Booking | Bookings List |
+|---------|---------------|
+| ![Booking](docs/screenshots/booking-desktop.png) | ![Bookings](docs/screenshots/bookings-list.png) |
+
+### Admin Panel
+
+| Overview | Users | Lots |
+|----------|-------|------|
+| ![Overview](docs/screenshots/admin-overview.png) | ![Users](docs/screenshots/admin-users.png) | ![Lots](docs/screenshots/admin-lots.png) |
+
+| Branding | System |
+|----------|--------|
+| ![Branding](docs/screenshots/admin-branding.png) | ![System](docs/screenshots/admin-system.png) |
+
+### Themes & Palettes
+
+| Light Mode | Dark Mode |
+|------------|-----------|
+| ![Light](docs/screenshots/themes-light.png) | ![Dark](docs/screenshots/themes-dark.png) |
+
+| Solarized | Dracula | Nord |
+|-----------|---------|------|
+| ![Solarized](docs/screenshots/palette-solarized.png) | ![Dracula](docs/screenshots/palette-dracula.png) | ![Nord](docs/screenshots/palette-nord.png) |
+
+### Info Pages
+
+| Privacy | About |
+|---------|-------|
+| ![Privacy](docs/screenshots/privacy-page.png) | ![About](docs/screenshots/about-page.png) |
+
+### Mobile & Responsive
+
+| Mobile Dashboard | Mobile Booking | Mobile Admin | Mobile Dark |
+|-----------------|----------------|--------------|-------------|
+| ![Mobile Dashboard](docs/screenshots/mobile-dashboard.png) | ![Mobile Booking](docs/screenshots/mobile-booking.png) | ![Mobile Admin](docs/screenshots/mobile-admin.png) | ![Mobile Dark](docs/screenshots/mobile-dark.png) |
+
+| Tablet Dashboard |
+|-----------------|
+| ![Tablet](docs/screenshots/tablet-dashboard.png) |
 
 
 ## Installation

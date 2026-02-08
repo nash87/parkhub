@@ -22,6 +22,7 @@ export function AdminBrandingPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const logoVariants = ['/logos/variant-1.png', '/logos/variant-2.png', '/logos/variant-3.png', '/logos/variant-4.png'];
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -143,6 +144,37 @@ export function AdminBrandingPage() {
                   {t('admin.branding.uploadLogo', 'Upload Logo')}
                 </button>
                 <p className="text-xs text-gray-500 mt-2">PNG, JPEG, SVG · Max 2MB</p>
+              </div>
+            </div>
+
+            {/* Built-in Logo Variants */}
+            <div className="mt-6">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                {t('admin.branding.selectLogo', 'Select Logo')}
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {logoVariants.map((variant, idx) => (
+                  <button
+                    key={variant}
+                    onClick={() => {
+                      setConfig(prev => ({ ...prev, logo_url: variant }));
+                      setLogoPreview(variant);
+                    }}
+                    className={`relative p-3 rounded-xl border-2 transition-all hover:shadow-md ${
+                      config.logo_url === variant
+                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 ring-2 ring-primary-500/30'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <img src={variant} alt={`Variant ${idx + 1}`} className="w-full h-16 object-contain" />
+                    {config.logo_url === variant && (
+                      <div className="absolute top-1 right-1 w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
+                        <Check weight="bold" className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                    <p className="text-[10px] text-gray-400 text-center mt-1">Variant {idx + 1}</p>
+                  </button>
+                ))}
               </div>
             </div>
           </div>

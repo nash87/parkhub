@@ -108,7 +108,7 @@ export function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center gap-3" aria-label="Home">
-              <img src={branding.logo_url || "/icon.svg"} alt={branding.company_name} className="w-9 h-9 object-contain rounded-xl" />
+              <img src={branding.logo_url || "/logo.png"} alt={branding.company_name} className="w-9 h-9 object-contain rounded-xl" />
 
               <span className="text-lg font-bold text-gray-900 dark:text-white">{branding.company_name}</span>
             </Link>
