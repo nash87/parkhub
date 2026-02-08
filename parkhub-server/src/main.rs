@@ -149,6 +149,7 @@ impl CliArgs {
         println!("    --data-dir PATH   Set custom data directory");
         println!();
         println!("ENVIRONMENT VARIABLES:");
+        println!("    PARKHUB_DATA_DIR         Custom data directory (highest priority)");
         println!("    PARKHUB_DB_PASSPHRASE    Database encryption passphrase");
         println!("    RUST_LOG                 Logging filter (e.g., debug,info)");
         println!();
@@ -249,7 +250,13 @@ async fn main() -> Result<()> {
     }
 
     // Determine initial data directory (may change if setup wizard runs)
-    let data_dir = if let Some(ref dir) = cli.data_dir {
+    // Priority: PARKHUB_DATA_DIR env var > --data-dir CLI arg > platform default
+    let data_dir = if let Ok(env_dir) = std::env::var("PARKHUB_DATA_DIR") {
+        let dir = PathBuf::from(env_dir);
+        std::fs::create_dir_all(&dir)?;
+        info!("Using data directory from PARKHUB_DATA_DIR");
+        dir
+    } else if let Some(ref dir) = cli.data_dir {
         std::fs::create_dir_all(dir)?;
         dir.clone()
     } else {
