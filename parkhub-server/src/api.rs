@@ -3200,6 +3200,14 @@ async fn admin_update_stream(
 
             tokio::spawn(async {
                 tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                // Spawn new server process before exiting
+                let exe = std::env::current_exe().unwrap_or_default();
+                let _ = std::process::Command::new(&exe)
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .spawn();
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 std::process::exit(0);
             });
 
@@ -3322,6 +3330,14 @@ async fn admin_update_stream(
 
         tokio::spawn(async {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            // Spawn new server process before exiting
+            let exe = std::env::current_exe().unwrap_or_default();
+            let _ = std::process::Command::new(&exe)
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn();
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             std::process::exit(0);
         });
 

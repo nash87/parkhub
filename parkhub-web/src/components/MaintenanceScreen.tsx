@@ -21,6 +21,13 @@ export function MaintenanceScreen({ progress: externalProgress, message: externa
     if (externalStep !== undefined) setStep(externalStep);
   }, [externalProgress, externalMessage, externalStep]);
 
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setTimedOut(true), 60000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   useEffect(() => {
     const dotInterval = setInterval(() => {
       setDots((d) => (d.length >= 3 ? "" : d + "."));
@@ -95,6 +102,20 @@ export function MaintenanceScreen({ progress: externalProgress, message: externa
         >
           Back to Admin
         </button>
+      )}
+
+      {timedOut && !isError && (
+        <div className="mt-6 text-center">
+          <p className="text-sm text-amber-400 mb-3">
+            If the server doesn't come back, please refresh the page or restart the server manually.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Refresh Page
+          </button>
+        </div>
       )}
     </div>
   );
