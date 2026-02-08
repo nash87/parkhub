@@ -97,12 +97,7 @@ function ThemeInitializer({ children }: { children: React.ReactNode }) {
 }
 
 function LoginRedirectGuard() {
-  const { setupComplete } = useSetupStatus();
-  // If setup not complete, don't show login - redirect to setup flow
-  if (!setupComplete) {
-    const langChosen = localStorage.getItem('parkhub-lang-chosen');
-    return <Navigate to={langChosen ? '/setup' : '/welcome'} replace />;
-  }
+  // Always show login page - no redirect to /setup to avoid infinite loops
   return <LoginPage />;
 }
 

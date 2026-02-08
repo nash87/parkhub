@@ -569,6 +569,8 @@ export const en = {
   onboarding: {
     title: 'Welcome to ParkHub!',
     preparingSetup: 'Preparing setup...',
+    loginRequired: "Admin Login Required",
+    loginRequiredDesc: "Please log in with your admin credentials to complete the setup.",
     finish: 'Get Started',
     steps: {
       password: {

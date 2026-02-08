@@ -607,6 +607,8 @@ export const de = {
   onboarding: {
     title: 'Willkommen bei ParkHub!',
     preparingSetup: 'Einrichtung wird vorbereitet...',
+    loginRequired: "Admin-Anmeldung erforderlich",
+    loginRequiredDesc: "Bitte melden Sie sich mit Ihren Admin-Zugangsdaten an, um die Einrichtung abzuschließen.",
     finish: 'Loslegen',
     steps: {
       password: {
