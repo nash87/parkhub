@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supportedLanguages } from '../i18n/index';
 import { useAccessibility, applyAccessibility } from '../stores/accessibility';
@@ -53,6 +53,22 @@ export function WelcomePage() {
   }, []);
 
   const { setupComplete } = useSetupStatus();
+
+  // If setup is already complete, redirect to login/dashboard
+  if (setupComplete) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Clear stale state from previous installs on fresh setup
+  useEffect(() => {
+    if (setupComplete === false) {
+      localStorage.removeItem('parkhub-lang-chosen');
+      localStorage.removeItem('parkhub_token');
+      localStorage.removeItem('parkhub-palette');
+      localStorage.removeItem('parkhub-usecase');
+      localStorage.removeItem('parkhub-favorite-slots');
+    }
+  }, [setupComplete]);
 
   const selectLanguage = useCallback(
     (code: string) => {

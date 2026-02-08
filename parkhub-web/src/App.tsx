@@ -53,10 +53,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { setupComplete } = useSetupStatus();
   if (isLoading) return <LoadingScreen />;
   if (!isAuthenticated) {
-    // If setup not complete, redirect to setup flow instead of login
     if (!setupComplete) {
-      const langChosen = localStorage.getItem('parkhub-lang-chosen');
-      return <Navigate to={langChosen ? '/setup' : '/welcome'} replace />;
+      return <Navigate to="/welcome" replace />;
     }
     return <Navigate to="/login" replace />;
   }
@@ -69,8 +67,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) return <LoadingScreen />;
   if (!isAuthenticated) {
     if (!setupComplete) {
-      const langChosen = localStorage.getItem('parkhub-lang-chosen');
-      return <Navigate to={langChosen ? '/setup' : '/welcome'} replace />;
+      return <Navigate to="/welcome" replace />;
     }
     return <Navigate to="/login" replace />;
   }
