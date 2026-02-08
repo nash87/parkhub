@@ -411,8 +411,19 @@ async fn register(
         return (StatusCode::CONFLICT, Json(ApiResponse::error("EMAIL_EXISTS", "An account with this email already exists")));
     }
 
+    // Validate username format
+    let username_trimmed = request.username.trim().to_string();
+    if username_trimmed.len() < 3 || username_trimmed.len() > 30 {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("INVALID_USERNAME", "Username must be 3-30 characters")));
+    }
+
     if let Ok(Some(_)) = state_guard.db.get_user_by_username(&request.username).await {
         return (StatusCode::CONFLICT, Json(ApiResponse::error("USERNAME_EXISTS", "This username is already taken")));
+    }
+
+    // Validate password strength
+    if let Err(_) = crate::validation::validate_password_strength(&request.password) {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("WEAK_PASSWORD", "Password must be at least 8 characters with uppercase, lowercase, and digit")));
     }
 
     let password_hash = hash_password(&request.password);
@@ -557,11 +568,26 @@ async fn create_lot(
     if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
         return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
     }
+    // Sanitize inputs (strip HTML tags) and validate length
+    let name = req.name.replace("<", "&lt;").replace(">", "&gt;");
+    let address = req.address.replace("<", "&lt;").replace(">", "&gt;");
+    if name.len() > 200 || address.len() > 500 {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("INVALID_INPUT", "Name or address too long")));
+    }
+
+    // Validate total_slots
+    if req.total_slots < 0 {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("INVALID_INPUT", "total_slots must be non-negative")));
+    }
+    if req.total_slots > 10000 {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("INVALID_INPUT", "total_slots exceeds maximum (10000)")));
+    }
+
     let now = Utc::now();
     let lot = ParkingLot {
         id: Uuid::new_v4(),
-        name: req.name,
-        address: req.address,
+        name,
+        address,
         total_slots: req.total_slots,
         available_slots: req.total_slots,
         layout: None,
@@ -765,6 +791,15 @@ async fn create_booking(
     } else {
         req.start_time + chrono::Duration::hours(1)
     };
+
+    // Validate booking times
+    if end_time <= req.start_time {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("INVALID_TIME", "End time must be after start time")));
+    }
+    let now_check = Utc::now();
+    if req.start_time < now_check - chrono::Duration::minutes(5) {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("PAST_BOOKING", "Cannot create bookings in the past")));
+    }
 
     let now = Utc::now();
     let booking = Booking {
