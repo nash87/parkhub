@@ -1,469 +1,233 @@
-# 🅿️ ParkHub
+<p align="center">
+  <img src="docs/screenshots/logo-banner.png" alt="ParkHub" width="600">
+</p>
 
-**Open-source parking management for companies.** Simple. Self-hosted. Zero dependencies.
+<h1 align="center">ParkHub</h1>
 
-One binary. Embedded database. Modern web UI. Just start and go.
+<p align="center">
+  <strong>Open-source corporate parking management. One binary. Zero dependencies. Beautiful UI.</strong>
+</p>
 
-<!-- Screenshot placeholder -->
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
+  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-1.83+-orange.svg?style=for-the-badge&logo=rust" alt="Rust"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"></a>
+  <a href="https://hub.docker.com/r/nash87/parkhub"><img src="https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
+</p>
 
----
-
-## ✨ Features
-
-### For Employees
-- 📅 **Smart Booking** — Book parking spots: one-time, multi-day, or permanent
-- 🗺️ **Visual Parking Map** — Interactive top-down grid with real-time availability
-- 🏠 **Home Office Integration** — Set home office days, auto-release your spot for colleagues
-- 🚗 **Vehicle Management** — Register vehicles with photos for easy identification
-- 🔔 **Notifications** — Get reminded before your booking expires
-- 📱 **PWA** — Install as app on any device
-
-### For Admins
-- ⚙️ **Lot Designer** — Visual editor to configure parking lots, rows, and slots
-- 👥 **User Management** — Roles, permissions, account status
-- 📊 **Dashboard** — Real-time occupancy, statistics, activity log
-- 📋 **Booking Overview** — Filter, search, bulk actions across all users
-
-### Technical
-- 🦀 **Rust Backend** — Fast, safe, single binary (~30MB)
-- ⚡ **Embedded Database** — redb, no PostgreSQL/MySQL needed
-- 🌐 **React Frontend** — TypeScript, Tailwind CSS, Framer Motion
-- 🌍 **i18n** — German & English (extensible)
-- 🌙 **Dark Mode** — Full dark theme support
-- 🐳 **Docker Ready** — Multi-stage build, ~20MB image
-- 📡 **REST API** — Swagger/OpenAPI documented
+<p align="center">
+  <a href="docs/INSTALLATION.md">Installation</a> · <a href="docs/API.md">API Docs</a> · <a href="docs/CONFIGURATION.md">Configuration</a> · <a href="docs/DEPLOYMENT.md">Deployment</a> · <a href="docs/DEVELOPMENT.md">Development</a> · <a href="CONTRIBUTING.md">Contributing</a>
+</p>
 
 ---
 
-## 🚀 Quick Start
+ParkHub is a self-hosted parking management system built for companies of any size. It ships as a single binary with an embedded database — no PostgreSQL, no Redis, no external services. Deploy it in seconds and manage your corporate parking with a modern, accessible web interface.
 
-### Docker (Recommended)
+## Key Features
+
+| | Feature | Description |
+|---|---|---|
+| &#x25A3; | **Real-time Slot Management** | Interactive visual parking map with live availability |
+| &#x1F4C5; | **Smart Booking System** | One-time, multi-day, and permanent reservations with check-in & QR codes |
+| &#x1F3A8; | **10 Color Themes** | Solarized, Dracula, Nord, Gruvbox, Catppuccin, Tokyo Night, One Dark, Rose Pine, Everforest, Default Blue |
+| &#x25D1; | **Dark / Light Mode** | Full dark theme with automatic system detection |
+| &#x1F310; | **Internationalization** | German & English with extensible i18n framework |
+| &#x267F; | **Accessibility** | Colorblind modes (protanopia, deuteranopia, tritanopia), font scaling, reduced motion, high contrast |
+| &#x1F3E2; | **Corporate Branding** | Custom logo, colors, and company name via admin panel |
+| &#x1F3E0; | **Homeoffice Integration** | Set WFH patterns, auto-release parking spots for colleagues |
+| &#x1F6E1; | **GDPR / DSGVO** | Data export, account deletion, privacy policy — fully compliant |
+| &#x1F4F1; | **PWA-Ready** | Install as native app on any device |
+| &#x1F4E6; | **Single Binary** | ~30 MB, embedded redb database, zero external dependencies |
+| &#x1F4E1; | **REST API** | Full API with Swagger/OpenAPI documentation |
+| &#x1F4C6; | **iCal Export** | Subscribe to your bookings in any calendar app |
+| &#x1F4CA; | **Admin Dashboard** | Reports, statistics, CSV export, user management |
+| &#x23F3; | **Waitlist System** | Automatic notification when a spot becomes available |
+| &#x1F6A6; | **Rate Limiting** | Built-in request throttling per IP and per user |
+| &#x1F512; | **Security Hardened** | XSS prevention, input validation, HSTS, security headers |
+
+## Quick Start
+
+```bash
+# Download the latest release
+curl -fsSL https://github.com/nash87/parkhub/releases/latest/download/install.sh | bash
+
+# Start the server
+parkhub-server
+
+# Open your browser
+open http://localhost:7878
+```
+
+Default port is **7878**. The first user to register becomes the admin.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/login.png" alt="Login" width="45%">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="45%">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/booking.png" alt="Booking" width="45%">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/admin.png" alt="Admin Panel" width="45%">
+</p>
+
+<details>
+<summary>More screenshots</summary>
+<br>
+<p align="center">
+  <img src="docs/screenshots/vehicles.png" alt="Vehicles" width="45%">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/themes.png" alt="Themes" width="45%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/dark-mode.png" alt="Dark Mode" width="45%">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/profile.png" alt="Profile" width="45%">
+</p>
+</details>
+
+## Installation
+
+### Binary
+
+```bash
+# Linux / macOS
+curl -fsSL https://github.com/nash87/parkhub/releases/latest/download/install.sh | bash
+
+# Windows (PowerShell)
+irm https://github.com/nash87/parkhub/releases/latest/download/install.ps1 | iex
+```
+
+### Docker
+
 ```bash
 docker run -d \
   --name parkhub \
-  -p 8080:8080 \
+  -p 7878:7878 \
   -v parkhub-data:/data \
   ghcr.io/nash87/parkhub:latest
 ```
-Open http://localhost:8080 — done!
 
-
-> ⚠️ **Default credentials: `admin` / `admin` — Change your admin password immediately after first login!**
-
-
-### Docker Compose
-```bash
-git clone https://github.com/nash87/parkhub.git
-cd parkhub
-docker compose up -d
-```
-
-### One-Liner Install
+### From Source
 
 ```bash
-# Linux/macOS
-curl -fsSL https://raw.githubusercontent.com/nash87/parkhub/main/install.sh | bash
-
-# Windows (PowerShell)
-irm https://raw.githubusercontent.com/nash87/parkhub/main/install.ps1 | iex
-```
-
-### Binary (Manual)
-Download from [Releases](https://github.com/nash87/parkhub/releases):
-
-| Platform | Download |
-|---|---|
-| Linux x86_64 | `parkhub-linux-x86_64.tar.gz` |
-| Linux aarch64 | `parkhub-linux-aarch64.tar.gz` |
-| macOS x86_64 | `parkhub-macos-x86_64.tar.gz` |
-| macOS Apple Silicon | `parkhub-macos-aarch64.tar.gz` |
-| Windows x86_64 | `parkhub-windows-x86_64.zip` |
-
-```bash
-# Linux/macOS
-tar xzf parkhub-*.tar.gz
-chmod +x parkhub-server
-./parkhub-server
-
-# Windows
-# Extract zip, then run parkhub-server.exe
-```
-Data is stored in `./parkhub-data/` (portable) or system dirs.
-
----
-
-## 🔧 Configuration
-
-### Environment Variables
-| Variable | Default | Description |
-|---|---|---|
-| `PARKHUB_HOST` | `0.0.0.0` | Listen address |
-| `PARKHUB_PORT` | `8080` | Listen port |
-| `PARKHUB_DATA_DIR` | `./parkhub-data` | Data directory |
-| `PARKHUB_ADMIN_USER` | `admin` | Initial admin username |
-| `PARKHUB_ADMIN_PASS` | `admin` | Initial admin password |
-| `PARKHUB_TLS_ENABLED` | `false` | Enable HTTPS |
-| `PARKHUB_TLS_CERT` | — | TLS certificate path |
-| `PARKHUB_TLS_KEY` | — | TLS private key path |
-| `PARKHUB_SMTP_HOST` | — | SMTP server hostname |
-| `PARKHUB_SMTP_PORT` | `587` | SMTP server port |
-| `PARKHUB_SMTP_USER` | — | SMTP username |
-| `PARKHUB_SMTP_PASS` | — | SMTP password |
-| `PARKHUB_SMTP_FROM` | — | Sender email address |
-| `PARKHUB_AUTO_RELEASE_MINUTES` | `30` | Auto-release unconfirmed bookings after N minutes |
-| `PARKHUB_VAPID_PRIVATE_KEY` | — | VAPID private key for push notifications |
-| `PARKHUB_VAPID_PUBLIC_KEY` | — | VAPID public key for push notifications |
-| `RUST_LOG` | `info` | Log level |
-
-### config.toml
-```toml
-[server]
-name = "Company Parking"
-port = 8080
-
-[auth]
-jwt_secret = "change-me"
-session_duration = "24h"
-
-[features]
-homeoffice = true
-vehicle_photos = true
-multi_day_booking = true
-```
-
----
-
-## 📱 PWA Installation (Add to Home Screen)
-
-ParkHub is a Progressive Web App — install it for a native app experience:
-
-**iOS (Safari):**
-1. Open ParkHub in Safari
-2. Tap the Share button (↑)
-3. Scroll down and tap **"Add to Home Screen"**
-4. Tap **Add**
-
-**Android (Chrome):**
-1. Open ParkHub in Chrome
-2. Tap the three-dot menu (⋮)
-3. Tap **"Add to Home Screen"** or **"Install app"**
-4. Confirm
-
-**Desktop (Chrome/Edge):**
-1. Open ParkHub in your browser
-2. Click the install icon (⊕) in the address bar
-3. Click **Install**
-
----
-
-## 🐧 Systemd Service (Permanent Installation)
-
-For running ParkHub as a system service on Linux:
-
-```ini
-[Unit]
-Description=ParkHub - Parking Management
-After=network.target
-
-[Service]
-Type=simple
-User=parkhub
-Group=parkhub
-ExecStart=/usr/local/bin/parkhub-server
-WorkingDirectory=/var/lib/parkhub
-Environment=PARKHUB_DATA_DIR=/var/lib/parkhub
-Environment=PARKHUB_PORT=8080
-Environment=RUST_LOG=info
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-# Create user and data directory
-sudo useradd -r -s /usr/sbin/nologin -d /var/lib/parkhub parkhub
-sudo mkdir -p /var/lib/parkhub
-sudo chown parkhub:parkhub /var/lib/parkhub
-
-# Install service
-sudo cp parkhub.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now parkhub
-
-# Check status
-sudo systemctl status parkhub
-sudo journalctl -u parkhub -f
-```
-
-> 💡 **Tip:** The install script (`install.sh`) can set this up automatically!
-
----
-
-## 🔄 Upgrading
-
-ParkHub stores all data in the data directory (default: `./parkhub-data/`). Upgrading is simple:
-
-1. **Stop** the running instance
-2. **Replace** the binary with the new version
-3. **Start** again — data persists automatically
-
-```bash
-# If using systemd
-sudo systemctl stop parkhub
-curl -fsSL https://raw.githubusercontent.com/nash87/parkhub/main/install.sh | bash
-sudo systemctl start parkhub
-
-# If using Docker
-docker pull ghcr.io/nash87/parkhub:latest
-docker compose up -d
-```
-
-> ✅ Database migrations run automatically on startup. No manual steps needed.
-
----
-
-## 🏗️ Building from Source
-
-### Prerequisites
-- Rust 1.75+
-- Node.js 20+
-- npm
-
-### Build
-```bash
-# Clone
 git clone https://github.com/nash87/parkhub.git
 cd parkhub
 
 # Build frontend
-cd parkhub-web && npm install && npm run build && cd ..
+cd parkhub-web && npm ci && npm run build && cd ..
 
-# Build backend (embeds frontend)
-cargo build --release
+# Build server
+cargo build --release --package parkhub-server
 
-# Binary at target/release/parkhub-server
+# Run
+./target/release/parkhub-server
 ```
 
----
+See the full [Installation Guide](docs/INSTALLATION.md) for Docker Compose, Kubernetes, reverse proxy, systemd, and TLS setup.
 
-## 📖 API
+## Configuration
 
-REST API at `/api/v1/`:
+ParkHub works out of the box with sensible defaults. For customization, create a `config.toml`:
+
+```toml
+[server]
+port = 7878
+data_dir = "/var/lib/parkhub"
+
+[tls]
+enabled = false
+cert = "/etc/parkhub/cert.pem"
+key = "/etc/parkhub/key.pem"
+
+[smtp]
+enabled = false
+host = "smtp.example.com"
+from = "parking@example.com"
+
+[rate_limit]
+requests_per_minute = 60
+```
+
+See [Configuration Reference](docs/CONFIGURATION.md) for all options.
+
+## API Overview
+
+All endpoints are under `/api/v1/`. Authentication uses JWT Bearer tokens.
 
 | Method | Endpoint | Description |
-|---|---|---|
-| POST | /api/v1/auth/login | Login |
-| POST | /api/v1/auth/register | Register |
-| GET | /api/v1/users/me | Current user |
-| GET | /api/v1/lots | List parking lots |
-| GET | /api/v1/lots/:id | Lot details with layout |
-| GET | /api/v1/lots/:id/slots | Slots with status |
-| GET | /api/v1/bookings | My bookings |
-| POST | /api/v1/bookings | Create booking |
-| DELETE | /api/v1/bookings/:id | Cancel booking |
-| GET | /api/v1/vehicles | My vehicles |
-| POST | /api/v1/vehicles | Add vehicle |
-| POST | /api/v1/vehicles/:id/photo | Upload photo |
-| GET | /api/v1/homeoffice | HO settings |
-| PUT | /api/v1/homeoffice/pattern | Update HO pattern |
-| GET | /api/v1/admin/users | List users (admin) |
-| GET | /api/v1/admin/bookings | All bookings (admin) |
+|--------|----------|-------------|
+| `POST` | `/auth/login` | Authenticate and receive JWT |
+| `POST` | `/auth/register` | Create new account |
+| `GET` | `/lots` | List parking lots |
+| `GET` | `/lots/:id/slots` | Get slots for a lot |
+| `POST` | `/bookings` | Create a booking |
+| `GET` | `/bookings/ical` | Export bookings as iCal |
+| `POST` | `/bookings/:id/checkin` | Check in to booking |
+| `GET` | `/vehicles` | List user vehicles |
+| `GET/PUT` | `/homeoffice` | Manage homeoffice settings |
+| `GET` | `/admin/stats` | Dashboard statistics |
+| `GET` | `/admin/reports` | Generate reports |
+| `GET` | `/users/me/export` | GDPR data export |
+| `DELETE` | `/users/me/delete` | GDPR account deletion |
 
-Full OpenAPI spec at `/swagger-ui/` when running. Raw JSON at `/api-docs/openapi.json`.
+See the full [API Documentation](docs/API.md) for all 40+ endpoints with examples.
 
----
-
-## 🐳 Kubernetes / Helm
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: parkhub
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: parkhub
-  template:
-    metadata:
-      labels:
-        app: parkhub
-    spec:
-      containers:
-        - name: parkhub
-          image: ghcr.io/nash87/parkhub:latest
-          ports:
-            - containerPort: 8080
-          env:
-            - name: PARKHUB_ADMIN_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: parkhub-secrets
-                  key: admin-password
-          volumeMounts:
-            - name: data
-              mountPath: /data
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: parkhub-data
-```
-
----
-
-## 📸 Screenshots
-
-<details>
-<summary>Click to expand screenshots</summary>
-
-### Dashboard
-![Dashboard](docs/screenshots/dashboard.png)
-
-### Book a Parking Spot
-![Booking](docs/screenshots/booking.png)
-
-### My Bookings
-![Bookings](docs/screenshots/bookings.png)
-
-### Home Office Management
-![Home Office](docs/screenshots/homeoffice.png)
-
-### Admin Overview
-![Admin](docs/screenshots/admin-overview.png)
-
-### Admin Lot Editor
-![Lot Editor](docs/screenshots/admin-editor.png)
-
-### Login
-![Login](docs/screenshots/login.png)
-
-### Mobile View
-![Mobile](docs/screenshots/mobile.png)
-
-</details>
-
----
-
-## 🤝 Contributing
-
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-1. Fork the repo
-2. Create your feature branch (`git checkout -b feat/amazing-feature`)
-3. Commit (`git commit -m 'feat: add amazing feature'`)
-4. Push (`git push origin feat/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-MIT — see [LICENSE](LICENSE) for details.
-
----
-
-**Made with 🦀 Rust + ⚛️ React**
-
----
-
-## 🔒 DSGVO / GDPR Compliance
-
-ParkHub is designed with **data protection by design** (Art. 25 DSGVO):
-
-- **Data Export (Art. 15)** — `GET /api/v1/users/me/export` returns all user data (profile, bookings, vehicles, preferences) as JSON
-- **Right to Erasure (Art. 17)** — `DELETE /api/v1/users/me` permanently deletes account and ALL associated data (bookings, vehicles, push subscriptions, waitlist entries, home office settings)
-- **Privacy Policy** — `GET /api/v1/privacy` returns structured privacy information, configurable via `privacy_policy_url` in config.toml or `PARKHUB_PRIVACY_POLICY_URL` env var
-- **Self-hosted = Data Sovereignty** — All data stays on your infrastructure. No cloud, no third-party data sharing
-- **Encryption at Rest** — Optional AES-256-GCM database encryption
-- **Audit Logging** — All security-relevant actions are logged for compliance
-
----
-
-## ♿ Accessibility
-
-ParkHub includes comprehensive accessibility features:
-
-- **Colorblind Modes** — Deuteranopia, Protanopia, Tritanopia themes (theme modes 3-5)
-- **High Contrast Mode** — Enhanced visibility theme (mode 2)
-- **Font Scaling** — Configurable font scale: 1.0 (normal), 1.25 (large), 1.5 (extra large)
-- **Reduce Motion** — Disable animations for vestibular sensitivity
-- **Screen Reader Support** — Semantic HTML, ARIA labels, proper heading hierarchy
-- **Keyboard Navigation** — Full keyboard support throughout the application
-- **Focus Indicators** — Visible focus rings on all interactive elements
-
-Settings are persisted server-side and can be configured via the admin GUI or `config.toml`.
-
----
-
-## 🧙 Admin Onboarding / Setup Wizard
-
-First-time setup is guided:
-
-1. **GUI Mode** — A setup wizard walks through server name, admin credentials, TLS, encryption, and parking lot creation
-2. **Headless/Unattended** — Use `--unattended` flag for auto-configuration with defaults (admin/admin)
-3. **Setup Status** — `GET /api/v1/setup/status` checks if initial setup is complete
-4. **Mark Complete** — `POST /api/v1/setup/complete` (admin only) marks onboarding as done
-5. **Password Change** — `PATCH /api/v1/users/me/password` for changing the default admin password
-
----
-
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Clients                              │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
-│  │ React    │  │ PWA      │  │ Desktop  │  │ API Client │  │
-│  │ Web App  │  │ (Mobile) │  │ Client   │  │ (curl etc) │  │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └─────┬──────┘  │
-└───────┼──────────────┼─────────────┼──────────────┼─────────┘
-        │              │             │              │
-        └──────────────┼─────────────┼──────────────┘
-                       │  HTTPS/REST │
-                       ▼             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   ParkHub Server (Rust)                      │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
-│  │ Axum     │  │ Auth     │  │ mDNS     │  │ Background │  │
-│  │ HTTP API │  │ (Argon2) │  │ Discovery│  │ Jobs       │  │
-│  └────┬─────┘  └──────────┘  └──────────┘  └────────────┘  │
-│       │                                                     │
-│  ┌────▼───────────────────────────────────────────────────┐ │
-│  │               redb (Embedded Database)                 │ │
-│  │           Optional AES-256-GCM encryption              │ │
-│  └────────────────────────────────────────────────────────┘ │
-│                                                             │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
-│  │ Audit    │  │ Email    │  │ Metrics  │  │ Rate       │  │
-│  │ Logging  │  │ (SMTP)   │  │ Prom.    │  │ Limiting   │  │
-│  └──────────┘  └──────────┘  └──────────┘  └────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                        Browser                           │
+│              React · TypeScript · TailwindCSS             │
+└────────────────────────┬─────────────────────────────────┘
+                         │ HTTPS
+┌────────────────────────┴─────────────────────────────────┐
+│              Reverse Proxy (Nginx / Caddy)                │
+│                    TLS termination                        │
+└────────────────────────┬─────────────────────────────────┘
+                         │ HTTP
+┌────────────────────────┴─────────────────────────────────┐
+│                    ParkHub Server                         │
+│         Rust · Axum · Tower (rate limiting)               │
+│                                                          │
+│  ┌─────────┐  ┌──────────┐  ┌─────────┐  ┌───────────┐  │
+│  │  Auth   │  │ Bookings │  │  Admin  │  │  Metrics  │  │
+│  │  JWT    │  │  iCal    │  │ Reports │  │ Prometheus│  │
+│  └─────────┘  └──────────┘  └─────────┘  └───────────┘  │
+│                                                          │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │                  redb (embedded)                    │  │
+│  │            Zero-config · ACID · Fast                │  │
+│  └─────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────┘
 ```
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | Rust 1.83+, Axum, Tower, Tokio |
+| Database | redb (embedded key-value store) |
+| Frontend | React 18, TypeScript 5, TailwindCSS 3 |
+| Animations | Framer Motion |
+| Icons | Phosphor Icons |
+| Build | Vite, Cargo |
+| Container | Docker (multi-stage, ~20 MB image) |
+| CI/CD | GitHub Actions |
+
+## Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, code of conduct, and the PR process.
+
+## License
+
+ParkHub is licensed under the [MIT License](LICENSE).
 
 ---
 
-## ❓ FAQ
-
-**Q: Do I need a database server (PostgreSQL, MySQL)?**
-A: No! ParkHub uses redb, an embedded database. Everything runs in a single binary.
-
-**Q: Can I run it on a Raspberry Pi?**
-A: Yes, compile for ARM. The server is lightweight and runs fine on minimal hardware.
-
-**Q: Is the data encrypted?**
-A: Optionally. Enable AES-256-GCM encryption at rest with a passphrase via config or `PARKHUB_DB_PASSPHRASE` env var.
-
-**Q: How do clients find the server?**
-A: Via mDNS/DNS-SD autodiscovery on the LAN, or by entering the server URL manually.
-
-**Q: Is it GDPR/DSGVO compliant?**
-A: Yes. Data export (Art. 15), account deletion (Art. 17), self-hosted data sovereignty, encryption at rest, and audit logging are all built in.
-
-**Q: Can I use it without TLS?**
-A: Yes, but not recommended for production. Start with `--unattended` or set `enable_tls = false` in config.toml.
-
-**Q: How do I back up the data?**
-A: The database is a single file (`parkhub.redb`) in the data directory. Automatic daily backups are enabled by default.
+<p align="center">
+  <a href="docs/INSTALLATION.md">Installation</a> · <a href="docs/API.md">API</a> · <a href="docs/CONFIGURATION.md">Config</a> · <a href="docs/DEPLOYMENT.md">Deploy</a> · <a href="docs/DEVELOPMENT.md">Develop</a> · <a href="docs/THEMES.md">Themes</a> · <a href="docs/SECURITY.md">Security</a> · <a href="docs/ACCESSIBILITY.md">Accessibility</a>
+</p>

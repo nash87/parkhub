@@ -1,31 +1,36 @@
 # Changelog
 
-## v2026.02.07-1 (2026-02-07)
+All notable changes to ParkHub are documented here.
 
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
-
-## [0.1.0] - 2025-02-07
+## [1.0.0] — 2026-02-08
 
 ### Added
-- 🅿️ **Parking Management** — Create and manage parking lots with visual grid layout
-- 📅 **Booking System** — One-time, multi-day, and permanent (Dauerbuchung) bookings
-- 🗺️ **Visual Parking Map** — Interactive top-down grid showing real-time slot availability
-- 🏠 **Home Office Integration** — Set home office patterns, auto-release spots on HO days
-- 🚗 **Vehicle Management** — Register vehicles with license plates and photos
-- 👥 **User Management** — Registration, login, roles (user/admin), account status
-- 🔐 **Authentication** — JWT-based auth with session management
-- ⚙️ **Admin Dashboard** — Real-time occupancy stats, activity log, user management
-- 📋 **Admin Booking Overview** — View, filter, and manage all bookings
-- ⚙️ **Lot Designer** — Visual editor for parking lot layout (rows, slots, labels)
-- 🌍 **Internationalization** — German and English language support
-- 🌙 **Dark Mode** — Full dark theme across all pages
-- 📱 **PWA Support** — Installable as app on mobile and desktop
-- 🐳 **Docker Support** — Multi-stage Dockerfile and docker-compose setup
-- 📡 **REST API** — Full API at `/api/v1/` with OpenAPI documentation
-- ⚡ **Embedded Database** — redb for zero-dependency data storage
-- 🔔 **Notifications** — Booking reminders and status updates
 
-[0.1.0]: https://github.com/nash87/parkhub/releases/tag/v0.1.0
+- Real-time parking slot management with interactive visual parking map
+- Booking system: one-time, multi-day, and permanent reservations
+- Check-in with QR code scanning
+- 10 color themes: Default Blue, Solarized, Dracula, Nord, Gruvbox, Catppuccin, Tokyo Night, One Dark, Rose Pine, Everforest
+- Dark / Light mode with system preference detection
+- Internationalization: German and English
+- Accessibility: colorblind modes (protanopia, deuteranopia, tritanopia), font scaling, reduced motion, high contrast
+- Corporate branding customization (logo, company name, colors)
+- Homeoffice integration with recurring patterns and auto-release
+- Vehicle management with photo upload
+- Waitlist system with automatic notifications
+- iCal export for calendar subscriptions
+- Admin dashboard with statistics, reports, and CSV export
+- User management with roles and departments
+- GDPR compliance: data export, account deletion, privacy policy
+- PWA support for mobile installation
+- REST API with 40+ endpoints
+- Prometheus metrics endpoint
+- Health check endpoints (liveness, readiness)
+- Rate limiting per IP
+- JWT authentication with refresh tokens
+- Built-in TLS support
+- Push notification subscriptions
+- Single binary deployment with embedded redb database
+- Docker support with multi-stage build (~20 MB image)
+- Comprehensive documentation suite
