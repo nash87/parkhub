@@ -729,4 +729,59 @@ export const de = {
     added: "Zu Favoriten hinzugefügt",
     removed: "Aus Favoriten entfernt",
   },
+
+  usecase: {
+    title: 'Wie werden Sie ParkHub nutzen?',
+    subtitle: 'Das hilft uns, Ihre Erfahrung anzupassen',
+    corporate: {
+      name: 'Unternehmen',
+      description: 'Büro- & Firmenparkplatzverwaltung',
+      labels: {
+        users: 'Mitarbeiter',
+        department: 'Abteilung',
+        organization: 'Firma',
+        admin: 'Admin',
+      },
+    },
+    residential: {
+      name: 'Wohnanlage',
+      description: 'Parkplätze für Wohnanlagen',
+      labels: {
+        users: 'Bewohner',
+        department: 'Einheit',
+        organization: 'Gebäude',
+        admin: 'Verwalter',
+      },
+    },
+    family: {
+      name: 'Familie',
+      description: 'Gemeinsames Parken zu Hause',
+      labels: {
+        users: 'Familienmitglieder',
+        department: 'Person',
+        organization: 'Haushalt',
+        admin: 'Eigentümer',
+      },
+    },
+    rental: {
+      name: 'Vermietung',
+      description: 'Mieterparkplätze',
+      labels: {
+        users: 'Mieter',
+        department: 'Einheit',
+        organization: 'Immobilie',
+        admin: 'Vermieter',
+      },
+    },
+    public: {
+      name: 'Öffentlich',
+      description: 'Öffentliche Parkanlage',
+      labels: {
+        users: 'Nutzer',
+        department: 'Zone',
+        organization: 'Anlage',
+        admin: 'Betreiber',
+      },
+    },
+  },
 };

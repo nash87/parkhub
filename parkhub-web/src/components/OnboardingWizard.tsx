@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Buildings, Car, Users, CheckCircle, ArrowRight, ArrowLeft, Database, Sparkle, ClipboardText } from '@phosphor-icons/react';
+import { Lock, Buildings, Car, Users, CheckCircle, ArrowRight, ArrowLeft, Database, Sparkle, ClipboardText, House, UsersThree, Key, MapPin } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { useUseCaseStore, UseCaseType } from '../stores/usecase';
 
 // Auth context available via provider
 import toast from 'react-hot-toast';
@@ -21,6 +22,14 @@ interface OnboardingWizardProps {
   onComplete: () => void;
 }
 
+const useCaseOptions: { type: UseCaseType; icon: typeof Buildings }[] = [
+  { type: 'corporate', icon: Buildings },
+  { type: 'residential', icon: House },
+  { type: 'family', icon: UsersThree },
+  { type: 'rental', icon: Key },
+  { type: 'public', icon: MapPin },
+];
+
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const { t } = useTranslation();
   
@@ -38,6 +47,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [companyName, setCompanyName] = useState('');
   const [loadDummyData, setLoadDummyData] = useState<boolean | null>(null);
   const [selfRegistration, setSelfRegistration] = useState(false);
+
+  // Use-case state
+  const { useCase, setUseCase } = useUseCaseStore();
 
   // Setup status from API
   
@@ -207,20 +219,23 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       await handleCompanySave();
       setStep(2);
     } else if (step === 2) {
+      // Use-case selection - always proceed (default is corporate)
+      setStep(3);
+    } else if (step === 3) {
       // Dummy data question
       if (loadDummyData) {
         await handleDummyData();
-        setStep(4); // Skip lot creation, go to users
+        setStep(5); // Skip lot creation, go to users
       } else if (loadDummyData === false) {
-        setStep(3); // Go to manual lot creation
+        setStep(4); // Go to manual lot creation
       }
-    } else if (step === 3) {
-      // Lot creation - user can do it in admin later
-      setStep(4);
     } else if (step === 4) {
-      // User management
+      // Lot creation - user can do it in admin later
       setStep(5);
     } else if (step === 5) {
+      // User management
+      setStep(6);
+    } else if (step === 6) {
       // Done
       await completeSetup();
     }
@@ -231,6 +246,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const steps = [
     { icon: Lock, key: 'password' },
     { icon: Buildings, key: 'company' },
+    { icon: Buildings, key: 'usecase' },
     { icon: Database, key: 'dummyData' },
     { icon: Car, key: 'lot' },
     { icon: Users, key: 'users' },
@@ -240,7 +256,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   // const Icon = steps[step].icon;
   const isLast = step === steps.length - 1;
   const canGoNext = step === 0 ? (passwordChanged || (currentPassword && newPassword && confirmPassword)) :
-                    step === 2 ? loadDummyData !== null :
+                    step === 3 ? loadDummyData !== null :
                     true;
 
   return (
@@ -338,8 +354,58 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             )}
 
-            {/* Step 2: Dummy Data */}
+            {/* Step 2: Use-Case Selection */}
             {step === 2 && (
+              <div className="space-y-4">
+                <div className="text-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {t('usecase.title')}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {t('usecase.subtitle')}
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  {useCaseOptions.map(({ type, icon: Icon }) => (
+                    <button
+                      key={type}
+                      onClick={() => setUseCase(type)}
+                      className={`p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 ${
+                        useCase === type
+                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        useCase === type
+                          ? 'bg-primary-100 dark:bg-primary-900/40'
+                          : 'bg-gray-100 dark:bg-gray-800'
+                      }`}>
+                        <Icon weight="fill" className={`w-5 h-5 ${
+                          useCase === type
+                            ? 'text-primary-600 dark:text-primary-400'
+                            : 'text-gray-500 dark:text-gray-400'
+                        }`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm text-gray-900 dark:text-white">
+                          {t(`usecase.${type}.name`)}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {t(`usecase.${type}.description`)}
+                        </p>
+                      </div>
+                      {useCase === type && (
+                        <CheckCircle weight="fill" className="w-5 h-5 text-primary-500 ml-auto flex-shrink-0" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Dummy Data */}
+            {step === 3 && (
               <div className="space-y-4">
                 <div className="text-center mb-4">
                   <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-3">
@@ -373,8 +439,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             )}
 
-            {/* Step 3: Lot Creation hint */}
-            {step === 3 && (
+            {/* Step 4: Lot Creation hint */}
+            {step === 4 && (
               <div className="space-y-4 text-center">
                 <div className="w-16 h-16 mx-auto rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-3">
                   <Car weight="fill" className="w-8 h-8 text-primary-600 dark:text-primary-400" />
@@ -391,8 +457,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             )}
 
-            {/* Step 4: Users */}
-            {step === 4 && (
+            {/* Step 5: Users */}
+            {step === 5 && (
               <div className="space-y-4">
                 <div className="text-center mb-4">
                   <div className="w-16 h-16 mx-auto rounded-2xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-3">
@@ -424,8 +490,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             )}
 
-            {/* Step 5: Done */}
-            {step === 5 && (
+            {/* Step 6: Done */}
+            {step === 6 && (
               <div className="space-y-4 text-center">
                 <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-3">
                   <CheckCircle weight="fill" className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />

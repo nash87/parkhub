@@ -661,4 +661,59 @@ export const es = {
     added: 'Añadido a favoritos',
     removed: 'Eliminado de favoritos',
   },
+
+  usecase: {
+    title: '¿Cómo usarás ParkHub?',
+    subtitle: 'Esto nos ayuda a personalizar tu experiencia',
+    corporate: {
+      name: 'Corporativo',
+      description: 'Gestión de estacionamiento corporativo',
+      labels: {
+        users: 'Empleados',
+        department: 'Departamento',
+        organization: 'Empresa',
+        admin: 'Admin',
+      },
+    },
+    residential: {
+      name: 'Residencial',
+      description: 'Estacionamiento residencial',
+      labels: {
+        users: 'Residentes',
+        department: 'Unidad',
+        organization: 'Edificio',
+        admin: 'Administrador',
+      },
+    },
+    family: {
+      name: 'Familia',
+      description: 'Estacionamiento familiar compartido',
+      labels: {
+        users: 'Miembros de la familia',
+        department: 'Persona',
+        organization: 'Hogar',
+        admin: 'Propietario',
+      },
+    },
+    rental: {
+      name: 'Alquiler',
+      description: 'Estacionamiento para inquilinos',
+      labels: {
+        users: 'Inquilinos',
+        department: 'Unidad',
+        organization: 'Propiedad',
+        admin: 'Arrendador',
+      },
+    },
+    public: {
+      name: 'Público',
+      description: 'Estacionamiento público',
+      labels: {
+        users: 'Usuarios',
+        department: 'Zona',
+        organization: 'Instalación',
+        admin: 'Operador',
+      },
+    },
+  },
 };

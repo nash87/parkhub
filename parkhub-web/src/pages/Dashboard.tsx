@@ -20,6 +20,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
+import { useUseCaseStore } from '../stores/usecase';
 
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
@@ -31,6 +32,8 @@ export function DashboardPage() {
   const [hoSettings, setHoSettings] = useState<HomeofficeSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const { canInstall, install, dismiss } = useInstallPrompt();
+  const { useCase } = useUseCaseStore();
+  const organizationLabel = t(`usecase.${useCase}.labels.organization`);
 
   useEffect(() => { loadData(); }, []);
 
@@ -86,7 +89,7 @@ export function DashboardPage() {
             {t('dashboard.welcome', { name: user?.name?.split(' ')[0] })}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-0.5 text-sm">
-            {format(new Date(), "EEEE, d. MMMM yyyy", { locale: dateFnsLocale })}
+            {format(new Date(), "EEEE, d. MMMM yyyy", { locale: dateFnsLocale })} &middot; {organizationLabel}
           </p>
         </div>
         {!isHoToday && (

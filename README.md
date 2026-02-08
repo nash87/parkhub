@@ -5,7 +5,7 @@
 <h1 align="center">ParkHub</h1>
 
 <p align="center">
-  <strong>Open-source corporate parking management. One binary. Zero dependencies. Beautiful UI.</strong>
+  <strong>Open-source parking management for everyone. One binary. Zero dependencies. Beautiful UI.</strong>
 </p>
 
 <p align="center">
@@ -21,9 +21,11 @@
 
 ---
 
-ParkHub is a self-hosted parking management system for companies. It ships as a single binary with an embedded database — no PostgreSQL, no Redis, no external services. Drop it on a server and it runs.
+ParkHub is a self-hosted parking management system for everyone — companies, residential buildings, families, rental properties, and public facilities. It ships as a single binary with an embedded database — no PostgreSQL, no Redis, no external services. Drop it on a server and it runs.
 
 ## Key Features
+nParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, **Rental**, and **Public** — each with tailored labels and terminology.
+
 
 | Feature | Description |
 |---|---|

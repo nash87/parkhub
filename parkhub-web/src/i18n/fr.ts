@@ -661,4 +661,59 @@ export const fr = {
     added: 'Ajouté aux favoris',
     removed: 'Retiré des favoris',
   },
+
+  usecase: {
+    title: 'Comment utiliserez-vous ParkHub ?',
+    subtitle: 'Cela nous aide à personnaliser votre expérience',
+    corporate: {
+      name: 'Entreprise',
+      description: 'Gestion du stationnement de bureau',
+      labels: {
+        users: 'Employés',
+        department: 'Département',
+        organization: 'Entreprise',
+        admin: 'Admin',
+      },
+    },
+    residential: {
+      name: 'Résidentiel',
+      description: 'Stationnement résidentiel',
+      labels: {
+        users: 'Résidents',
+        department: 'Unité',
+        organization: 'Immeuble',
+        admin: 'Gestionnaire',
+      },
+    },
+    family: {
+      name: 'Famille',
+      description: 'Stationnement familial partagé',
+      labels: {
+        users: 'Membres de la famille',
+        department: 'Personne',
+        organization: 'Foyer',
+        admin: 'Propriétaire',
+      },
+    },
+    rental: {
+      name: 'Location',
+      description: 'Stationnement pour locataires',
+      labels: {
+        users: 'Locataires',
+        department: 'Unité',
+        organization: 'Propriété',
+        admin: 'Bailleur',
+      },
+    },
+    public: {
+      name: 'Public',
+      description: 'Parking public ou partagé',
+      labels: {
+        users: 'Utilisateurs',
+        department: 'Zone',
+        organization: 'Installation',
+        admin: 'Opérateur',
+      },
+    },
+  },
 };

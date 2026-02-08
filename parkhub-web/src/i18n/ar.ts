@@ -665,4 +665,59 @@ export const ar = {
     added: 'تمت الإضافة للمفضلة',
     removed: 'تمت الإزالة من المفضلة',
   },
+
+  usecase: {
+    title: 'How will you use ParkHub?',
+    subtitle: 'This helps us customize your experience',
+    corporate: {
+      name: 'Corporate',
+      description: 'Office & company parking management',
+      labels: {
+        users: 'Employees',
+        department: 'Department',
+        organization: 'Company',
+        admin: 'Admin',
+      },
+    },
+    residential: {
+      name: 'Residential',
+      description: 'Apartment & condo parking',
+      labels: {
+        users: 'Residents',
+        department: 'Unit',
+        organization: 'Building',
+        admin: 'Manager',
+      },
+    },
+    family: {
+      name: 'Family',
+      description: 'Shared family parking at home',
+      labels: {
+        users: 'Family Members',
+        department: 'Person',
+        organization: 'Household',
+        admin: 'Owner',
+      },
+    },
+    rental: {
+      name: 'Rental',
+      description: 'Tenant parking for rental properties',
+      labels: {
+        users: 'Tenants',
+        department: 'Unit',
+        organization: 'Property',
+        admin: 'Landlord',
+      },
+    },
+    public: {
+      name: 'Public',
+      description: 'Public or shared-use parking facility',
+      labels: {
+        users: 'Users',
+        department: 'Zone',
+        organization: 'Facility',
+        admin: 'Operator',
+      },
+    },
+  },
 };
