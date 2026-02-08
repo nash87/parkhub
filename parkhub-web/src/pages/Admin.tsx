@@ -389,8 +389,12 @@ function AdminSystem() {
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [error, setError] = useState('');
   const [lastChecked, setLastChecked] = useState<string | null>(null);
+  const [releaseNotes, setReleaseNotes] = useState('');
+  const [showReleaseNotes, setShowReleaseNotes] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     fetch('/api/v1/system/version')
@@ -410,12 +414,34 @@ function AdminSystem() {
       const data = await res.json();
       setLatestVersion(data.latest || null);
       setUpdateAvailable(data.update_available || false);
+      setReleaseNotes(data.release_notes || '');
       if (data.error) setError(data.error);
       setLastChecked(new Date().toLocaleString());
     } catch {
       setError(t('admin.version.error', 'Could not check for updates'));
     }
     setChecking(false);
+  }
+
+  async function applyUpdate() {
+    setShowConfirm(false);
+    setApplying(true);
+    try {
+      const token = localStorage.getItem('parkhub_token');
+      const res = await fetch('/api/v1/admin/updates/apply', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = '/maintenance';
+      } else {
+        setError(data.error || 'Update failed');
+        setApplying(false);
+      }
+    } catch {
+      window.location.href = '/maintenance';
+    }
   }
 
   return (
@@ -427,7 +453,7 @@ function AdminSystem() {
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800">
-            <span className="text-sm text-gray-600 dark:text-gray-400">{t('admin.version.current', 'Current Version')}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('system.version', 'Version')}</span>
             <span className="font-mono font-medium text-gray-900 dark:text-white">v{version || '...'}</span>
           </div>
           {latestVersion && (
@@ -446,30 +472,68 @@ function AdminSystem() {
           )}
           <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800">
             <span className="text-sm text-gray-600 dark:text-gray-400">{t('admin.version.repoUrl', 'Repository')}</span>
-            <a href="https://github.com/frostplexx/parkhub" target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline">
-              github.com/frostplexx/parkhub
+            <a href="https://github.com/nash87/parkhub" target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline">
+              github.com/nash87/parkhub
             </a>
           </div>
         </div>
-        <div className="mt-6 flex items-center gap-3">
-          <button onClick={checkForUpdates} disabled={checking} className="btn-primary flex items-center gap-2 px-4 py-2 text-sm">
+        <div className="mt-6 flex items-center gap-3 flex-wrap">
+          <button onClick={checkForUpdates} disabled={checking || applying} className="btn-primary flex items-center gap-2 px-4 py-2 text-sm">
             <ArrowsClockwise weight="bold" className={'w-4 h-4' + (checking ? ' animate-spin' : '')} />
-            {checking ? t('admin.version.checking', 'Checking...') : t('admin.version.checkForUpdates', 'Check for updates')}
+            {checking ? t('admin.version.checking', 'Checking...') : t('system.checkUpdate', 'Check for updates')}
           </button>
+          <a href="https://github.com/nash87/parkhub" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+            {t('system.viewOnGithub', 'View on GitHub')}
+          </a>
+          <a href="https://github.com/nash87/parkhub/issues/new" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+            {t('system.reportIssue', 'Report issue')}
+          </a>
         </div>
         {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
         {updateAvailable && (
           <div className="mt-4 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">{t('admin.version.updateAvailable', 'Update available')}: v{latestVersion}</p>
-            <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">{t('admin.version.updateInstructions', 'To update, run the update script on the server or pull the latest version from the repository.')}</p>
+            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">{t('system.updateAvailable', 'Update available')}: v{latestVersion}</p>
+            {releaseNotes && (
+              <button onClick={() => setShowReleaseNotes(!showReleaseNotes)} className="text-sm text-yellow-700 dark:text-yellow-400 underline mt-1">
+                {t('system.releaseNotes', 'Release notes')}
+              </button>
+            )}
+            {showReleaseNotes && releaseNotes && (
+              <pre className="mt-2 text-xs text-yellow-800 dark:text-yellow-300 whitespace-pre-wrap bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded max-h-48 overflow-y-auto">{releaseNotes}</pre>
+            )}
+            <div className="mt-3">
+              <button onClick={() => setShowConfirm(true)} disabled={applying} className="btn-primary flex items-center gap-2 px-4 py-2 text-sm">
+                {applying ? <SpinnerGap weight="bold" className="w-4 h-4 animate-spin" /> : null}
+                {applying ? t('system.updating', 'Updating ParkHub...') : t('system.updateNow', 'Update now')}
+              </button>
+            </div>
           </div>
         )}
         {latestVersion && !updateAvailable && !error && (
           <div className="mt-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-            <p className="text-sm font-medium text-green-800 dark:text-green-300">{t('admin.version.noUpdates', 'You are running the latest version.')}</p>
+            <p className="text-sm font-medium text-green-800 dark:text-green-300">{t('system.upToDate', 'Up to date')}</p>
           </div>
         )}
       </div>
+
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('system.updateNow', 'Update now')}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              {t('admin.version.updateInstructions', 'The server will download the update and restart. This may take a few moments.')}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setShowConfirm(false)} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900">
+                {t('common.cancel', 'Cancel')}
+              </button>
+              <button onClick={applyUpdate} className="btn-primary px-4 py-2 text-sm">
+                {t('common.confirm', 'Confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

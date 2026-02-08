@@ -52,6 +52,7 @@ use tray_icon::{
 
 /// Application state shared across handlers
 pub struct AppState {
+    pub maintenance: std::sync::atomic::AtomicBool,
     pub data_dir: std::path::PathBuf,
     pub email: Option<crate::email::EmailService>,
     pub config: ServerConfig,
@@ -359,6 +360,7 @@ async fn main() -> Result<()> {
         email: email_service.clone(),
         config: config.clone(),
         db,
+        maintenance: std::sync::atomic::AtomicBool::new(false),
         mdns,
     }));
 

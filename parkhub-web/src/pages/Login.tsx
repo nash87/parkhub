@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Car, Eye, EyeSlash, ArrowRight, SpinnerGap, Moon, Sun, Globe } from '@phosphor-icons/react';
+import { Car, Eye, EyeSlash, ArrowRight, SpinnerGap, Moon, Sun, Globe, GithubLogo } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { useTranslation } from 'react-i18next';
@@ -135,6 +135,12 @@ export function LoginPage() {
             <Link to="/terms" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.terms')}</Link>
             {' · '}
             <Link to="/legal" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.imprint')}</Link>
+          </p>
+          <p className="mt-2 text-center text-xs text-gray-300 dark:text-gray-600 flex items-center gap-1 justify-center">
+            {t('system.poweredBy', 'Powered by ParkHub')} ·{' '}
+            <a href="https://github.com/nash87/parkhub" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-gray-500 transition-colors">
+              <GithubLogo weight="bold" className="w-3 h-3" /> {t('system.openSource', 'Open Source')}
+            </a>
           </p>
         </motion.div>
       </div>

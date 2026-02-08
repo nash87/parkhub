@@ -161,6 +161,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/branding", get(get_branding_public))
         .route("/api/v1/branding/logo", get(serve_branding_logo))
         .route("/api/v1/vehicles/:id/photo", get(get_vehicle_photo))
+        .route("/api/v1/system/maintenance", get(get_maintenance_status))
         .route("/api/v1/system/version", get(get_system_version));
 
     // Protected routes (auth required)
@@ -200,6 +201,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/admin/branding/logo", post(upload_branding_logo))
         .route("/api/v1/admin/reset", post(admin_reset_database))
         .route("/api/v1/admin/updates/check", get(admin_check_updates))
+        .route("/api/v1/admin/updates/apply", post(admin_apply_update))
         .route("/api/v1/lots/:lot_id/slots/:slot_id", put(admin_update_slot_properties))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
@@ -2794,8 +2796,8 @@ async fn admin_check_updates(
     }
     drop(state_guard);
 
-    let repo_url = "https://github.com/frostplexx/parkhub".to_string();
-    let api_url = "https://api.github.com/repos/frostplexx/parkhub/releases/latest";
+    let repo_url = "https://github.com/nash87/parkhub".to_string();
+    let api_url = "https://api.github.com/repos/nash87/parkhub/releases/latest";
 
     let client = match reqwest::Client::builder()
         .user_agent("ParkHub-Server")
@@ -2820,11 +2822,17 @@ async fn admin_check_updates(
                     .trim_start_matches('v')
                     .to_string();
                 let update_available = !tag.is_empty() && tag != VERSION;
+                let release_notes = body.get("body").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let published_at = body.get("published_at").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let release_url = body.get("html_url").and_then(|v| v.as_str()).unwrap_or("").to_string();
                 (StatusCode::OK, Json(serde_json::json!({
                     "current": VERSION,
                     "latest": tag,
                     "update_available": update_available,
                     "repo_url": repo_url,
+                    "release_notes": release_notes,
+                    "published_at": published_at,
+                    "release_url": release_url,
                 })))
             } else {
                 (StatusCode::OK, Json(serde_json::json!({
@@ -2858,3 +2866,164 @@ async fn admin_check_updates(
     }
 }
 
+
+/// GET /api/v1/system/maintenance - Check maintenance mode
+async fn get_maintenance_status(
+    State(state): State<SharedState>,
+) -> impl IntoResponse {
+    let state_guard = state.read().await;
+    let is_maintenance = state_guard.maintenance.load(std::sync::atomic::Ordering::Relaxed);
+    Json(serde_json::json!({
+        "maintenance": is_maintenance,
+        "message": if is_maintenance { "Update in progress..." } else { "" },
+    }))
+}
+
+/// POST /api/v1/admin/updates/apply - Apply update (admin only)
+async fn admin_apply_update(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(serde_json::json!({"error": "Access denied"}))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({"error": "Admin access required"})));
+    }
+
+    // Set maintenance mode
+    state_guard.maintenance.store(true, std::sync::atomic::Ordering::Relaxed);
+    drop(state_guard);
+
+    // Determine current platform binary name
+    let binary_name = if cfg!(target_os = "linux") {
+        if cfg!(target_arch = "aarch64") { "parkhub-linux-arm64" } else { "parkhub-linux-amd64" }
+    } else if cfg!(target_os = "macos") {
+        if cfg!(target_arch = "aarch64") { "parkhub-macos-arm64" } else { "parkhub-macos-amd64" }
+    } else if cfg!(target_os = "windows") {
+        "parkhub-windows-amd64.exe"
+    } else {
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Unsupported platform"})));
+    };
+
+    // Fetch latest release info
+    let client = match reqwest::Client::builder()
+        .user_agent("ParkHub-Server")
+        .timeout(std::time::Duration::from_secs(30))
+        .build() {
+        Ok(c) => c,
+        Err(e) => {
+            let sg = state.read().await;
+            sg.maintenance.store(false, std::sync::atomic::Ordering::Relaxed);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": format!("HTTP client error: {}", e)})));
+        }
+    };
+
+    let api_url = "https://api.github.com/repos/nash87/parkhub/releases/latest";
+    let release = match client.get(api_url).send().await {
+        Ok(resp) if resp.status().is_success() => {
+            match resp.json::<serde_json::Value>().await {
+                Ok(body) => body,
+                Err(e) => {
+                    let sg = state.read().await;
+                    sg.maintenance.store(false, std::sync::atomic::Ordering::Relaxed);
+                    return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": format!("Parse error: {}", e)})));
+                }
+            }
+        }
+        _ => {
+            let sg = state.read().await;
+            sg.maintenance.store(false, std::sync::atomic::Ordering::Relaxed);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Failed to fetch release info"})));
+        }
+    };
+
+    // Find the download URL for our binary
+    let download_url = release.get("assets")
+        .and_then(|a| a.as_array())
+        .and_then(|assets| {
+            assets.iter().find(|a| {
+                a.get("name").and_then(|n| n.as_str()).map(|n| n == binary_name).unwrap_or(false)
+            })
+        })
+        .and_then(|a| a.get("browser_download_url"))
+        .and_then(|u| u.as_str());
+
+    let download_url = match download_url {
+        Some(url) => url.to_string(),
+        None => {
+            let sg = state.read().await;
+            sg.maintenance.store(false, std::sync::atomic::Ordering::Relaxed);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "error": format!("No binary found for platform: {}", binary_name)
+            })));
+        }
+    };
+
+    // Download the binary
+    let binary_data = match client.get(&download_url).send().await {
+        Ok(resp) if resp.status().is_success() => {
+            match resp.bytes().await {
+                Ok(bytes) => bytes,
+                Err(e) => {
+                    let sg = state.read().await;
+                    sg.maintenance.store(false, std::sync::atomic::Ordering::Relaxed);
+                    return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": format!("Download error: {}", e)})));
+                }
+            }
+        }
+        _ => {
+            let sg = state.read().await;
+            sg.maintenance.store(false, std::sync::atomic::Ordering::Relaxed);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Failed to download binary"})));
+        }
+    };
+
+    // Replace current binary
+    let current_exe = match std::env::current_exe() {
+        Ok(p) => p,
+        Err(e) => {
+            let sg = state.read().await;
+            sg.maintenance.store(false, std::sync::atomic::Ordering::Relaxed);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": format!("Cannot find current exe: {}", e)})));
+        }
+    };
+
+    let backup_path = current_exe.with_extension("bak");
+    if let Err(e) = std::fs::rename(&current_exe, &backup_path) {
+        let sg = state.read().await;
+        sg.maintenance.store(false, std::sync::atomic::Ordering::Relaxed);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": format!("Backup failed: {}", e)})));
+    }
+
+    if let Err(e) = std::fs::write(&current_exe, &binary_data) {
+        // Try to restore backup
+        let _ = std::fs::rename(&backup_path, &current_exe);
+        let sg = state.read().await;
+        sg.maintenance.store(false, std::sync::atomic::Ordering::Relaxed);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": format!("Write failed: {}", e)})));
+    }
+
+    // Make executable on Unix
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&current_exe, std::fs::Permissions::from_mode(0o755));
+    }
+
+    let tag = release.get("tag_name").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+
+    // Schedule graceful restart
+    tokio::spawn(async {
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        std::process::exit(0);
+    });
+
+    (StatusCode::OK, Json(serde_json::json!({
+        "success": true,
+        "message": format!("Updated to {}. Server will restart shortly.", tag),
+        "version": tag,
+    })))
+}

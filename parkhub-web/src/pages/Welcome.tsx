@@ -10,6 +10,7 @@ import {
   Eye,
   GlobeSimple,
   ArrowRight,
+  GithubLogo,
 } from '@phosphor-icons/react';
 
 const welcomeWords = [
@@ -34,7 +35,7 @@ const fontScaleOptions = [
 
 export function WelcomePage() {
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const accessibility = useAccessibility();
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [fade, setFade] = useState(true);
@@ -232,8 +233,11 @@ export function WelcomePage() {
       </div>
 
       {/* Footer */}
-      <p className="mt-10 text-xs text-gray-300 dark:text-gray-600">
-        ParkHub — Open Source Parking Management
+      <p className="mt-10 text-xs text-gray-300 dark:text-gray-600 flex items-center gap-2 justify-center">
+        {t('system.openSource', 'Open Source')} · {t('system.license', 'MIT License')} ·{' '}
+        <a href="https://github.com/nash87/parkhub" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-gray-500 dark:hover:text-gray-400 transition-colors">
+          <GithubLogo weight="bold" className="w-3.5 h-3.5" /> GitHub
+        </a>
       </p>
     </div>
   );

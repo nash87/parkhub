@@ -20,6 +20,7 @@ import { SpinnerGap } from '@phosphor-icons/react';
 import { WelcomePage } from './pages/Welcome';
 import { SetupGuard, useSetupStatus } from './components/SetupGuard';
 import { SetupPage } from './pages/Setup';
+import { MaintenanceScreen } from './components/MaintenanceScreen';
 
 const AdminPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminPage })));
 const HomeofficePage = lazy(() => import('./pages/Homeoffice').then(m => ({ default: m.HomeofficePage })));
@@ -106,7 +107,8 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/welcome" element={<WelcomePage />} />
+      <Route path="/maintenance" element={<MaintenanceScreen />} />
+            <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/login" element={<LoginRedirectGuard />} />
       <Route path="/setup" element={<SetupPage />} />
       <Route path="/register" element={<RegisterPage />} />

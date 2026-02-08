@@ -817,4 +817,19 @@ export const en = {
   vehicle: {
     formatHint: "Format: GÖ-AB 1234",
   },
+  system: {
+    version: 'Version',
+    checkUpdate: 'Check for updates',
+    updateAvailable: 'Update available',
+    updateNow: 'Update now',
+    upToDate: 'Up to date',
+    releaseNotes: 'Release notes',
+    maintenance: 'Maintenance mode',
+    updating: 'Updating ParkHub...',
+    openSource: 'Open Source',
+    poweredBy: 'Powered by ParkHub',
+    viewOnGithub: 'View on GitHub',
+    reportIssue: 'Report issue',
+    license: 'MIT License',
+  },
 };

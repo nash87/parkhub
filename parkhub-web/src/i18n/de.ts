@@ -854,4 +854,19 @@ export const de = {
   vehicle: {
     formatHint: "Format: GÖ-AB 1234",
   },
+  system: {
+    version: 'Version',
+    checkUpdate: 'Nach Updates suchen',
+    updateAvailable: 'Update verfügbar',
+    updateNow: 'Jetzt aktualisieren',
+    upToDate: 'Aktuell',
+    releaseNotes: 'Neuerungen',
+    maintenance: 'Wartungsmodus',
+    updating: 'ParkHub wird aktualisiert...',
+    openSource: 'Open Source',
+    poweredBy: 'Bereitgestellt von ParkHub',
+    viewOnGithub: 'Auf GitHub ansehen',
+    reportIssue: 'Problem melden',
+    license: 'MIT-Lizenz',
+  },
 };

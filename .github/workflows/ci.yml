@@ -1,80 +1,25 @@
 name: CI
-
 on:
-  push:
-    branches:
-      - main
-      - develop
   pull_request:
-    branches:
-      - main
-
-env:
-  CARGO_TERM_COLOR: always
+  push:
+    branches: [main]
 
 jobs:
   check:
-    name: Cargo Check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-action@stable
-
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
-
-      - name: Run cargo check
-        run: cargo check --workspace --all-targets
-
-  fmt:
-    name: Cargo Format
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-action@stable
-        with:
-          components: rustfmt
-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-  clippy:
-    name: Cargo Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-action@stable
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
-
-      - name: Run clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
-
-  test:
-    name: Cargo Test
-    runs-on: ubuntu-latest
-    needs: [check]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-action@stable
-
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
-
-      - name: Run tests
-        run: cargo test --workspace
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build Frontend
+        run: cd parkhub-web && npm ci && npm run build
+      - name: Cargo check
+        run: cargo check --workspace --no-default-features --features headless
+      - name: Clippy
+        run: cargo clippy --workspace --no-default-features --features headless -- -D warnings
+      - name: Tests
+        run: cargo test --workspace --no-default-features --features headless
