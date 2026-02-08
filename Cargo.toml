@@ -24,6 +24,9 @@ anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tokio = { version = "1", features = ["full", "rt-multi-thread"] }
+tokio-stream = "0.1"
+async-stream = "0.3"
+futures-core = "0.3"
 
 # Database - Pure Rust embedded database
 redb = "2"

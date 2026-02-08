@@ -398,6 +398,9 @@ function AdminSystem() {
   const [releaseNotes, setReleaseNotes] = useState('');
   const [showReleaseNotes, setShowReleaseNotes] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateStep, setUpdateStep] = useState('');
+  const [updateMessage, setUpdateMessage] = useState('');
 
   useEffect(() => {
     fetch('/api/v1/system/version')
@@ -431,25 +434,68 @@ function AdminSystem() {
     setChecking(false);
   }
 
-  async function applyUpdate() {
+  function applyUpdate() {
     setShowConfirm(false);
     setApplying(true);
-    try {
-      const token = localStorage.getItem('parkhub_token');
-      const res = await fetch('/api/v1/admin/updates/apply', {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + token },
-      });
-      const data = await res.json();
-      if (data.success) {
-        window.location.href = '/maintenance';
-      } else {
-        setError(data.error || 'Update failed');
+    setUpdateProgress(0);
+    setUpdateStep('');
+    setUpdateMessage('Starting update...');
+    setError('');
+
+    const token = localStorage.getItem('parkhub_token');
+    const es = new EventSource('/api/v1/admin/updates/stream?token=' + token);
+
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        setUpdateProgress(data.progress || 0);
+        setUpdateStep(data.step || '');
+        setUpdateMessage(data.message || '');
+
+        if (data.step === 'restarting' || data.step === 'complete') {
+          es.close();
+          // Poll for server to come back
+          const poll = setInterval(async () => {
+            try {
+              const res = await fetch('/api/v1/health');
+              if (res.ok) {
+                clearInterval(poll);
+                window.location.href = '/login';
+              }
+            } catch { /* still restarting */ }
+          }, 2000);
+          // Timeout after 5 minutes
+          setTimeout(() => clearInterval(poll), 300000);
+        }
+
+        if (data.step === 'error') {
+          es.close();
+          setError(data.message || 'Update failed');
+          setApplying(false);
+        }
+      } catch { /* ignore parse errors */ }
+    };
+
+    es.onerror = () => {
+      es.close();
+      // Server might have restarted - poll
+      setUpdateMessage('Server restarting...');
+      setUpdateProgress(95);
+      const poll = setInterval(async () => {
+        try {
+          const res = await fetch('/api/v1/health');
+          if (res.ok) {
+            clearInterval(poll);
+            window.location.href = '/login';
+          }
+        } catch { /* still restarting */ }
+      }, 2000);
+      setTimeout(() => {
+        clearInterval(poll);
         setApplying(false);
-      }
-    } catch {
-      window.location.href = '/maintenance';
-    }
+        setError('Connection lost. Server may still be updating.');
+      }, 120000);
+    };
   }
 
   return (
@@ -550,6 +596,38 @@ function AdminSystem() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Update progress overlay */}
+      {applying && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gray-950/95 backdrop-blur-sm">
+          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-6" />
+          <h2 className="text-2xl font-bold text-white mb-2">
+            {updateStep === 'error' ? 'Update Failed' : t('system.updating', 'Updating ParkHub...')}
+          </h2>
+          {updateProgress > 0 && updateStep !== 'error' && (
+            <div className="w-72 h-2.5 bg-gray-800 rounded-full overflow-hidden mt-4 mb-3">
+              <div
+                className="h-full bg-primary-500 rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${updateProgress}%` }}
+              />
+            </div>
+          )}
+          {updateProgress > 0 && updateStep !== 'error' && (
+            <p className="text-primary-400 text-sm font-mono mb-2">{updateProgress}%</p>
+          )}
+          <p className={`text-sm max-w-md text-center px-4 ${updateStep === 'error' ? 'text-red-400' : 'text-gray-400'}`}>
+            {updateMessage}
+          </p>
+          {updateStep === 'error' && (
+            <button
+              onClick={() => setApplying(false)}
+              className="mt-6 px-4 py-2 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-700"
+            >
+              Close
+            </button>
+          )}
         </div>
       )}
     </div>

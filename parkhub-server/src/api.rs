@@ -7,7 +7,7 @@ use axum::{
     extract::{Path, Query, State},
     http::{header, Request, StatusCode},
     middleware::{self, Next},
-    response::{IntoResponse, Response},
+    response::{IntoResponse, Response, sse::{Event, KeepAlive, Sse}},
     routing::{delete, get, patch, post, put},
     Extension, Json, Router,
     extract::Multipart,
@@ -162,6 +162,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/branding/logo", get(serve_branding_logo))
         .route("/api/v1/vehicles/:id/photo", get(get_vehicle_photo))
         .route("/api/v1/system/maintenance", get(get_maintenance_status))
+        .route("/api/v1/admin/updates/stream", get(admin_update_stream))
         .route("/api/v1/system/version", get(get_system_version));
 
     // Protected routes (auth required)
@@ -3029,4 +3030,303 @@ async fn admin_apply_update(
         "message": format!("Updated to {}. Server will restart shortly.", tag),
         "version": tag,
     })))
+}
+
+
+/// GET /api/v1/admin/updates/stream?token=<jwt> - SSE stream for update progress
+async fn admin_update_stream(
+    State(state): State<SharedState>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Sse<impl futures_core::Stream<Item = Result<Event, std::convert::Infallible>>>, (StatusCode, Json<serde_json::Value>)> {
+    // Auth via query param (EventSource can't set headers)
+    let token = params.get("token").cloned().unwrap_or_default();
+    let state_guard = state.read().await;
+    let session = match state_guard.db.get_session(&token).await {
+        Ok(Some(s)) if !s.is_expired() => s,
+        _ => return Err((StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error": "Unauthorized"})))),
+    };
+    let user = match state_guard.db.get_user(&session.user_id.to_string()).await {
+        Ok(Some(u)) if u.role == UserRole::Admin || u.role == UserRole::SuperAdmin => u,
+        _ => return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({"error": "Admin required"})))),
+    };
+    drop(state_guard);
+    let _ = user;
+
+    let state_clone = state.clone();
+    let stream = async_stream::stream! {
+        // Helper macro for sending SSE events
+        macro_rules! send_progress {
+            ($step:expr, $progress:expr, $msg:expr) => {
+                let data = serde_json::json!({
+                    "step": $step,
+                    "progress": $progress,
+                    "message": $msg,
+                });
+                yield Ok(Event::default().data(data.to_string()));
+                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+            };
+        }
+
+        send_progress!("checking", 5, "Checking for updates...");
+
+        // Check if running on NixOS
+        let is_nixos = std::path::Path::new("/etc/NIXOS").exists();
+
+        let client = match reqwest::Client::builder()
+            .user_agent("ParkHub-Server")
+            .timeout(std::time::Duration::from_secs(30))
+            .build() {
+            Ok(c) => c,
+            Err(e) => {
+                send_progress!("error", 0, format!("HTTP client error: {}", e));
+                return;
+            }
+        };
+
+        send_progress!("checking", 10, "Fetching latest release info...");
+
+        let api_url = "https://api.github.com/repos/nash87/parkhub/releases/latest";
+        let release = match client.get(api_url).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                match resp.json::<serde_json::Value>().await {
+                    Ok(body) => body,
+                    Err(e) => {
+                        send_progress!("error", 0, format!("Parse error: {}", e));
+                        return;
+                    }
+                }
+            }
+            Ok(resp) => {
+                send_progress!("error", 0, format!("GitHub API error: {}", resp.status()));
+                return;
+            }
+            Err(e) => {
+                send_progress!("error", 0, format!("Network error: {}", e));
+                return;
+            }
+        };
+
+        let tag = release.get("tag_name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        let tag_clean = tag.trim_start_matches('v');
+        if tag_clean == VERSION {
+            send_progress!("complete", 100, "Already up to date!");
+            return;
+        }
+
+        send_progress!("checking", 15, format!("Update available: v{}", tag_clean));
+
+        if is_nixos {
+            // NixOS: can't run downloaded binaries, use git pull + cargo build
+            send_progress!("building", 20, "NixOS detected — building from source...");
+
+            // git pull
+            let git_pull = tokio::process::Command::new("git")
+                .args(["pull", "--ff-only"])
+                .current_dir("/home/florian/parkhub")
+                .output()
+                .await;
+
+            match git_pull {
+                Ok(output) if output.status.success() => {
+                    send_progress!("building", 30, "Git pull complete, building frontend...");
+                }
+                Ok(output) => {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    send_progress!("error", 0, format!("Git pull failed: {}", stderr));
+                    return;
+                }
+                Err(e) => {
+                    send_progress!("error", 0, format!("Git pull error: {}", e));
+                    return;
+                }
+            }
+
+            // Build frontend
+            let npm_build = tokio::process::Command::new("npm")
+                .args(["run", "build"])
+                .current_dir("/home/florian/parkhub/parkhub-web")
+                .output()
+                .await;
+
+            match npm_build {
+                Ok(output) if output.status.success() => {
+                    send_progress!("building", 50, "Frontend built, compiling backend (this may take a while)...");
+                }
+                Ok(_output) => {
+                    send_progress!("building", 50, "Frontend build had issues, continuing with backend...");
+                }
+                Err(e) => {
+                    send_progress!("building", 50, format!("Frontend build skipped: {}", e));
+                }
+            }
+
+            // Build backend
+            send_progress!("building", 55, "Compiling Rust backend... (this takes 1-5 minutes)");
+
+            let cargo_build = tokio::process::Command::new("cargo")
+                .args(["build", "--release", "-p", "parkhub-server", "--no-default-features", "--features", "headless"])
+                .current_dir("/home/florian/parkhub")
+                .env("RUSTC_WRAPPER", "")
+                .output()
+                .await;
+
+            match cargo_build {
+                Ok(output) if output.status.success() => {
+                    send_progress!("installing", 90, "Build complete!");
+                }
+                Ok(output) => {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    let last_lines: String = stderr.lines().rev().take(5).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("
+");
+                    send_progress!("error", 0, format!("Build failed: {}", last_lines));
+                    return;
+                }
+                Err(e) => {
+                    send_progress!("error", 0, format!("Cargo build error: {}", e));
+                    return;
+                }
+            }
+
+            send_progress!("restarting", 95, "Restarting server...");
+
+            // Set maintenance mode and exit
+            let sg = state_clone.read().await;
+            sg.maintenance.store(true, std::sync::atomic::Ordering::Relaxed);
+            drop(sg);
+
+            tokio::spawn(async {
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                std::process::exit(0);
+            });
+
+            send_progress!("complete", 100, format!("Updated to v{}! Server restarting...", tag_clean));
+            return;
+        }
+
+        // Non-NixOS: download binary
+        let binary_name = if cfg!(target_os = "linux") {
+            if cfg!(target_arch = "aarch64") { "parkhub-linux-arm64" } else { "parkhub-linux-amd64" }
+        } else if cfg!(target_os = "macos") {
+            if cfg!(target_arch = "aarch64") { "parkhub-macos-arm64" } else { "parkhub-macos-amd64" }
+        } else if cfg!(target_os = "windows") {
+            "parkhub-windows-amd64.exe"
+        } else {
+            send_progress!("error", 0, "Unsupported platform");
+            return;
+        };
+
+        let download_url = release.get("assets")
+            .and_then(|a| a.as_array())
+            .and_then(|assets| {
+                assets.iter().find(|a| {
+                    a.get("name").and_then(|n| n.as_str()).map(|n| n == binary_name).unwrap_or(false)
+                })
+            })
+            .and_then(|a| a.get("browser_download_url"))
+            .and_then(|u| u.as_str());
+
+        let download_url = match download_url {
+            Some(url) => url.to_string(),
+            None => {
+                send_progress!("error", 0, format!("No binary found for: {}", binary_name));
+                return;
+            }
+        };
+
+        send_progress!("downloading", 25, format!("Downloading v{}...", tag_clean));
+
+        let binary_data = match client.get(&download_url).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                match resp.bytes().await {
+                    Ok(bytes) => {
+                        let size_mb = bytes.len() as f64 / 1_048_576.0;
+                        send_progress!("downloading", 60, format!("Downloaded {:.1} MB", size_mb));
+                        bytes
+                    }
+                    Err(e) => {
+                        send_progress!("error", 0, format!("Download error: {}", e));
+                        return;
+                    }
+                }
+            }
+            _ => {
+                send_progress!("error", 0, "Failed to download binary");
+                return;
+            }
+        };
+
+        send_progress!("installing", 70, "Testing downloaded binary...");
+
+        // Write to temp location and test
+        let temp_path = std::env::temp_dir().join("parkhub-server-new");
+        if let Err(e) = std::fs::write(&temp_path, &binary_data) {
+            send_progress!("error", 0, format!("Write error: {}", e));
+            return;
+        }
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = std::fs::set_permissions(&temp_path, std::fs::Permissions::from_mode(0o755));
+        }
+
+        // Test execution
+        let test_result = tokio::process::Command::new(&temp_path)
+            .arg("--version")
+            .output()
+            .await;
+
+        match test_result {
+            Ok(output) if output.status.success() => {
+                send_progress!("installing", 80, "Binary verified, installing...");
+            }
+            _ => {
+                let _ = std::fs::remove_file(&temp_path);
+                send_progress!("error", 0, "Downloaded binary can't run on this system. Please rebuild from source: cd /home/florian/parkhub && git pull && cargo build --release -p parkhub-server --no-default-features --features headless");
+                return;
+            }
+        }
+
+        // Replace current binary
+        let current_exe = match std::env::current_exe() {
+            Ok(p) => p,
+            Err(e) => {
+                let _ = std::fs::remove_file(&temp_path);
+                send_progress!("error", 0, format!("Cannot find current exe: {}", e));
+                return;
+            }
+        };
+
+        let backup_path = current_exe.with_extension("bak");
+        if let Err(e) = std::fs::rename(&current_exe, &backup_path) {
+            let _ = std::fs::remove_file(&temp_path);
+            send_progress!("error", 0, format!("Backup failed: {}", e));
+            return;
+        }
+
+        if let Err(e) = std::fs::rename(&temp_path, &current_exe) {
+            let _ = std::fs::rename(&backup_path, &current_exe);
+            send_progress!("error", 0, format!("Install failed: {}", e));
+            return;
+        }
+
+        send_progress!("restarting", 95, "Restarting server...");
+
+        let sg = state_clone.read().await;
+        sg.maintenance.store(true, std::sync::atomic::Ordering::Relaxed);
+        drop(sg);
+
+        tokio::spawn(async {
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            std::process::exit(0);
+        });
+
+        send_progress!("complete", 100, format!("Updated to v{}! Server restarting...", tag_clean));
+    };
+
+    Ok(Sse::new(stream).keep_alive(KeepAlive::default()))
 }
