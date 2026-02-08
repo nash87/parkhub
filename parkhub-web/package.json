@@ -1,7 +1,7 @@
 {
   "name": "parkhub-web",
   "private": true,
-  "version": "2026.2.8",
+  "version": "2026.2.0-8.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
