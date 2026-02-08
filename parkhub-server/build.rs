@@ -1,8 +1,16 @@
 //! Build script for ParkHub Server
 //!
 //! Compiles Slint UI files for the setup wizard (when gui feature is enabled).
+//! Sets BUILD_DATE environment variable for version endpoint.
 
 fn main() {
+    // Set build date
+    let output = std::process::Command::new("date").arg("+%Y-%m-%d").output();
+    if let Ok(o) = output {
+        let date = String::from_utf8_lossy(&o.stdout).trim().to_string();
+        println!("cargo:rustc-env=BUILD_DATE={}", date);
+    }
+
     // Only compile Slint UI when GUI feature is enabled
     #[cfg(feature = "gui")]
     {

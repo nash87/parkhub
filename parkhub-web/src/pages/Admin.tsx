@@ -386,6 +386,9 @@ export
 function AdminSystem() {
   const { t } = useTranslation();
   const [version, setVersion] = useState('');
+  const [buildDate, setBuildDate] = useState('');
+  const [releasesUrl, setReleasesUrl] = useState('https://github.com/nash87/parkhub/releases');
+  const [changelogUrl, setChangelogUrl] = useState('https://github.com/nash87/parkhub/blob/main/CHANGELOG.md');
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -399,7 +402,12 @@ function AdminSystem() {
   useEffect(() => {
     fetch('/api/v1/system/version')
       .then(r => r.json())
-      .then(d => setVersion(d.version || ''))
+      .then(d => {
+        setVersion(d.version || '');
+        setBuildDate(d.build_date || '');
+        if (d.releases_url) setReleasesUrl(d.releases_url);
+        if (d.changelog_url) setChangelogUrl(d.changelog_url);
+      })
       .catch(() => {});
   }, []);
 
@@ -456,6 +464,10 @@ function AdminSystem() {
             <span className="text-sm text-gray-600 dark:text-gray-400">{t('system.version', 'Version')}</span>
             <span className="font-mono font-medium text-gray-900 dark:text-white">v{version || '...'}</span>
           </div>
+          <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800">
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('admin.version.buildDate', 'Build Date')}</span>
+            <span className="font-mono text-sm text-gray-900 dark:text-white">{buildDate || '—'}</span>
+          </div>
           {latestVersion && (
             <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800">
               <span className="text-sm text-gray-600 dark:text-gray-400">{t('admin.version.latest', 'Latest Version')}</span>
@@ -478,6 +490,12 @@ function AdminSystem() {
           </div>
         </div>
         <div className="mt-6 flex items-center gap-3 flex-wrap">
+          <a href={releasesUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+            {t('admin.version.releases', 'Releases')}
+          </a>
+          <a href={changelogUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+            {t('admin.version.changelog', 'Changelog')}
+          </a>
           <button onClick={checkForUpdates} disabled={checking || applying} className="btn-primary flex items-center gap-2 px-4 py-2 text-sm">
             <ArrowsClockwise weight="bold" className={'w-4 h-4' + (checking ? ' animate-spin' : '')} />
             {checking ? t('admin.version.checking', 'Checking...') : t('system.checkUpdate', 'Check for updates')}

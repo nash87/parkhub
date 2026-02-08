@@ -20,6 +20,7 @@ import {
   CheckCircle,
   DotsThreeCircle,
   Translate,
+  GithubLogo,
 } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
@@ -298,7 +299,7 @@ export function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {t('footer.tagline')} · <span className="text-gray-400 dark:text-gray-500">v{__APP_VERSION__}</span>
+              {t('footer.tagline')} · <a href="https://github.com/nash87/parkhub/releases" target="_blank" rel="noopener noreferrer" className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">v{__APP_VERSION__}</a>
             </p>
             <div className="flex items-center gap-4 text-sm text-gray-400 dark:text-gray-500">
               <Link to="/help" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.help')}</Link>
@@ -306,10 +307,24 @@ export function Layout({ children }: LayoutProps) {
               <Link to="/privacy" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.privacy')}</Link>
               <Link to="/terms" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.terms')}</Link>
               <Link to="/legal" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.imprint')}</Link>
+              <a href="https://github.com/nash87/parkhub" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors"><GithubLogo weight="regular" className="w-4 h-4" /></a>
             </div>
           </div>
         </div>
       </footer>
+
+      {/* Version badge - subtle fixed position */}
+      <div className="fixed bottom-[4.5rem] md:bottom-auto md:relative z-10 left-0 right-0 pointer-events-none">
+        <div className="max-w-7xl mx-auto px-3 flex justify-between items-center">
+          <a href="https://github.com/nash87/parkhub" target="_blank" rel="noopener noreferrer" className="pointer-events-auto text-[10px] text-gray-300 dark:text-gray-700 hover:text-gray-500 dark:hover:text-gray-500 transition-colors flex items-center gap-1 md:hidden">
+            <GithubLogo weight="regular" className="w-3 h-3" />
+            <span>ParkHub v{__APP_VERSION__}</span>
+          </a>
+          <a href="https://github.com/nash87/parkhub/releases" target="_blank" rel="noopener noreferrer" className="pointer-events-auto text-[10px] text-gray-300 dark:text-gray-700 hover:text-gray-500 dark:hover:text-gray-500 transition-colors md:hidden">
+            Release Notes
+          </a>
+        </div>
+      </div>
 
       {/* Mobile Bottom Tab Bar */}
       <MobileBottomBar isAdmin={isAdmin} />

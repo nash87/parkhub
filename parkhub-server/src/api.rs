@@ -2775,8 +2775,12 @@ async fn admin_update_slot_properties(
 /// Get current system version
 async fn get_system_version() -> impl IntoResponse {
     Json(serde_json::json!({
-        "version": VERSION,
         "name": "ParkHub Server",
+        "version": VERSION,
+        "build_date": env!("BUILD_DATE"),
+        "repo_url": "https://github.com/nash87/parkhub",
+        "releases_url": "https://github.com/nash87/parkhub/releases",
+        "changelog_url": "https://github.com/nash87/parkhub/blob/main/CHANGELOG.md"
     }))
 }
 
