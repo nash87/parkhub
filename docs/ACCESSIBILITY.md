@@ -68,3 +68,14 @@ Focus rings are always visible when navigating by keyboard (hidden on mouse clic
 ---
 
 Back to [README](../README.md) · Previous: [Themes](THEMES.md) · Next: [Security](SECURITY.md)
+
+## Welcome Screen Accessibility
+
+The welcome screen (first-run language selection) includes accessibility controls from the very first interaction:
+
+- **Language selection** — available before login, so users can read the interface in their language immediately
+- **Font size** — adjustable on the welcome screen via the accessibility panel
+- **High contrast** — can be toggled before any authentication
+- **Reduced motion** — respects OS preference automatically
+
+This ensures users with accessibility needs can configure the interface before the onboarding wizard begins.

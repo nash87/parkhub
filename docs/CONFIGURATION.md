@@ -66,6 +66,33 @@ The encryption is transparent — the API and application logic don't know about
 
 Caution: if you lose the passphrase, the data is gone. There's no recovery mechanism.
 
+## TLS Configuration
+
+ParkHub can serve HTTPS directly using self-signed or custom certificates.
+
+Settings in `config.toml` (stored in the data directory):
+
+```toml
+enable_tls = false
+encryption_enabled = false
+```
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `enable_tls` | `true` | Enable built-in TLS. On first run, a self-signed certificate is generated. |
+| `encryption_enabled` | `true` | Enable AES-256-GCM database encryption (requires `encryption_passphrase`). |
+
+### Behind a Reverse Proxy
+
+When running behind nginx, Caddy, or any reverse proxy that handles TLS termination, **set both to `false`**:
+
+```toml
+enable_tls = false
+encryption_enabled = false
+```
+
+This avoids double encryption and certificate issues. The reverse proxy handles HTTPS; ParkHub serves plain HTTP on its port.
+
 ## Branding
 
 Customizable via the admin panel (Settings → Branding):

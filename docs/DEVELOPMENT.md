@@ -32,6 +32,18 @@ parkhub/
 ├── Cargo.toml               Workspace: parkhub-common, parkhub-server, parkhub-client
 ├── Dockerfile               Multi-stage: node:22-alpine → rust:1.83-alpine → scratch
 └── docker-compose.yml
+
+### Vehicle Photo Storage
+
+Vehicle photos are stored in `{data_dir}/vehicles/{vehicle_id}.jpg`. When uploaded:
+
+1. Base64 or multipart photo is decoded
+2. Image is loaded via the `image` crate
+3. Auto-resized to max 800px (preserving aspect ratio) using Lanczos3
+4. Saved as JPEG in the vehicles directory
+5. `photo_url` field on the Vehicle record points to `/api/v1/vehicles/{id}/photo`
+
+Demo data generates colored placeholder JPEGs (200x150) using `image::RgbImage` — no copyrighted assets.
 ```
 
 ## How the Build Works

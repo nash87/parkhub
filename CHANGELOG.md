@@ -4,6 +4,29 @@ All notable changes to ParkHub are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.0] — 2026-02-08
+
+### Added
+
+- Vehicle autocomplete with 50+ car brands for quick vehicle registration
+- Vehicle photo upload with automatic resize (max 800px, Lanczos3)
+- German license plate format validation (XX-YY 1234)
+- Booking date/time picker for selecting specific date and time ranges
+- Slot favorites for quick booking of preferred spots
+- Demo vehicles with colored placeholder photos in dummy data generation
+- Comprehensive documentation updates (API, Configuration, Development, Accessibility)
+
+### Changed
+
+- Dummy data now includes 8 realistic German demo vehicles with photos
+- `--features headless` documented for server-only builds
+- TLS and encryption settings documented for reverse proxy setups
+
+### Fixed
+
+- Various API endpoint documentation accuracy improvements
+- Configuration docs now cover `enable_tls` and `encryption_enabled` settings
+
 ## [1.0.0] — 2026-02-08
 
 ### Added

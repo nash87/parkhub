@@ -103,7 +103,11 @@ cd ..
 
 # Build the Rust server
 # build.rs embeds parkhub-web/dist/ into the binary at compile time
+# Full build (includes desktop GUI)
 cargo build --release --package parkhub-server
+
+# Server-only build (no GUI dependencies, for headless servers)
+# cargo build --release --package parkhub-server --no-default-features --features headless
 
 # Binary at ./target/release/parkhub-server
 ./target/release/parkhub-server
@@ -257,6 +261,8 @@ parkhub-server --tls-cert /etc/parkhub/cert.pem --tls-key /etc/parkhub/key.pem
 ```
 
 For production, a reverse proxy with auto-renewing certs is usually easier.
+
+> **Note:** When behind a reverse proxy, edit `config.toml` in the data directory and set `enable_tls = false` and `encryption_enabled = false` to avoid double encryption and certificate conflicts.
 
 ## systemd Service
 

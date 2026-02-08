@@ -227,7 +227,10 @@ curl -s -X POST http://localhost:7878/api/v1/bookings \
     "lot_id": "LOT_ID",
     "slot_id": "SLOT_ID",
     "date": "2026-02-10",
-    "vehicle_id": "VEHICLE_ID"
+    "vehicle_id": "VEHICLE_ID",
+    "date": "2026-02-10",
+    "start_time": "08:00",
+    "end_time": "18:00"
   }' | jq .
 ```
 
@@ -309,6 +312,15 @@ Only `license_plate` is required. The rest is optional.
 curl -s -X POST http://localhost:7878/api/v1/vehicles/VEHICLE_ID/photo \
   -H "Authorization: Bearer $TOKEN" \
   -F "photo=@car.jpg" | jq .
+```
+
+### Get Vehicle Photo
+
+Returns the vehicle photo as JPEG. Photos are auto-resized to max 800px.
+
+```bash
+curl -s http://localhost:7878/api/v1/vehicles/VEHICLE_ID/photo \
+  -H "Authorization: Bearer $TOKEN" -o vehicle.jpg
 ```
 
 ### Delete a Vehicle

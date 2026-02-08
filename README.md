@@ -47,6 +47,9 @@ ParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, *
 | **Waitlist System** | Automatic notification when a spot becomes available |
 | **Welcome Screen** | Guided first-run experience with language selection |
 | **Auto-Onboarding Wizard** | Step-by-step setup: password, use-case, organization, dummy data, registration mode |
+| **Vehicle Management** | Add vehicles with autocomplete (50+ brands), German license plate format (XX-YY 1234), photo upload with auto-resize |
+| **Booking Date/Time** | Select specific date and time range for bookings |
+| **Slot Favorites** | Mark preferred parking slots for quick booking |
 | **Rate Limiting** | Built-in request throttling per IP and per user |
 | **Security Hardened** | XSS prevention, input validation, HSTS, security headers |
 
@@ -127,8 +130,8 @@ cd parkhub
 # Build frontend
 cd parkhub-web && npm ci && npm run build && cd ..
 
-# Build server
-cargo build --release --package parkhub-server
+# Build server (use --features headless for server-only, no GUI)
+cargo build --release --package parkhub-server --no-default-features --features headless
 
 # Run
 ./target/release/parkhub-server

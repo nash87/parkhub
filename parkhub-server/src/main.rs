@@ -325,7 +325,7 @@ async fn main() -> Result<()> {
                 2 => UsernameStyle::InitialLast,
                 _ => UsernameStyle::FirstInitial,
             };
-            generate_dummy_users(&db, style).await?;
+            generate_dummy_users(&db, style, &data_dir).await?;
         }
     }
 
@@ -1165,9 +1165,9 @@ impl UsernameStyle {
 
 /// Generate 50 GDPR-compliant dummy users for testing
 /// All users have password "12351235" and can login immediately
-async fn generate_dummy_users(db: &Database, username_style: UsernameStyle) -> Result<()> {
+async fn generate_dummy_users(db: &Database, username_style: UsernameStyle, data_dir: &std::path::Path) -> Result<()> {
     use chrono::Utc;
-    use parkhub_common::models::{User, UserPreferences, UserRole};
+    use parkhub_common::models::{User, UserPreferences, UserRole, Vehicle};
     use rand::Rng;
     use uuid::Uuid;
 
@@ -1237,6 +1237,60 @@ async fn generate_dummy_users(db: &Database, username_style: UsernameStyle) -> R
 
     info!("Created 50 dummy users successfully");
     info!("Default login: any username with password '{}'", default_password);
+
+    // Create demo vehicles for the first 8 users
+    let demo_vehicles = [
+        ("VW", "Golf", "Silber", "GÖ-AB 1234", [192u8, 192, 192]),
+        ("BMW", "3er", "Schwarz", "GÖ-XY 567", [40, 40, 40]),
+        ("Mercedes", "C-Klasse", "Weiß", "GÖ-CD 890", [240, 240, 240]),
+        ("Tesla", "Model 3", "Rot", "GÖ-EL 42", [200, 40, 40]),
+        ("Audi", "A4", "Grau", "GÖ-MM 999", [128, 128, 128]),
+        ("Toyota", "Corolla", "Blau", "GÖ-TC 111", [40, 80, 200]),
+        ("Opel", "Corsa", "Grün", "GÖ-OC 222", [40, 160, 60]),
+        ("Skoda", "Octavia", "Beige", "GÖ-SO 333", [210, 190, 150]),
+    ];
+
+    // Get first 8 user IDs from database
+    let all_users = db.list_users().await?;
+    let user_ids: Vec<_> = all_users.iter().take(8).map(|u| u.id).collect();
+
+    let vehicles_dir = data_dir.join("vehicles");
+    std::fs::create_dir_all(&vehicles_dir)?;
+
+    for (i, (make, model, color, plate, rgb)) in demo_vehicles.iter().enumerate() {
+        if i >= user_ids.len() {
+            break;
+        }
+        let vehicle_id = Uuid::new_v4();
+        let vehicle = Vehicle {
+            id: vehicle_id,
+            user_id: user_ids[i],
+            plate: plate.to_string(),
+            make: Some(make.to_string()),
+            model: Some(model.to_string()),
+            color: Some(color.to_string()),
+            is_default: true,
+            photo_url: Some(format!("/api/v1/vehicles/{}/photo", vehicle_id)),
+            created_at: Utc::now(),
+        };
+        db.save_vehicle(&vehicle).await?;
+
+        // Generate colored placeholder JPEG (200x150)
+        let mut img = image::RgbImage::new(200, 150);
+        for pixel in img.pixels_mut() {
+            *pixel = image::Rgb([rgb[0], rgb[1], rgb[2]]);
+        }
+        // Draw a simple letter (first char of make) as a lighter rectangle in center
+        let _initial = make.chars().next().unwrap_or('?');
+        // We'll just save the colored rectangle - the make/model info is in the DB
+        let photo_path = vehicles_dir.join(format!("{}.jpg", vehicle_id));
+        let mut output = std::io::BufWriter::new(std::fs::File::create(&photo_path)?);
+        img.write_to(&mut output, image::ImageFormat::Jpeg)?;
+
+        info!("Created demo vehicle: {} {} ({}) for user {}", make, model, plate, user_ids[i]);
+    }
+
+    info!("Created {} demo vehicles with placeholder photos", demo_vehicles.len().min(user_ids.len()));
     Ok(())
 }
 
