@@ -785,4 +785,5 @@ export const de = {
       },
     },
   },
+  lotEditor: {    lotName: "Parkplatz-Name",    namePlaceholder: "z.B. Firmenparkplatz",    driveway: "Fahrweg",    drivewayLabel: "Fahrweg-Beschriftung",    rows: "Reihen",    addTopRow: "Obere Reihe",    addBottomRow: "Untere Reihe",    top: "Oben",    bottom: "Unten",    rowPlaceholder: "Reihe",    moveUp: "Nach oben",    moveDown: "Nach unten",    duplicate: "Duplizieren",    delete: "Löschen",    copy: " (Kopie)",    slotCount: "Anzahl Plätze",    startNumber: "Startnummer",    slotRange: "Start: {{start}}, Ende: {{end}} ({{count}} Plätze)",    slotsClickStatus: "Plätze",    editSlots: "Plätze bearbeiten",    doneEditing: "Fertig",    statusAvailable: "Verfügbar",    statusDisabled: "Deaktiviert",    statusBlocked: "Gesperrt",    noRows: "Noch keine Reihen angelegt.",    hidePreview: "Vorschau ausblenden",    showPreview: "Vorschau anzeigen",  },
 };
