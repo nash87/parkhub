@@ -106,14 +106,14 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           }
         } catch { /* best effort */ }
         setPasswordChanged(true);
-        toast.success('Passwort erfolgreich geändert');
+        toast.success(t('onboarding.steps.password.changed'));
         return true;
       } else {
-        setPasswordError(data.error?.message || 'Fehler beim Ändern des Passworts');
+        setPasswordError(data.error?.message || t('onboarding.steps.password.changeFailed'));
         return false;
       }
     } catch {
-      setPasswordError('Netzwerkfehler');
+      setPasswordError(t('onboarding.steps.password.networkError'));
       return false;
     }
   }
@@ -143,38 +143,38 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     // We need to trigger it via API - create a lot manually
     try {
       
-      const lotId = crypto.randomUUID();
-      const slots = Array.from({ length: 10 }, (_, i) => {
-        const slotId = crypto.randomUUID();
-        return {
-          id: slotId,
-          number: `P${i + 1}`,
-          status: 'available',
-        };
-      });
-      const lot = {
-        id: lotId,
-        name: 'Beispiel-Parkplatz',
-        address: 'Hauptstraße 1',
-        total_slots: 10,
-        available_slots: 10,
-        layout: {
-          rows: [
-            { id: crypto.randomUUID(), label: 'Reihe A', side: 'top', slots: slots.slice(0, 5) },
-            { id: crypto.randomUUID(), label: 'Reihe B', side: 'bottom', slots: slots.slice(5, 10) },
-          ],
-          road_label: 'Fahrweg',
-        },
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      await fetch('/api/v1/lots', {
+      // Step 1: Create lot with CreateLotRequest format
+      const createRes = await fetch('/api/v1/lots', {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(lot),
+        body: JSON.stringify({
+          name: t('onboarding.steps.dummyData.lotName'),
+          address: t('onboarding.steps.dummyData.lotAddress'),
+          total_slots: 10,
+        }),
       });
-      toast.success('Beispieldaten geladen');
+      const createData = await createRes.json();
+      if (createData.success && createData.data?.id) {
+        // Step 2: Set layout via PUT /api/v1/lots/:id/layout
+        const newLotId = createData.data.id;
+        const slots = Array.from({ length: 10 }, (_el, i) => ({
+          id: crypto.randomUUID(),
+          number: `P${i + 1}`,
+          status: 'available',
+        }));
+        await fetch(`/api/v1/lots/${newLotId}/layout`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            rows: [
+              { id: crypto.randomUUID(), label: t('onboarding.steps.dummyData.rowA'), side: 'top', slots: slots.slice(0, 5) },
+              { id: crypto.randomUUID(), label: t('onboarding.steps.dummyData.rowB'), side: 'bottom', slots: slots.slice(5, 10) },
+            ],
+            road_label: t('onboarding.steps.dummyData.roadLabel'),
+          }),
+        });
+      }
+      toast.success(t('onboarding.steps.dummyData.loaded'));
       return true;
     } catch {
       return true;
@@ -252,7 +252,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       >
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-            {step === 0 ? 'Willkommen bei ParkHub!' : t('onboarding.title')}
+            {t('onboarding.title')}
           </h2>
           <span className="text-xs text-gray-400">{step + 1}/{steps.length}</span>
         </div>
@@ -279,36 +279,36 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     <Lock weight="fill" className="w-8 h-8 text-red-600 dark:text-red-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Bitte ändern Sie Ihr Admin-Passwort
+                    {t('onboarding.steps.password.title')}
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Das Standard-Passwort muss aus Sicherheitsgründen geändert werden.
+                    {t('onboarding.steps.password.desc')}
                   </p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
-                    <ClipboardText size={16} className="inline mr-1" />Standard-Login: Benutzername <strong>admin</strong> / Passwort <strong>admin</strong>
+                    <ClipboardText size={16} className="inline mr-1" />{t('onboarding.steps.password.defaultCredentials')}
                   </p>
                 </div>
                 {passwordChanged ? (
                   <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-center">
                     <CheckCircle weight="fill" className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                    <p className="font-medium text-emerald-700 dark:text-emerald-300">Passwort erfolgreich geändert!</p>
+                    <p className="font-medium text-emerald-700 dark:text-emerald-300">{t('onboarding.steps.password.changed')}</p>
                   </div>
                 ) : (
                   <>
                     <div>
-                      <label className="label">Aktuelles Passwort</label>
+                      <label className="label">{t('onboarding.steps.password.currentPassword')}</label>
                       <input type="password" className="input" value={currentPassword}
-                        onChange={e => setCurrentPassword(e.target.value)} placeholder="Standard: admin" />
+                        onChange={e => setCurrentPassword(e.target.value)} placeholder={t('onboarding.steps.password.defaultPlaceholder')} />
                     </div>
                     <div>
-                      <label className="label">Neues Passwort</label>
+                      <label className="label">{t('onboarding.steps.password.newPassword')}</label>
                       <input type="password" className="input" value={newPassword}
-                        onChange={e => setNewPassword(e.target.value)} placeholder="Mindestens 8 Zeichen" />
+                        onChange={e => setNewPassword(e.target.value)} placeholder={t('onboarding.steps.password.minCharsPlaceholder')} />
                     </div>
                     <div>
-                      <label className="label">Passwort bestätigen</label>
+                      <label className="label">{t('onboarding.steps.password.confirmPassword')}</label>
                       <input type="password" className="input" value={confirmPassword}
-                        onChange={e => setConfirmPassword(e.target.value)} placeholder="Passwort wiederholen" />
+                        onChange={e => setConfirmPassword(e.target.value)} placeholder={t('onboarding.steps.password.repeatPlaceholder')} />
                     </div>
                     {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
                   </>
@@ -331,9 +331,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   </p>
                 </div>
                 <div>
-                  <label className="label">Firmenname</label>
+                  <label className="label">{t('onboarding.steps.company.nameLabel')}</label>
                   <input type="text" className="input" value={companyName}
-                    onChange={e => setCompanyName(e.target.value)} placeholder="z.B. Meine Firma GmbH" />
+                    onChange={e => setCompanyName(e.target.value)} placeholder={t('onboarding.steps.company.namePlaceholder')} />
                 </div>
               </div>
             )}
@@ -346,10 +346,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     <Database weight="fill" className="w-8 h-8 text-amber-600 dark:text-amber-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Beispieldaten laden?
+                    {t('onboarding.steps.dummyData.title')}
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Möchten Sie einen Beispiel-Parkplatz mit 10 Stellplätzen erstellen?
+                    {t('onboarding.steps.dummyData.desc')}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -358,16 +358,16 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     className={`p-4 rounded-xl border-2 text-center transition-all ${loadDummyData === true ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
                   >
                     <Sparkle weight="fill" className="w-6 h-6 mx-auto mb-2 text-primary-500" />
-                    <p className="font-medium text-sm">Ja, Beispieldaten</p>
-                    <p className="text-xs text-gray-400 mt-1">Schnellstart mit Demodaten</p>
+                    <p className="font-medium text-sm">{t('onboarding.steps.dummyData.yes')}</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('onboarding.steps.dummyData.yesDesc')}</p>
                   </button>
                   <button
                     onClick={() => setLoadDummyData(false)}
                     className={`p-4 rounded-xl border-2 text-center transition-all ${loadDummyData === false ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
                   >
                     <Buildings weight="regular" className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                    <p className="font-medium text-sm">Nein, leer starten</p>
-                    <p className="text-xs text-gray-400 mt-1">Selbst konfigurieren</p>
+                    <p className="font-medium text-sm">{t('onboarding.steps.dummyData.no')}</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('onboarding.steps.dummyData.noDesc')}</p>
                   </button>
                 </div>
               </div>
@@ -383,11 +383,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   {t('onboarding.steps.lot.title')}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Sie können Ihren ersten Parkplatz jetzt unter <strong>Admin → Parkplätze</strong> erstellen.
-                  Nutzen Sie den visuellen Layout-Editor, um Reihen und Stellplätze anzulegen.
+                  {t('onboarding.steps.lot.hint')}
                 </p>
                 <p className="text-xs text-gray-400">
-                  Dieser Schritt kann auch später erledigt werden.
+                  {t('onboarding.steps.lot.later')}
                 </p>
               </div>
             )}
@@ -403,7 +402,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     {t('onboarding.steps.users.title')}
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Wie sollen Benutzer hinzugefügt werden?
+                    {t('onboarding.steps.users.desc')}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
@@ -411,15 +410,15 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     onClick={() => setSelfRegistration(true)}
                     className={`p-4 rounded-xl border-2 text-left transition-all ${selfRegistration ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
                   >
-                    <p className="font-medium text-sm">Selbstregistrierung erlauben</p>
-                    <p className="text-xs text-gray-400 mt-1">Benutzer können sich selbst registrieren</p>
+                    <p className="font-medium text-sm">{t('onboarding.steps.users.selfRegister')}</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('onboarding.steps.users.selfRegisterDesc')}</p>
                   </button>
                   <button
                     onClick={() => setSelfRegistration(false)}
                     className={`p-4 rounded-xl border-2 text-left transition-all ${!selfRegistration ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
                   >
-                    <p className="font-medium text-sm">Benutzer manuell anlegen</p>
-                    <p className="text-xs text-gray-400 mt-1">Nur Admins können Benutzer erstellen</p>
+                    <p className="font-medium text-sm">{t('onboarding.steps.users.manual')}</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('onboarding.steps.users.manualDesc')}</p>
                   </button>
                 </div>
               </div>
@@ -439,22 +438,22 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 </p>
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 text-left space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Passwort:</span>
-                    <span className="font-medium text-emerald-600 flex items-center gap-1"><CheckCircle size={16} weight="fill" />Geändert</span>
+                    <span className="text-gray-500">{t('onboarding.steps.done.password')}:</span>
+                    <span className="font-medium text-emerald-600 flex items-center gap-1"><CheckCircle size={16} weight="fill" />{t('onboarding.steps.done.changed')}</span>
                   </div>
                   {companyName && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Firma:</span>
+                      <span className="text-gray-500">{t('onboarding.steps.done.company')}:</span>
                       <span className="font-medium">{companyName}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Beispieldaten:</span>
-                    <span className="font-medium">{loadDummyData ? 'Ja' : 'Nein'}</span>
+                    <span className="text-gray-500">{t('onboarding.steps.done.dummyData')}:</span>
+                    <span className="font-medium">{loadDummyData ? t('common.yes') : t('common.no')}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Registrierung:</span>
-                    <span className="font-medium">{selfRegistration ? 'Selbstregistrierung' : 'Manuell'}</span>
+                    <span className="text-gray-500">{t('onboarding.steps.done.registration')}:</span>
+                    <span className="font-medium">{selfRegistration ? t('onboarding.steps.users.selfRegister') : t('onboarding.steps.users.manual')}</span>
                   </div>
                 </div>
               </div>
@@ -476,7 +475,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
             </button>
           ) : (
             <button onClick={handleNext} disabled={!canGoNext} className="btn btn-primary btn-sm">
-              {step === 0 && !passwordChanged ? 'Passwort ändern' : t('common.next')} <ArrowRight weight="bold" className="w-4 h-4" />
+              {step === 0 && !passwordChanged ? t('onboarding.steps.password.changeBtn') : t('common.next')} <ArrowRight weight="bold" className="w-4 h-4" />
             </button>
           )}
         </div>
