@@ -32,6 +32,7 @@ rand.workspace = true
 zeroize.workspace = true
 hex = "0.4"
 base64 = "0.22"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 
 # HTTP API
 axum.workspace = true

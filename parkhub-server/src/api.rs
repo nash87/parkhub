@@ -111,6 +111,7 @@ pub struct CreateVehicleRequest {
     pub make: Option<String>,
     pub model: Option<String>,
     pub color: Option<String>,
+    pub photo: Option<String>,
 }
 
 /// Push subscription request - client only provides these fields
@@ -153,7 +154,8 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/setup/change-password", post(setup_change_password))
         .route("/api/v1/setup/status", get(get_setup_status))
         .route("/api/v1/branding", get(get_branding_public))
-        .route("/api/v1/branding/logo", get(serve_branding_logo));
+        .route("/api/v1/branding/logo", get(serve_branding_logo))
+        .route("/api/v1/vehicles/:id/photo", get(get_vehicle_photo));
 
     // Protected routes (auth required)
     let protected_routes = Router::new()
@@ -1071,15 +1073,31 @@ async fn create_vehicle(
     Extension(auth_user): Extension<AuthUser>,
     Json(req): Json<CreateVehicleRequest>,
 ) -> (StatusCode, Json<ApiResponse<Vehicle>>) {
+    let vehicle_id = Uuid::new_v4();
+    let mut photo_url = None;
+
+    // Handle base64 photo if provided
+    if let Some(ref photo_b64) = req.photo {
+        let state_guard = state.read().await;
+        match process_and_save_photo(&state_guard.data_dir, &vehicle_id.to_string(), photo_b64) {
+            Ok(_) => {
+                photo_url = Some(format!("/api/v1/vehicles/{}/photo", vehicle_id));
+            }
+            Err(e) => {
+                tracing::warn!("Failed to process vehicle photo: {}", e);
+            }
+        }
+    }
+
     let vehicle = Vehicle {
-        id: Uuid::new_v4(),
+        id: vehicle_id,
         user_id: auth_user.user_id,
         plate: req.license_plate,
         make: req.make,
         model: req.model,
         color: req.color,
         is_default: false,
-        photo_url: None,
+        photo_url,
         created_at: Utc::now(),
     };
 
@@ -1117,12 +1135,94 @@ async fn delete_vehicle(
     }
 }
 
+fn process_and_save_photo(data_dir: &std::path::Path, vehicle_id: &str, photo_b64: &str) -> anyhow::Result<()> {
+    use image::GenericImageView;
+    // Strip data URL prefix if present
+    let b64_data = if let Some(idx) = photo_b64.find(",") {
+        &photo_b64[idx + 1..]
+    } else {
+        photo_b64
+    };
+    let bytes = base64::engine::general_purpose::STANDARD.decode(b64_data)?;
+    let img = image::load_from_memory(&bytes)?;
+    let (w, h) = img.dimensions();
+    let img = if w > 800 || h > 800 {
+        let ratio = 800.0 / w.max(h) as f64;
+        let nw = (w as f64 * ratio) as u32;
+        let nh = (h as f64 * ratio) as u32;
+        img.resize(nw, nh, image::imageops::FilterType::Lanczos3)
+    } else {
+        img
+    };
+    let vehicles_dir = data_dir.join("vehicles");
+    std::fs::create_dir_all(&vehicles_dir)?;
+    let path = vehicles_dir.join(format!("{}.jpg", vehicle_id));
+    let mut output = std::io::BufWriter::new(std::fs::File::create(&path)?);
+    img.write_to(&mut output, image::ImageFormat::Jpeg)?;
+    Ok(())
+}
+
 async fn upload_vehicle_photo(
-    State(_state): State<SharedState>,
-    Extension(_auth_user): Extension<AuthUser>,
-    Path(_id): Path<String>,
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(id): Path<String>,
+    mut multipart: Multipart,
 ) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
-    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({"photo_url": null}))))
+    let state_guard = state.read().await;
+    // Verify ownership
+    match state_guard.db.get_vehicle(&id).await {
+        Ok(Some(v)) if v.user_id == auth_user.user_id => {}
+        Ok(Some(_)) => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Vehicle not found"))),
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Database error"))),
+    }
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        if field.name() == Some("photo") {
+            if let Ok(data) = field.bytes().await {
+                let b64 = base64::engine::general_purpose::STANDARD.encode(&data);
+                match process_and_save_photo(&state_guard.data_dir, &id, &b64) {
+                    Ok(_) => {
+                        let photo_url = format!("/api/v1/vehicles/{}/photo", id);
+                        // Update vehicle in DB
+                        if let Ok(Some(mut vehicle)) = state_guard.db.get_vehicle(&id).await {
+                            vehicle.photo_url = Some(photo_url.clone());
+                            let _ = state_guard.db.save_vehicle(&vehicle).await;
+                        }
+                        return (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({"photo_url": photo_url}))));
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to process photo: {}", e);
+                        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to process photo")));
+                    }
+                }
+            }
+        }
+    }
+    (StatusCode::BAD_REQUEST, Json(ApiResponse::error("BAD_REQUEST", "No photo field found")))
+}
+
+async fn get_vehicle_photo(
+    State(state): State<SharedState>,
+    Path(id): Path<String>,
+) -> Response {
+    let state_guard = state.read().await;
+    let path = state_guard.data_dir.join("vehicles").join(format!("{}.jpg", id));
+    if path.exists() {
+        match tokio::fs::read(&path).await {
+            Ok(bytes) => {
+                Response::builder()
+                    .status(200)
+                    .header(header::CONTENT_TYPE, "image/jpeg")
+                    .header(header::CACHE_CONTROL, "public, max-age=3600")
+                    .body(Body::from(bytes))
+                    .unwrap()
+            }
+            Err(_) => Response::builder().status(500).body(Body::empty()).unwrap(),
+        }
+    } else {
+        Response::builder().status(404).body(Body::empty()).unwrap()
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -241,6 +241,7 @@ export const de = {
     removed: 'Fahrzeug entfernt',
     uploadPhoto: 'Foto hochladen',
     uploadPhotoOrCamera: 'Foto hochladen oder Kamera verwenden',
+    photoUploaded: 'Foto hochgeladen',
   },
 
   // Colors
@@ -253,6 +254,9 @@ export const de = {
     green: 'Grün',
     gray: 'Grau',
     yellow: 'Gelb',
+    orange: 'Orange',
+    brown: 'Braun',
+    beige: 'Beige',
     other: 'Sonstige',
   },
 

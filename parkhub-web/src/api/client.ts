@@ -208,7 +208,7 @@ class ApiClient {
   async createVehicle(data: CreateVehicleData): Promise<ApiResponse<Vehicle>> {
     return this.request<Vehicle>('/api/v1/vehicles', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ license_plate: data.plate, make: data.make, model: data.model, color: data.color, photo: data.photo }),
     });
   }
 
@@ -367,6 +367,7 @@ export interface CreateVehicleData {
   model?: string;
   color?: string;
   is_default?: boolean;
+  photo?: string;
 }
 
 // Parking lot layout configuration

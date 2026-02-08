@@ -52,6 +52,7 @@ use tray_icon::{
 
 /// Application state shared across handlers
 pub struct AppState {
+    pub data_dir: std::path::PathBuf,
     pub email: Option<crate::email::EmailService>,
     pub config: ServerConfig,
     pub db: Database,
@@ -354,6 +355,7 @@ async fn main() -> Result<()> {
 
     // Create application state
     let state = Arc::new(RwLock::new(AppState {
+        data_dir: data_dir.clone(),
         email: email_service.clone(),
         config: config.clone(),
         db,

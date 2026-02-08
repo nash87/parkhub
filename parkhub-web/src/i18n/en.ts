@@ -218,6 +218,7 @@ export const en = {
     removed: 'Vehicle removed',
     uploadPhoto: 'Upload photo',
     uploadPhotoOrCamera: 'Upload photo or use camera',
+    photoUploaded: 'Photo uploaded',
   },
   colors: {
     black: 'Black',
@@ -228,6 +229,9 @@ export const en = {
     green: 'Green',
     gray: 'Gray',
     yellow: 'Yellow',
+    orange: 'Orange',
+    brown: 'Brown',
+    beige: 'Beige',
     other: 'Other',
   },
   homeoffice: {
