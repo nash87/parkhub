@@ -63,8 +63,6 @@ curl -fsSL https://raw.githubusercontent.com/nash87/parkhub/main/install.sh | ba
 irm https://raw.githubusercontent.com/nash87/parkhub/main/install.ps1 | iex
 ```
 
-> **Windows Note:** The binary is not code-signed yet. Windows SmartScreen or antivirus software (e.g. Cortex, Defender) may show a warning on first run. Click **"More info" → "Run anyway"**, or right-click the  → Properties → check **"Unblock"**. The install script handles this automatically via .
-
 > **Windows Note:** The binary is not code-signed yet. Windows SmartScreen or antivirus software (e.g. Cortex, Defender) may show a warning on first run. Click **More info** then **Run anyway**, or right-click the exe, go to Properties and check **Unblock**. The install script handles this automatically.
 
 The installer offers two modes:

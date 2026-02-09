@@ -57,3 +57,5 @@ screenshots-all/
 # Data
 parkhub-data/
 *.db
+config/
+docs/test-screenshots/
