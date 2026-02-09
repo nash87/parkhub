@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: parkhub
+    runtime: docker
+    region: frankfurt
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: PARKHUB_PORT
+        value: "8080"
+      - key: PARKHUB_DATA_DIR
+        value: /data
+      - key: RUST_LOG
+        value: info
