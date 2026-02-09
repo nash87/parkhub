@@ -22,4 +22,28 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           IMAGE: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 ${VPS_USER}@${VPS_HOST} "sudo podman pull "${IMAGE}" && sudo sed -i 's|ghcr.io/nash87/parkhub:[^ ]\+|${IMAGE}|g' /etc/systemd/system/parkhub.service && sudo systemctl daemon-reload && sudo systemctl restart parkhub && sudo systemctl is-active parkhub"
+          ssh -i ~/.ssh/id_ed25519 ${VPS_USER}@${VPS_HOST} IMAGE="${IMAGE}" 'bash -s' <<'SSH'
+          set -euo pipefail
+
+          for i in {1..18}; do
+            echo "pull attempt $i: $IMAGE"
+            if sudo podman pull "$IMAGE"; then
+              break
+            fi
+            sleep 10
+          done
+
+          sudo python3 - <<'PYIN'
+import os, re
+image=os.environ['IMAGE']
+p='/etc/systemd/system/parkhub.service'
+text=open(p).read()
+text=re.sub(r'ghcr\.io/nash87/parkhub:[^\s\]+', image, text)
+open(p,'w').write(text)
+print('updated unit image ->', image)
+PYIN
+
+          sudo systemctl daemon-reload
+          sudo systemctl restart parkhub
+          sudo systemctl is-active parkhub
+SSH
