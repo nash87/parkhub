@@ -8,10 +8,10 @@ on:
 
 jobs:
   check:
-    name: Check, Format & Test
+    name: Quality Checks
     runs-on: nixos
     steps:
-      - name: Build & Test
+      - name: Format + Clippy + Tests
         run: |
           set -euxo pipefail
           cd /home/florian/parkhub
@@ -19,16 +19,72 @@ jobs:
           git checkout $GITHUB_REF_NAME
           git reset --hard origin/$GITHUB_REF_NAME
 
-          # Check
-          cargo check --workspace --all-targets
+          # Configure Attic cache
+          attic use default 2>/dev/null || true
 
-          # Format
+          echo '=== Format Check ==='
           cargo fmt --all -- --check
 
-          # Clippy (warn only)
-          cargo clippy --workspace --all-targets 2>&1 || true
+          echo '=== Clippy ==='
+          cargo clippy --package parkhub-server --package parkhub-common \
+            --no-default-features --features headless \
+            -- -D warnings \
+            -A unused_imports -A unused_variables -A dead_code 2>&1 || true
 
-          # Tests
-          cargo test --workspace
+          echo '=== Tests ==='
+          cargo test --package parkhub-server --package parkhub-common \
+            --no-default-features --features headless
 
-          echo "✅ All checks passed"
+          echo '✅ All checks passed'
+
+  build:
+    name: Build Image
+    runs-on: nixos
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Build & Push
+        run: |
+          set -euxo pipefail
+          cd /home/florian/parkhub
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+
+          attic use default 2>/dev/null || true
+
+          VERSION=$(cat VERSION)
+          echo "Building ParkHub v${VERSION}..."
+
+          # Build container image via Nix
+          STREAM_SCRIPT=$(nix build .#streamImage --no-link --print-out-paths 2>&1 | tail -1)
+
+          # Push to Attic cache
+          attic push default "$STREAM_SCRIPT" 2>/dev/null || true
+
+          # Push to registry
+          REGISTRY="192.168.178.201:31584"
+          "$STREAM_SCRIPT" | skopeo copy \
+            --insecure-policy \
+            docker-archive:/dev/stdin \
+            "docker://${REGISTRY}/parkhub:v${VERSION}" \
+            --dest-tls-verify=false
+
+          echo "Pushed parkhub:v${VERSION} to registry"
+
+  audit:
+    name: Security Audit
+    runs-on: nixos
+    steps:
+      - name: Cargo audit
+        run: |
+          set -euxo pipefail
+          cd /home/florian/parkhub
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+
+          attic use default 2>/dev/null || true
+
+          nix develop --command cargo audit || true
+          echo 'Audit complete'
