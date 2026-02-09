@@ -1,10 +1,8 @@
-name: Docker Image
+name: Docker Image (Release)
+
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "*.md"
+  release:
+    types: [published]
   workflow_dispatch:
 
 env:
@@ -17,8 +15,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -34,6 +31,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest
+            type=raw,value=${{ github.ref_name }}
             type=sha,prefix=
 
       - uses: docker/build-push-action@v5
@@ -42,17 +40,3 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
-  deploy-koyeb:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to Koyeb
-        run: |
-          # Redeploy service with latest image
-          curl -s -X PATCH \
-            "https://app.koyeb.com/v1/services/${{ secrets.KOYEB_SERVICE_ID }}" \
-            -H "Authorization: Bearer ${{ secrets.KOYEB_API_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"definition\":{\"docker\":{\"image\":\"ghcr.io/nash87/parkhub:latest\"}}}" \
-            || echo "Koyeb deploy skipped (no secrets configured)"

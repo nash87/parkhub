@@ -60,9 +60,9 @@ config/
 docs/test-screenshots/
 
 # Old desktop GUI (Slint)
-src/
-ui/
-fonts/
+/src/
+/ui/
+/fonts/
 
 # Old screenshots & scripts
 screenshots/

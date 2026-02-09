@@ -3131,100 +3131,31 @@ async fn admin_update_stream(
         send_progress!("checking", 15, format!("Update available: v{}", tag_clean));
 
         if is_nixos {
-            // NixOS: can't run downloaded binaries, use git pull + cargo build
-            send_progress!("building", 20, "NixOS detected — building from source...");
-
-            // git pull
-            let git_pull = tokio::process::Command::new("git")
-                .args(["pull", "--ff-only"])
-                .current_dir("/home/florian/parkhub")
-                .output()
-                .await;
-
-            match git_pull {
-                Ok(output) if output.status.success() => {
-                    send_progress!("building", 30, "Git pull complete, building frontend...");
-                }
-                Ok(output) => {
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    send_progress!("error", 0, format!("Git pull failed: {}", stderr));
-                    return;
-                }
-                Err(e) => {
-                    send_progress!("error", 0, format!("Git pull error: {}", e));
-                    return;
-                }
-            }
-
-            // Build frontend
-            let npm_build = tokio::process::Command::new("npm")
-                .args(["run", "build"])
-                .current_dir("/home/florian/parkhub/parkhub-web")
-                .output()
-                .await;
-
-            match npm_build {
-                Ok(output) if output.status.success() => {
-                    send_progress!("building", 50, "Frontend built, compiling backend (this may take a while)...");
-                }
-                Ok(_output) => {
-                    send_progress!("building", 50, "Frontend build had issues, continuing with backend...");
-                }
-                Err(e) => {
-                    send_progress!("building", 50, format!("Frontend build skipped: {}", e));
-                }
-            }
-
-            // Build backend
-            send_progress!("building", 55, "Compiling Rust backend... (this takes 1-5 minutes)");
-
-            let cargo_build = tokio::process::Command::new("cargo")
-                .args(["build", "--release", "-p", "parkhub-server", "--no-default-features", "--features", "headless"])
-                .current_dir("/home/florian/parkhub")
-                .env("RUSTC_WRAPPER", "")
-                .output()
-                .await;
-
-            match cargo_build {
-                Ok(output) if output.status.success() => {
-                    send_progress!("installing", 90, "Build complete!");
-                }
-                Ok(output) => {
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    let last_lines: String = stderr.lines().rev().take(5).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("
-");
-                    send_progress!("error", 0, format!("Build failed: {}", last_lines));
-                    return;
-                }
-                Err(e) => {
-                    send_progress!("error", 0, format!("Cargo build error: {}", e));
-                    return;
-                }
-            }
-
-            send_progress!("restarting", 95, "Restarting server...");
-
-            // Set maintenance mode and exit
-            let sg = state_clone.read().await;
-            sg.maintenance.store(true, std::sync::atomic::Ordering::Relaxed);
-            drop(sg);
-
-            tokio::spawn(async {
-                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-                // Spawn new server process before exiting
-                let exe = std::env::current_exe().unwrap_or_default();
-                let _ = std::process::Command::new(&exe)
-                    .stdin(std::process::Stdio::null())
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .spawn();
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                std::process::exit(0);
-            });
-
-            send_progress!("complete", 100, format!("Updated to v{}! Server restarting...", tag_clean));
+            send_progress!("error", 0, "Updates are managed externally on this system.");
             return;
         }
+
+        // Container / demo hosting: request host-side update (pull + restart) via shared data dir
+        send_progress!("requesting", 20, "Requesting update...");
+
+        // Write update request into data_dir so the host-side updater can pull + restart
+        let req_path = state_clone.read().await.data_dir.join("update-request.json");
+        let req = serde_json::json!({
+            "target_tag": "latest",
+            "requested_at": chrono::Utc::now().to_rfc3339(),
+            "from_version": VERSION,
+            "to_version": tag_clean,
+        });
+        if let Err(e) = std::fs::write(&req_path, req.to_string()) {
+            send_progress!("error", 0, format!("Failed to write update request: {}", e));
+            return;
+        }
+
+        send_progress!("restarting", 80, "Update requested. Waiting for server to restart...");
+        // Give the host updater a moment; client will refresh when /health is back.
+        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+        send_progress!("complete", 100, "Update triggered. Please refresh in a few seconds.");
+        return;
 
         // Non-NixOS: download binary
         let binary_name = if cfg!(target_os = "linux") {

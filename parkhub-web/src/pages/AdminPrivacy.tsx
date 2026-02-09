@@ -15,16 +15,23 @@ interface PrivacyConfig {
 export function AdminPrivacyPage() {
   const { t } = useTranslation();
   const [config, setConfig] = useState<PrivacyConfig | null>(null);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    fetch('/api/v1/admin/privacy', { headers: { Authorization: `Bearer ${token}` } })
+    setLoading(true);
+    setError('');
+    fetch('/api/v1/admin/privacy', { headers: { Authorization: 'Bearer ' + token } })
       .then(r => r.json())
-      .then(d => { if (d.data) setConfig(d.data); })
-      .catch(() => setError('Failed to load privacy settings'));
+      .then(d => {
+        if (d.data) setConfig(d.data);
+        else setError(d.error?.message || 'Failed to load privacy settings');
+      })
+      .catch(() => setError('Failed to load privacy settings'))
+      .finally(() => setLoading(false));
   }, []);
 
   const save = async () => {
@@ -46,7 +53,9 @@ export function AdminPrivacyPage() {
     setSaving(false);
   };
 
-  if (!config) return <div className="flex justify-center py-12"><SpinnerGap className="w-8 h-8 animate-spin text-blue-500" /></div>;
+  if (loading) return <div className="flex justify-center py-12"><SpinnerGap className="w-8 h-8 animate-spin text-blue-500" /></div>;
+
+  if (!config) return <div className="card p-6"><div className="text-sm text-red-600 dark:text-red-400">{error || 'Failed to load privacy settings'}</div></div>;
 
   const Toggle = ({ checked, onChange, label, desc }: { checked: boolean; onChange: (v: boolean) => void; label: string; desc?: string }) => (
     <label className="flex items-start gap-3 cursor-pointer group">
