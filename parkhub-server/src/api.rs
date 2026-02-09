@@ -46,7 +46,10 @@ use crate::AppState;
 type SharedState = Arc<RwLock<AppState>>;
 
 /// Current version from Cargo.toml
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const VERSION: &str = match option_env!("PARKHUB_VERSION") {
+    Some(v) => v,
+    None => env!("CARGO_PKG_VERSION"),
+};
 
 
 
@@ -334,7 +337,7 @@ async fn handshake(
     }
     Json(ApiResponse::success(HandshakeResponse {
         server_name: state.config.server_name.clone(),
-        server_version: env!("CARGO_PKG_VERSION").to_string(),
+        server_version: VERSION.to_string(),
         protocol_version: PROTOCOL_VERSION.to_string(),
         requires_auth: true,
         certificate_fingerprint: String::new(),
@@ -2033,7 +2036,7 @@ async fn get_privacy_policy(
 async fn get_about() -> Json<ApiResponse<serde_json::Value>> {
     Json(ApiResponse::success(serde_json::json!({
         "name": "ParkHub",
-        "version": env!("CARGO_PKG_VERSION"),
+        "version": VERSION,
         "description": "Open-source parking management for companies",
         "license": "MIT",
         "repository": "https://github.com/nash87/parkhub",

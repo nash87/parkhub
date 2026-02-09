@@ -11,6 +11,15 @@ fn main() {
         println!("cargo:rustc-env=BUILD_DATE={}", date);
     }
 
+    // Read display version from VERSION file (includes build number)
+    if let Ok(ver) = std::fs::read_to_string("../VERSION") {
+        let ver = ver.trim();
+        if !ver.is_empty() {
+            println!("cargo:rustc-env=PARKHUB_VERSION={}", ver);
+        }
+    }
+    println!("cargo:rerun-if-changed=../VERSION");
+
     // Only compile Slint UI when GUI feature is enabled
     #[cfg(feature = "gui")]
     {

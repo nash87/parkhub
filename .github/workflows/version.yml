@@ -32,7 +32,7 @@ jobs:
           done
           BUILD=$((BUILD + 1))
           # Cargo version (no leading zeros): 2026.2.8
-          CARGO_VER="${YEAR}.${MONTH}.${DAY}.${BUILD}"
+          CARGO_VER="${YEAR}.${MONTH}.${DAY}"
           # Display version: 2026.02.08.1  
           DISPLAY_VER="$(date -u +%Y.%m.%d).${BUILD}"
           # Tag: v2026.2.8.1

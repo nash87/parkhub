@@ -21,7 +21,7 @@ impl MdnsService {
 
         // Build service properties
         let mut properties = HashMap::new();
-        properties.insert("version".to_string(), env!("CARGO_PKG_VERSION").to_string());
+        properties.insert("version".to_string(), crate::api::VERSION.to_string());
         properties.insert(
             "protocol".to_string(),
             parkhub_common::PROTOCOL_VERSION.to_string(),
