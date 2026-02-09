@@ -492,9 +492,10 @@ function AdminSystem() {
       }, 2000);
       setTimeout(() => {
         clearInterval(poll);
-        setApplying(false);
-        setError('Connection lost. Server may still be updating.');
-      }, 120000);
+        setUpdateProgress(100);
+        setUpdateStep('done');
+        setUpdateMessage('Update downloaded. The server has stopped. Please restart the server manually to complete the update.');
+      }, 30000);
     };
   }
 
@@ -601,13 +602,15 @@ function AdminSystem() {
 
       {/* Update progress overlay */}
       {applying && (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gray-950/95 backdrop-blur-sm">
-          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-6" />
-          <h2 className="text-2xl font-bold text-white mb-2">
-            {updateStep === 'error' ? 'Update Failed' : t('system.updating', 'Updating ParkHub...')}
-          </h2>
+        <div className="card p-6 border-2 border-primary-500/30 bg-primary-50 dark:bg-primary-950/20">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 border-3 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {updateStep === 'error' ? 'Update Failed' : t('system.updating', 'Updating ParkHub...')}
+            </h3>
+          </div>
           {updateProgress > 0 && updateStep !== 'error' && (
-            <div className="w-72 h-2.5 bg-gray-800 rounded-full overflow-hidden mt-4 mb-3">
+            <div className="w-full h-2.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden mb-2">
               <div
                 className="h-full bg-primary-500 rounded-full transition-all duration-700 ease-out"
                 style={{ width: `${updateProgress}%` }}
@@ -615,18 +618,26 @@ function AdminSystem() {
             </div>
           )}
           {updateProgress > 0 && updateStep !== 'error' && (
-            <p className="text-primary-400 text-sm font-mono mb-2">{updateProgress}%</p>
+            <p className="text-primary-600 dark:text-primary-400 text-sm font-mono mb-1">{updateProgress}%</p>
           )}
-          <p className={`text-sm max-w-md text-center px-4 ${updateStep === 'error' ? 'text-red-400' : 'text-gray-400'}`}>
+          <p className={`text-sm ${updateStep === 'error' ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
             {updateMessage}
           </p>
-          {updateStep === 'error' && (
-            <button
-              onClick={() => setApplying(false)}
-              className="mt-6 px-4 py-2 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-700"
-            >
-              Close
-            </button>
+          {(updateStep === 'error' || updateProgress >= 95) && (
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={() => setApplying(false)}
+                className="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700"
+              >
+                {t('common.close', 'Close')}
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              >
+                {t('common.refresh', 'Refresh')}
+              </button>
+            </div>
           )}
         </div>
       )}
