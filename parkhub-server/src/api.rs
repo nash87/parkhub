@@ -2828,7 +2828,13 @@ async fn admin_check_updates(
                     .unwrap_or("")
                     .trim_start_matches('v')
                     .to_string();
-                let update_available = !tag.is_empty() && tag != VERSION;
+                // Normalize versions: strip leading zeros for comparison (2026.02.09 == 2026.2.9)
+                let normalize_ver = |v: &str| -> String {
+                    v.split(".").map(|p| p.trim_start_matches("0").to_string())
+                     .map(|p| if p.is_empty() { "0".to_string() } else { p })
+                     .collect::<Vec<_>>().join(".")
+                };
+                let update_available = !tag.is_empty() && normalize_ver(&tag) != normalize_ver(VERSION);
                 let release_notes = body.get("body").and_then(|v| v.as_str()).unwrap_or("").to_string();
                 let published_at = body.get("published_at").and_then(|v| v.as_str()).unwrap_or("").to_string();
                 let release_url = body.get("html_url").and_then(|v| v.as_str()).unwrap_or("").to_string();
