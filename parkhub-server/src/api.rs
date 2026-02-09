@@ -166,6 +166,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/vehicles/:id/photo", get(get_vehicle_photo))
         .route("/api/v1/system/maintenance", get(get_maintenance_status))
         .route("/api/v1/admin/updates/stream", get(admin_update_stream))
+        .route("/api/v1/settings/privacy", get(get_public_privacy))
         .route("/api/v1/system/version", get(get_system_version));
 
     // Protected routes (auth required)
@@ -202,6 +203,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/users/me/password", patch(change_password))
         .route("/api/v1/setup/complete", post(complete_setup))
         .route("/api/v1/admin/branding", get(get_branding_admin).put(update_branding))
+        .route("/api/v1/admin/privacy", get(get_admin_privacy).put(update_admin_privacy))
         .route("/api/v1/admin/branding/logo", post(upload_branding_logo))
         .route("/api/v1/admin/reset", post(admin_reset_database))
         .route("/api/v1/admin/updates/check", get(admin_check_updates))
@@ -3354,4 +3356,127 @@ async fn admin_update_stream(
     };
 
     Ok(Sse::new(stream).keep_alive(KeepAlive::default()))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRIVACY SETTINGS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrivacyConfig {
+    pub store_ip_addresses: bool,
+    pub booking_visibility: u8,
+    pub show_plates_to_users: bool,
+    pub data_retention_days: u32,
+    pub audit_retention_days: u32,
+    pub show_booker_name: bool,
+    pub license_plate_display: u8,
+}
+
+impl Default for PrivacyConfig {
+    fn default() -> Self {
+        Self {
+            store_ip_addresses: false,
+            booking_visibility: 1,
+            show_plates_to_users: false,
+            data_retention_days: 0,
+            audit_retention_days: 0,
+            show_booker_name: true,
+            license_plate_display: 0,
+        }
+    }
+}
+
+/// Load privacy config from DB, falling back to server config
+async fn load_privacy_config(state: &AppState) -> PrivacyConfig {
+    match state.db.get_branding("privacy_config").await {
+        Ok(Some(data)) => {
+            serde_json::from_slice(&data).unwrap_or_else(|_| PrivacyConfig {
+                store_ip_addresses: state.config.store_ip_addresses,
+                booking_visibility: state.config.booking_visibility,
+                show_plates_to_users: state.config.show_plates_to_users,
+                data_retention_days: state.config.data_retention_days,
+                audit_retention_days: state.config.audit_retention_days,
+                show_booker_name: state.config.show_booker_name,
+                license_plate_display: state.config.license_plate_display,
+            })
+        }
+        _ => PrivacyConfig {
+            store_ip_addresses: state.config.store_ip_addresses,
+            booking_visibility: state.config.booking_visibility,
+            show_plates_to_users: state.config.show_plates_to_users,
+            data_retention_days: state.config.data_retention_days,
+            audit_retention_days: state.config.audit_retention_days,
+            show_booker_name: state.config.show_booker_name,
+            license_plate_display: state.config.license_plate_display,
+        },
+    }
+}
+
+/// GET /api/v1/admin/privacy - Get privacy settings (admin only)
+async fn get_admin_privacy(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<PrivacyConfig>>) {
+    let state = state.read().await;
+    let user = match state.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+    let config = load_privacy_config(&state).await;
+    (StatusCode::OK, Json(ApiResponse::success(config)))
+}
+
+/// PUT /api/v1/admin/privacy - Update privacy settings (admin only)
+async fn update_admin_privacy(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<PrivacyConfig>,
+) -> (StatusCode, Json<ApiResponse<PrivacyConfig>>) {
+    let state = state.read().await;
+    let user = match state.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let json_data = serde_json::to_vec(&req).unwrap();
+    if let Err(e) = state.db.save_branding("privacy_config", &json_data).await {
+        tracing::error!("Failed to save privacy config: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save privacy settings")));
+    }
+
+    AuditEntry::builder(AuditEventType::ConfigChanged)
+        .user(auth_user.user_id, &user.username)
+        .details(serde_json::json!({"action": "privacy_settings_updated"}))
+        .log();
+
+    (StatusCode::OK, Json(ApiResponse::success(req)))
+}
+
+/// GET /api/v1/settings/privacy - Public privacy settings (what users can see)
+#[derive(Debug, Serialize)]
+pub struct PublicPrivacySettings {
+    pub booking_visibility: u8,
+    pub show_booker_name: bool,
+    pub show_plates_to_users: bool,
+    pub license_plate_display: u8,
+}
+
+async fn get_public_privacy(
+    State(state): State<SharedState>,
+) -> Json<ApiResponse<PublicPrivacySettings>> {
+    let state = state.read().await;
+    let config = load_privacy_config(&state).await;
+    Json(ApiResponse::success(PublicPrivacySettings {
+        booking_visibility: config.booking_visibility,
+        show_booker_name: config.show_booker_name,
+        show_plates_to_users: config.show_plates_to_users,
+        license_plate_display: config.license_plate_display,
+    }))
 }

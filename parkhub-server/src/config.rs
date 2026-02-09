@@ -104,6 +104,31 @@ pub struct ServerConfig {
     /// Reduce motion animations
     #[serde(default)]
     pub reduce_motion: bool,
+
+    /// Privacy: Store IP addresses in audit log (default: false for GDPR)
+    #[serde(default)]
+    pub store_ip_addresses: bool,
+
+    /// Privacy: What users see on slot grid for other bookings
+    /// 0 = full name + plate, 1 = first name only, 2 = initials only, 3 = "occupied" only
+    #[serde(default = "default_one")]
+    pub booking_visibility: u8,
+
+    /// Privacy: Show license plates to non-admin users
+    #[serde(default)]
+    pub show_plates_to_users: bool,
+
+    /// Privacy: Data retention days for completed bookings (0 = keep forever)
+    #[serde(default)]
+    pub data_retention_days: u32,
+
+    /// Privacy: Data retention days for audit logs (0 = keep forever)
+    #[serde(default)]
+    pub audit_retention_days: u32,
+
+    /// Privacy: Allow users to see who booked which slot
+    #[serde(default = "default_true")]
+    pub show_booker_name: bool,
 }
 
 fn default_font_scale() -> f32 {
@@ -124,6 +149,10 @@ fn default_language() -> String {
 
 fn default_close_behavior() -> String {
     "ask".to_string()
+}
+
+fn default_one() -> u8 {
+    1
 }
 
 fn default_true() -> bool {
@@ -159,6 +188,12 @@ impl Default for ServerConfig {
             theme_mode: 0, // Dark by default
             font_scale: 1.0,
             reduce_motion: false,
+            store_ip_addresses: false,
+            booking_visibility: 1,
+            show_plates_to_users: false,
+            data_retention_days: 0,
+            audit_retention_days: 0,
+            show_booker_name: true,
         }
     }
 }

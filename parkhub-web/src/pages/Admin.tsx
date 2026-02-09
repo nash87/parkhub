@@ -9,6 +9,7 @@ import {
 import { api, ParkingLot, ParkingLotDetailed, User, Booking, AdminStats } from '../api/client';
 import { LotLayoutEditor } from '../components/LotLayoutEditor';
 import { AdminBrandingPage } from './AdminBranding';
+import { AdminPrivacyPage } from './AdminPrivacy';
 import { useTranslation } from 'react-i18next';
 
 function AdminNav() {
@@ -20,6 +21,7 @@ function AdminNav() {
     { name: t('admin.tabs.users'), path: '/admin/users', icon: Users },
     { name: t('admin.tabs.bookings'), path: '/admin/bookings', icon: ListChecks },
     { name: t('admin.tabs.branding', 'Branding'), path: '/admin/branding', icon: Palette },
+    { name: t('admin.tabs.privacy', 'Privacy'), path: '/admin/privacy', icon: ShieldCheck },
     { name: t('admin.tabs.system', 'System'), path: '/admin/system', icon: GearSix },
   ];
   return (
@@ -651,7 +653,7 @@ export function AdminPage() {
     <div>
       <div className="mb-2"><h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('admin.title')}</h1><p className="text-gray-500 dark:text-gray-400 mt-1">{t('admin.subtitle')}</p></div>
       <AdminNav />
-      <Routes><Route path="/" element={<AdminOverview />} /><Route path="/lots" element={<AdminLots />} /><Route path="/users" element={<AdminUsers />} /><Route path="/bookings" element={<AdminBookings />} /><Route path="/branding" element={<AdminBrandingPage />} /><Route path="/system" element={<AdminSystem />} /></Routes>
+      <Routes><Route path="/" element={<AdminOverview />} /><Route path="/lots" element={<AdminLots />} /><Route path="/users" element={<AdminUsers />} /><Route path="/bookings" element={<AdminBookings />} /><Route path="/branding" element={<AdminBrandingPage />} /><Route path="/privacy" element={<AdminPrivacyPage />} /><Route path="/system" element={<AdminSystem />} /></Routes>
     </div>
   );
 }
