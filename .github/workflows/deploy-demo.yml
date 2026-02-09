@@ -7,7 +7,6 @@ on:
 
 jobs:
   deploy:
-    if: ${{ github.event_name != 'push' }}
     runs-on: ubuntu-latest
     steps:
       - name: Setup SSH
@@ -23,17 +22,4 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           IMAGE: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 ${VPS_USER}@${VPS_HOST} <<'SSH'
-          set -euo pipefail
-          sudo podman pull "${IMAGE}"
-          sudo python3 - <<'PYIN'
-import re
-p='/etc/systemd/system/parkhub.service'
-text=open(p).read()
-text=re.sub(r'ghcr\.io/nash87/parkhub:[^\s\\]+', '${IMAGE}', text)
-open(p,'w').write(text)
-PYIN
-          sudo systemctl daemon-reload
-          sudo systemctl restart parkhub
-          sudo systemctl is-active parkhub
-SSH
+          ssh -i ~/.ssh/id_ed25519 ${VPS_USER}@${VPS_HOST} "sudo podman pull "${IMAGE}" && sudo sed -i 's|ghcr.io/nash87/parkhub:[^ ]\+|${IMAGE}|g' /etc/systemd/system/parkhub.service && sudo systemctl daemon-reload && sudo systemctl restart parkhub && sudo systemctl is-active parkhub"
