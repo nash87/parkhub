@@ -3404,6 +3404,7 @@ pub struct PublicPrivacySettings {
     pub show_booker_name: bool,
     pub show_plates_to_users: bool,
     pub license_plate_display: u8,
+    pub license_plate_entry_mode: u8,
 }
 
 async fn get_public_privacy(
