@@ -59,3 +59,17 @@ parkhub-data/
 *.db
 config/
 docs/test-screenshots/
+
+# Old desktop GUI (Slint)
+src/
+ui/
+fonts/
+
+# Old screenshots & scripts
+screenshots/
+screenshots-all/
+scripts/
+*.mjs
+start-server.bat
+update.sh
+test-results/
