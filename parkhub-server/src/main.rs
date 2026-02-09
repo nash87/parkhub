@@ -668,6 +668,7 @@ fn run_setup_wizard() -> Result<ServerConfig> {
             theme_mode: 0,
             font_scale: 1.0,
             reduce_motion: false,
+            privacy_policy_url: String::new(),
         };
 
         *result_clone.borrow_mut() = Some(config);
