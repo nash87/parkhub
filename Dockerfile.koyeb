@@ -1,0 +1,14 @@
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl wget && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+RUN curl -fsSL https://github.com/nash87/parkhub/releases/latest/download/parkhub-linux-amd64 -o /app/parkhub-server && \
+    chmod +x /app/parkhub-server
+RUN mkdir -p /data
+ENV PARKHUB_DATA_DIR=/data
+ENV PARKHUB_HOST=0.0.0.0
+ENV PARKHUB_PORT=8080
+ENV RUST_LOG=info
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+ENTRYPOINT ["/app/parkhub-server", "--headless"]
