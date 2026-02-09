@@ -1,4 +1,4 @@
-\xEF\xBB\xBF#Requires -Version 5.1
+﻿\xEF\xBB\xBF#Requires -Version 5.1
 <#
 .SYNOPSIS
     ParkHub interactive installer for Windows
@@ -16,7 +16,7 @@ $Version = "2026.2.9"
 $DefaultPort = 7878
 
 function Write-Info($msg)  { Write-Host "  i  $msg" -ForegroundColor Cyan }
-function Write-OK($msg)    { Write-Host "  ✓  $msg" -ForegroundColor Green }
+function Write-OK($msg)    { Write-Host "  OK  $msg" -ForegroundColor Green }
 function Write-Warn($msg)  { Write-Host "  ⚠  $msg" -ForegroundColor Yellow }
 function Write-Err($msg)   { Write-Host "  ✗  $msg" -ForegroundColor Red }
 function Write-Step($msg)  { Write-Host "  →  $msg" -ForegroundColor Cyan }
@@ -186,9 +186,9 @@ function Show-Completion($port, $mode) {
     $url = "http://${ip}:${port}"
     Write-Host ""
     Write-Host "  ═══════════════════════════════════════════" -ForegroundColor Green
-    Write-Host "    ✓ ParkHub is ready! ($mode install)" -ForegroundColor Green
+    Write-Host "    OK ParkHub is ready! ($mode install)" -ForegroundColor Green
     Write-Host ""
-    Write-Host "    🚗  $url" -ForegroundColor White
+    Write-Host "      $url" -ForegroundColor White
     Write-Host ""
     Write-Host "    Open this URL in your browser to start" -ForegroundColor Cyan
     Write-Host "    the onboarding wizard." -ForegroundColor Cyan
@@ -199,7 +199,7 @@ function Show-Completion($port, $mode) {
 # ─── Mode A: User Install ───
 function Invoke-UserInstall {
     Write-Host ""
-    Write-Host "  👤 User Install (no admin required)" -ForegroundColor White
+    Write-Host "  > User Install (no admin required)" -ForegroundColor White
     Write-Host ""
 
     $arch = Get-Arch
@@ -231,7 +231,7 @@ function Invoke-UserInstall {
 # ─── Mode B: System Install ───
 function Invoke-SystemInstall {
     Write-Host ""
-    Write-Host "  🖥️  System Install (Windows Service)" -ForegroundColor White
+    Write-Host "  >  System Install (Windows Service)" -ForegroundColor White
     Write-Host ""
 
     $arch = Get-Arch
@@ -263,14 +263,14 @@ function Invoke-SystemInstall {
 Clear-Host
 Write-Host ""
 Write-Host "  ═══════════════════════════════════════════" -ForegroundColor Green
-Write-Host "       🚗  ParkHub Installer v$Version  🚗" -ForegroundColor Green
+Write-Host "         ParkHub Installer v$Version  " -ForegroundColor Green
 Write-Host "  ═══════════════════════════════════════════" -ForegroundColor Green
 Write-Host ""
 
 $isAdmin = Test-IsAdmin
 
 if ($isAdmin) {
-    Write-Host "  Running as Administrator ✓" -ForegroundColor Green
+    Write-Host "  Running as Administrator OK" -ForegroundColor Green
     Write-Host ""
     Write-Host "  Choose installation mode:"
     Write-Host ""
@@ -289,12 +289,12 @@ if ($isAdmin) {
     switch ($choice) {
         "1" { Invoke-UserInstall }
         "2" { Invoke-SystemInstall }
-        "q" { Write-Info "Bye! 👋"; exit 0 }
+        "q" { Write-Info "Bye! "; exit 0 }
         default { Write-Err "Invalid choice"; exit 1 }
     }
 } else {
     Write-Host "  Running as standard user" -ForegroundColor Yellow
-    Write-Host "  💡 Run as Administrator for system-wide install with Windows Service" -ForegroundColor DarkGray
+    Write-Host "  TIP: Run as Administrator for system-wide install with Windows Service" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "  Choose installation mode:"
     Write-Host ""
@@ -309,7 +309,7 @@ if ($isAdmin) {
 
     switch ($choice) {
         "1" { Invoke-UserInstall }
-        "q" { Write-Info "Bye! 👋"; exit 0 }
+        "q" { Write-Info "Bye! "; exit 0 }
         default { Write-Err "Invalid choice"; exit 1 }
     }
 }
