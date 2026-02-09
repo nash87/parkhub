@@ -11,14 +11,11 @@ RUN npm run build
 FROM rust:1.83-alpine AS rust-builder
 RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static pkgconfig cmake make perl clang
 WORKDIR /app
-# Copy everything needed for build
 COPY Cargo.toml Cargo.lock VERSION ./
 COPY parkhub-common/ ./parkhub-common/
 COPY parkhub-server/ ./parkhub-server/
 COPY parkhub-client/ ./parkhub-client/
-# Copy web build
 COPY --from=web-builder /app/web/dist ./parkhub-web/dist/
-# Build
 RUN cargo build --release --package parkhub-server --no-default-features --features headless
 
 # Runtime stage
