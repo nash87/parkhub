@@ -87,9 +87,9 @@ export function AdminPrivacyPage() {
   ];
 
   const plateEntryOptions = [
-    { value: 0, label: t(admin.privacy.plateEntry.optional, Optional) },
-    { value: 1, label: t(admin.privacy.plateEntry.required, Required) },
-    { value: 2, label: t(admin.privacy.plateEntry.disabled, Disabled) },
+    { value: 0, label: t('admin.privacy.plateEntry.optional', 'Optional') },
+    { value: 1, label: t('admin.privacy.plateEntry.required', 'Required') },
+    { value: 2, label: t('admin.privacy.plateEntry.disabled', 'Disabled') },
   ];
 
   return (
@@ -131,13 +131,13 @@ export function AdminPrivacyPage() {
             </select>
           
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t(admin.privacy.plateEntry, License plate input)}</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('admin.privacy.plateEntry', 'License plate input')}</label>
             <select value={config.license_plate_entry_mode} onChange={e => setConfig({ ...config, license_plate_entry_mode: Number(e.target.value) })} className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm">
               {plateEntryOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t(admin.privacy.plateEntryDesc, Control whether users must provide a license plate when booking. For GDPR, consider Optional or Disabled.)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('admin.privacy.plateEntryDesc', 'Control whether users must provide a license plate when booking. For GDPR, consider Optional or Disabled.')}</p>
           </div>
-</div>
+          </div>
         </div>
       </div>
 
