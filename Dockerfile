@@ -8,8 +8,8 @@ COPY VERSION ../VERSION
 RUN npm run build
 
 # Build stage - Rust Server
-FROM rust:1.83-alpine AS rust-builder
-RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static pkgconfig cmake make perl clang
+FROM rust:latest AS rust-builder
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential pkg-config libssl-dev cmake perl clang && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY Cargo.toml Cargo.lock VERSION ./
 COPY parkhub-common/ ./parkhub-common/
@@ -19,8 +19,8 @@ COPY --from=web-builder /app/web/dist ./parkhub-web/dist/
 RUN cargo build --release --package parkhub-server --no-default-features --features headless
 
 # Runtime stage
-FROM alpine:3.20
-RUN apk add --no-cache ca-certificates tzdata
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates wget && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=rust-builder /app/target/release/parkhub-server /app/parkhub-server
 RUN mkdir -p /data
