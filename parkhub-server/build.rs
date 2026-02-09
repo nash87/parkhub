@@ -26,6 +26,11 @@ fn main() {
     {
         let mut res = winres::WindowsResource::new();
 
+        // Set application icon
+        if std::path::Path::new("../assets/app.ico").exists() {
+            res.set_icon("../assets/app.ico");
+        }
+
         res.set_manifest(
             r#"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
