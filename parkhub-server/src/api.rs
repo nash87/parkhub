@@ -3391,7 +3391,7 @@ impl Default for PrivacyConfig {
 async fn load_privacy_config(state: &AppState) -> PrivacyConfig {
     match state.db.get_branding("privacy_config").await {
         Ok(Some(data)) => {
-            serde_json::from_slice(&data).unwrap_or_else(|_| PrivacyConfig {
+            serde_json::from_slice(&data).unwrap_or(PrivacyConfig {
                 store_ip_addresses: state.config.store_ip_addresses,
                 booking_visibility: state.config.booking_visibility,
                 show_plates_to_users: state.config.show_plates_to_users,
