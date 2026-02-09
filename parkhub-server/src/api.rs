@@ -3304,6 +3304,8 @@ pub struct PrivacyConfig {
     pub audit_retention_days: u32,
     pub show_booker_name: bool,
     pub license_plate_display: u8,
+    #[serde(default)]
+    pub license_plate_entry_mode: u8, // 0=optional, 1=required, 2=disabled
 }
 
 impl Default for PrivacyConfig {
@@ -3316,6 +3318,7 @@ impl Default for PrivacyConfig {
             audit_retention_days: 0,
             show_booker_name: true,
             license_plate_display: 0,
+            license_plate_entry_mode: 0,
         }
     }
 }
@@ -3332,6 +3335,7 @@ async fn load_privacy_config(state: &AppState) -> PrivacyConfig {
                 audit_retention_days: state.config.audit_retention_days,
                 show_booker_name: state.config.show_booker_name,
                 license_plate_display: state.config.license_plate_display,
+                license_plate_entry_mode: 1
             })
         }
         _ => PrivacyConfig {
@@ -3342,6 +3346,7 @@ async fn load_privacy_config(state: &AppState) -> PrivacyConfig {
             audit_retention_days: state.config.audit_retention_days,
             show_booker_name: state.config.show_booker_name,
             license_plate_display: state.config.license_plate_display,
+                license_plate_entry_mode: 1
         },
     }
 }
@@ -3411,5 +3416,6 @@ async fn get_public_privacy(
         show_booker_name: config.show_booker_name,
         show_plates_to_users: config.show_plates_to_users,
         license_plate_display: config.license_plate_display,
+        license_plate_entry_mode: config.license_plate_entry_mode,
     }))
 }

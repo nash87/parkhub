@@ -862,3 +862,6 @@ export const en = {
     license: 'MIT License',
   },
 };
+
+// Added for demo privacy options
+// (keep at end to minimize merge conflicts)

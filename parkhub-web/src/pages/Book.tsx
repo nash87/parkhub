@@ -75,6 +75,7 @@ export function BookPage() {
   const [saveVehicle, setSaveVehicle] = useState(true);
   const [duration] = useState(60);
   const [loading, setLoading] = useState(true);
+  const [licensePlateEntryMode, setLicensePlateEntryMode] = useState<number>(0); // 0 optional, 1 required, 2 disabled
   const [booking, setBooking] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successSummary, setSuccessSummary] = useState({ lot: '', slot: '', type: '', time: '', plate: '' });
@@ -109,7 +110,12 @@ export function BookPage() {
 
   async function loadInitialData() {
     try {
-      const [lotsRes, vehiclesRes] = await Promise.all([api.getLots(), api.getVehicles()]);
+      const [lotsRes, vehiclesRes, privacyRes] = await Promise.all([
+        api.getLots(),
+        api.getVehicles(),
+        fetch(/api/v1/settings/privacy).then(r => r.json()).catch(() => null),
+      ]);
+      if (privacyRes?.data?.license_plate_entry_mode !== undefined) setLicensePlateEntryMode(Number(privacyRes.data.license_plate_entry_mode));
       if (lotsRes.success && lotsRes.data) { setLots(lotsRes.data); if (preselectedLot) setSelectedLot(preselectedLot); }
       if (vehiclesRes.success && vehiclesRes.data) { setVehicles(vehiclesRes.data); const def = vehiclesRes.data.find(v => v.is_default); if (def) setSelectedVehicle(def.id); }
     } finally { setLoading(false); }
@@ -145,13 +151,15 @@ export function BookPage() {
 
     const startIso = computedStart;
 
+    const normalizedPlate = (customPlate || ).replace(/[\u2010-\u2015\u2212]/g, -).replace(/\s+/g,  ).trim();
+
     const res = await api.createBooking({
       lot_id: selectedLot,
       slot_id: selectedSlot.id,
       start_time: startIso,
       duration_minutes: durationMinutes,
       vehicle_id: selectedVehicle || undefined,
-      license_plate: customPlate || undefined,
+      license_plate: (licensePlateEntryMode === 2) ? undefined : (normalizedPlate || undefined),
     });
 
     if (res.success) {
@@ -167,9 +175,9 @@ export function BookPage() {
       setSuccessSummary({ lot: selectedLotData?.name || '', slot: selectedSlot!.number, type: typeLabel, time: timeLabel, plate });
       setShowSuccess(true);
       // Save vehicle for future bookings
-      if (saveVehicle && customPlate && !selectedVehicle) {
+      if (saveVehicle && normalizedPlate && !selectedVehicle && licensePlateEntryMode !== 2) {
         try {
-          const vRes = await api.createVehicle({ plate: customPlate, is_default: vehicles.length === 0 });
+          const vRes = await api.createVehicle({ plate: normalizedPlate, is_default: vehicles.length === 0 });
           if (vRes.success) toast.success(t("book.vehicleSaved"));
         } catch (_) { /* ignore vehicle save errors */ }
       }
@@ -366,7 +374,8 @@ export function BookPage() {
                     {vehicles.map((v) => <option key={v.id} value={v.id}>{v.plate} {v.make && v.model ? `(${v.make} ${v.model})` : ''}</option>)}
                   </select>
                 )}
-                {!selectedVehicle && <div className="mt-2"><LicensePlateInput value={customPlate} onChange={setCustomPlate} /></div>}
+                {!selectedVehicle && licensePlateEntryMode !== 2 && <div className="mt-2"><LicensePlateInput value={customPlate} onChange={setCustomPlate} required={licensePlateEntryMode === 1} /></div>}
+                {!selectedVehicle && licensePlateEntryMode === 2 && <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">{t('book.plateDisabled', 'License plate entry is disabled by the administrator.')}</div>}
                 {!selectedVehicle && customPlate && (
                   <label className="flex items-center gap-2 mt-3 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
                     <input type="checkbox" checked={saveVehicle} onChange={(e) => setSaveVehicle(e.target.checked)} className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
@@ -399,7 +408,7 @@ export function BookPage() {
               </div>
               <div className="col-span-2"><p className="text-white/70 text-sm">{t('book.licensePlate')}</p><p className="font-medium">{selectedVehicle ? vehicles.find(v => v.id === selectedVehicle)?.plate : customPlate || '—'}</p></div>
             </div>
-            <button onClick={handleBook} disabled={booking || (!selectedVehicle && !customPlate)} className="btn bg-white text-primary-700 hover:bg-white/90 w-full justify-center">
+            <button type="button" onClick={(e) => { e.preventDefault(); handleBook(); }} disabled={booking || (!selectedVehicle && licensePlateEntryMode === 1 && !customPlate)} className="btn bg-white text-primary-700 hover:bg-white/90 w-full justify-center">
               {booking ? <SpinnerGap weight="bold" className="w-5 h-5 animate-spin" /> : <><CheckCircle weight="bold" className="w-5 h-5" />{t('book.bookNow')}</>}
             </button>
           </motion.div>
