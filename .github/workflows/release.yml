@@ -45,6 +45,10 @@ jobs:
       - name: Install cross
         if: matrix.cross
         run: cargo install cross
+      - name: Set static CRT (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo "RUSTFLAGS=-C target-feature=+crt-static" >> $GITHUB_ENV
       - name: Build (native)
         if: '!matrix.cross'
         run: cargo build --release -p parkhub-server --no-default-features --features headless --target ${{ matrix.target }}
