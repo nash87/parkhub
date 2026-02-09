@@ -1,4 +1,4 @@
-name: ParkHub CI
+name: CI
 
 on:
   push:
@@ -6,12 +6,16 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  ATTIC_CACHE: default
+  ATTIC_SERVER: http://192.168.178.201:31580
+
 jobs:
   check:
     name: Quality Checks
     runs-on: nixos
     steps:
-      - name: Format + Clippy + Tests
+      - name: Format + Clippy
         run: |
           set -euxo pipefail
           cd /home/florian/parkhub
@@ -19,31 +23,43 @@ jobs:
           git checkout $GITHUB_REF_NAME
           git reset --hard origin/$GITHUB_REF_NAME
 
-          # Configure Attic cache
+          # Configure Attic as Nix substituter for cached builds
           attic use default 2>/dev/null || true
 
           echo '=== Format Check ==='
-          cargo fmt --all -- --check
+          nix build .#checks.x86_64-linux.fmt --no-link 2>&1 | tail -5
 
           echo '=== Clippy ==='
-          cargo clippy --package parkhub-server --package parkhub-common \
-            --no-default-features --features headless \
-            -- -D warnings \
-            -A unused_imports -A unused_variables -A dead_code 2>&1 || true
+          nix build .#checks.x86_64-linux.clippy --no-link 2>&1 | tail -5
+
+          echo 'All checks passed!'
+
+  test:
+    name: Tests
+    runs-on: nixos
+    steps:
+      - name: Run Tests
+        run: |
+          set -euxo pipefail
+          cd /home/florian/parkhub
+          git fetch origin
+          git checkout $GITHUB_REF_NAME
+          git reset --hard origin/$GITHUB_REF_NAME
+
+          attic use default 2>/dev/null || true
 
           echo '=== Tests ==='
-          cargo test --package parkhub-server --package parkhub-common \
-            --no-default-features --features headless
+          nix build .#checks.x86_64-linux.tests --no-link 2>&1 | tail -10
 
-          echo '✅ All checks passed'
+          echo 'All tests passed!'
 
-  build:
-    name: Build Image
+  build-deploy:
+    name: Build & Deploy
     runs-on: nixos
-    needs: check
+    needs: [check, test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - name: Build & Push
+      - name: Build, push & deploy
         run: |
           set -euxo pipefail
           cd /home/florian/parkhub
@@ -51,18 +67,26 @@ jobs:
           git checkout main
           git reset --hard origin/main
 
+          # Configure Attic substituter
           attic use default 2>/dev/null || true
 
+          # Bump CalVer version
+          ./scripts/version.sh next
+
+          # Update Cargo.lock after version bump
+          cargo update --workspace
+
           VERSION=$(cat VERSION)
+
           echo "Building ParkHub v${VERSION}..."
 
           # Build container image via Nix
           STREAM_SCRIPT=$(nix build .#streamImage --no-link --print-out-paths 2>&1 | tail -1)
 
-          # Push to Attic cache
+          # Push build closure to Attic cache
           attic push default "$STREAM_SCRIPT" 2>/dev/null || true
 
-          # Push to registry
+          # Push to registry via NodePort
           REGISTRY="192.168.178.201:31584"
           "$STREAM_SCRIPT" | skopeo copy \
             --insecure-policy \
@@ -71,6 +95,18 @@ jobs:
             --dest-tls-verify=false
 
           echo "Pushed parkhub:v${VERSION} to registry"
+
+          # Commit version bump + updated lock
+          git config user.name "CI Bot"
+          git config user.email "ci@parkhub.local"
+          git add VERSION Cargo.toml Cargo.lock .build-number
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): v${VERSION} [skip ci]"
+            git push origin main
+            echo "Version bump committed"
+          fi
+
+          echo "Flux will auto-deploy within ~1 minute"
 
   audit:
     name: Security Audit
@@ -86,5 +122,5 @@ jobs:
 
           attic use default 2>/dev/null || true
 
-          nix develop --command cargo audit || true
+          nix build .#checks.x86_64-linux.audit --no-link 2>&1 | tail -10
           echo 'Audit complete'
