@@ -58,8 +58,8 @@ detect_os() {
 # Detect architecture
 detect_arch() {
     case "$(uname -m)" in
-        x86_64|amd64)       ARCH="x86_64" ;;
-        aarch64|arm64)      ARCH="aarch64" ;;
+        x86_64|amd64)       ARCH="amd64" ;;
+        aarch64|arm64)      ARCH="arm64" ;;
         *)                  err "Unsupported architecture: $(uname -m)"; exit 1 ;;
     esac
 }
@@ -100,8 +100,7 @@ get_latest_version() {
 
 # Download and install binary
 install_binary() {
-    local ext="tar.gz"
-    local filename="parkhub-${OS}-${ARCH}.${ext}"
+    local filename="parkhub-${OS}-${ARCH}"
     local url="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/${filename}"
 
     step "Downloading ${filename}..."
@@ -109,7 +108,7 @@ install_binary() {
     tmpdir=$(mktemp -d)
     trap "rm -rf $tmpdir" EXIT
 
-    if curl -fsSL -o "${tmpdir}/${filename}" "$url" 2>/dev/null; then
+    if curl -fsSL -o "${tmpdir}/parkhub-server" "$url" 2>/dev/null; then
         ok "Downloaded"
     else
         warn "Download failed (release may not exist yet)"
@@ -117,20 +116,7 @@ install_binary() {
         return 1
     fi
 
-    tar xzf "${tmpdir}/${filename}" -C "$tmpdir"
-
-    local binary="parkhub-server"
-    local src
-    src=$(find "$tmpdir" -name "$binary" -type f | head -1)
-    if [ -z "$src" ]; then
-        src=$(find "$tmpdir" -name "parkhub-server-*" -type f | head -1)
-    fi
-
-    if [ -z "$src" ]; then
-        err "Binary not found in archive"
-        return 1
-    fi
-
+    local src="${tmpdir}/parkhub-server"
     chmod +x "$src"
 
     if [ -w "$INSTALL_DIR" ]; then

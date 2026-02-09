@@ -12,7 +12,7 @@
 $ErrorActionPreference = "Stop"
 $Repo = "nash87/parkhub"
 $ServiceName = "ParkHub"
-$Version = "2026.2.8"
+$Version = "2026.2.9"
 $DefaultPort = 7878
 
 function Write-Info($msg)  { Write-Host "  i  $msg" -ForegroundColor Cyan }
@@ -225,7 +225,7 @@ function Invoke-UserInstall {
     Show-Completion $DefaultPort "User"
 
     Write-Info "Start ParkHub manually or from the Start Menu."
-    Write-Info "To start now: & '$installDir\parkhub-server.exe' --headless"
+    Write-Info "To start now: parkhub-server.exe --headless (from $installDir)"
 }
 
 # ─── Mode B: System Install ───
