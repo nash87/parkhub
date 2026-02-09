@@ -148,6 +148,21 @@ On first start, a welcome screen lets you choose your language. Then an onboardi
 |:-----:|
 | <img src="docs/screenshots/login-light.png" alt="Login" width="400"> |
 
+### Booking Flow
+
+<table>
+<tr><th>Slot Grid (Light)</th><th>Slot Grid (Dark)</th></tr>
+<tr>
+<td><img src="docs/screenshots/booking-slots-light.png" alt="Slots Light" width="400"></td>
+<td><img src="docs/screenshots/booking-slots-dark.png" alt="Slots Dark" width="400"></td>
+</tr>
+<tr><th>Booking Flow (Light)</th><th>Booking Flow (Dark)</th></tr>
+<tr>
+<td><img src="docs/screenshots/booking-flow-light.png" alt="Booking Light" width="400"></td>
+<td><img src="docs/screenshots/booking-flow-dark.png" alt="Booking Dark" width="400"></td>
+</tr>
+</table>
+
 ### Mobile & Responsive
 
 <table>
