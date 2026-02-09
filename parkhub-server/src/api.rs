@@ -3135,27 +3135,29 @@ async fn admin_update_stream(
             return;
         }
 
-        // Container / demo hosting: request host-side update (pull + restart) via shared data dir
-        send_progress!("requesting", 20, "Requesting update...");
+        // Default for demo/container installs: request host-side update via shared data dir (podman pull + systemctl restart).
+        // Enable legacy in-place binary self-update only when explicitly allowed.
+        let allow_binary_update = std::env::var("PARKHUB_SELF_UPDATE_BINARY").ok().as_deref() == Some("1");
+        if !allow_binary_update {
+            send_progress!("requesting", 20, "Requesting update...");
 
-        // Write update request into data_dir so the host-side updater can pull + restart
-        let req_path = state_clone.read().await.data_dir.join("update-request.json");
-        let req = serde_json::json!({
-            "target_tag": "latest",
-            "requested_at": chrono::Utc::now().to_rfc3339(),
-            "from_version": VERSION,
-            "to_version": tag_clean,
-        });
-        if let Err(e) = std::fs::write(&req_path, req.to_string()) {
-            send_progress!("error", 0, format!("Failed to write update request: {}", e));
+            let req_path = state_clone.read().await.data_dir.join("update-request.json");
+            let req = serde_json::json!({
+                "target_tag": "latest",
+                "requested_at": chrono::Utc::now().to_rfc3339(),
+                "from_version": VERSION,
+                "to_version": tag_clean,
+            });
+            if let Err(e) = std::fs::write(&req_path, req.to_string()) {
+                send_progress!("error", 0, format!("Failed to write update request: {}", e));
+                return;
+            }
+
+            send_progress!("restarting", 80, "Update requested. Waiting for server to restart...");
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            send_progress!("complete", 100, "Update triggered. Please refresh in a few seconds.");
             return;
         }
-
-        send_progress!("restarting", 80, "Update requested. Waiting for server to restart...");
-        // Give the host updater a moment; client will refresh when /health is back.
-        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-        send_progress!("complete", 100, "Update triggered. Please refresh in a few seconds.");
-        return;
 
         // Non-NixOS: download binary
         let binary_name = if cfg!(target_os = "linux") {
