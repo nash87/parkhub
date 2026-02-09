@@ -1,0 +1,38 @@
+name: Deploy Demo VPS
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy (pull + restart)
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          IMAGE: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ${VPS_USER}@${VPS_HOST} <<'SSH'
+          set -euo pipefail
+          sudo podman pull "${IMAGE}"
+          sudo python3 - <<'PYIN'
+import re
+p='/etc/systemd/system/parkhub.service'
+text=open(p).read()
+text=re.sub(r'ghcr\.io/nash87/parkhub:[^\s\\]+', '${IMAGE}', text)
+open(p,'w').write(text)
+PYIN
+          sudo systemctl daemon-reload
+          sudo systemctl restart parkhub
+          sudo systemctl is-active parkhub
+SSH
