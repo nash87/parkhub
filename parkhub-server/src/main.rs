@@ -4,7 +4,7 @@
 //! Can run headless or with a configuration GUI.
 
 // Hide console window on Windows when running with GUI
-#![cfg_attr(all(feature = "gui", windows), windows_subsystem = "windows")]
+#![cfg_attr(windows, windows_subsystem = "windows")]
 
 use anyhow::{Context, Result};
 use std::net::SocketAddr;
@@ -173,6 +173,30 @@ impl CliArgs {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    match run().await {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            let msg = format!("ParkHub Server Error:\n\n{:#}", e);
+            eprintln!("{}", msg);
+            #[cfg(windows)]
+            {
+                // Show error dialog on Windows (since console is hidden)
+                use std::ffi::CString;
+                let text = CString::new(msg.replace("\n", "\r\n")).unwrap_or_default();
+                let title = CString::new("ParkHub Server").unwrap_or_default();
+                unsafe {
+                    extern "system" {
+                        fn MessageBoxA(hwnd: *const (), text: *const i8, caption: *const i8, flags: u32) -> i32;
+                    }
+                    MessageBoxA(std::ptr::null(), text.as_ptr(), title.as_ptr(), 0x10); // MB_ICONERROR
+                }
+            }
+            Err(e)
+        }
+    }
+}
+
+async fn run() -> Result<()> {
     // Parse CLI arguments first
     let cli = CliArgs::parse();
 
