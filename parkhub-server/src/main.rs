@@ -251,7 +251,7 @@ async fn main() -> Result<()> {
 
     // Determine initial data directory (may change if setup wizard runs)
     // Priority: PARKHUB_DATA_DIR env var > --data-dir CLI arg > platform default
-    let mut data_dir = if let Ok(env_dir) = std::env::var("PARKHUB_DATA_DIR") {
+    let data_dir = if let Ok(env_dir) = std::env::var("PARKHUB_DATA_DIR") {
         let dir = PathBuf::from(env_dir);
         std::fs::create_dir_all(&dir)?;
         info!("Using data directory from PARKHUB_DATA_DIR");
