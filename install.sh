@@ -119,10 +119,17 @@ install_binary() {
     local src="${tmpdir}/parkhub-server"
     chmod +x "$src"
 
+    # Prefer ~/.local/bin for user install, fall back to /usr/local/bin
+    if [ ! -w "$INSTALL_DIR" ] && [ ! -d "$INSTALL_DIR" ]; then
+        INSTALL_DIR="$HOME/.local/bin"
+    fi
+    mkdir -p "$INSTALL_DIR"
+
     if [ -w "$INSTALL_DIR" ]; then
         cp "$src" "${INSTALL_DIR}/parkhub-server"
     else
         step "Installing to ${INSTALL_DIR} (requires sudo)..."
+        sudo mkdir -p "$INSTALL_DIR"
         sudo cp "$src" "${INSTALL_DIR}/parkhub-server"
         sudo chmod +x "${INSTALL_DIR}/parkhub-server"
     fi

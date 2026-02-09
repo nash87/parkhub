@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+\xEF\xBB\xBF#Requires -Version 5.1
 <#
 .SYNOPSIS
     ParkHub interactive installer for Windows
