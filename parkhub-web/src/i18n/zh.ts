@@ -790,5 +790,4 @@ export const zh = {
       other: '其他',
     },
   },
-,
 };

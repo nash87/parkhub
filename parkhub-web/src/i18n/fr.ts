@@ -790,5 +790,4 @@ export const fr = {
       other: 'Autre',
     },
   },
-,
 };

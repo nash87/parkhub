@@ -805,5 +805,4 @@ export const hi = {
       other: 'अन्य',
     },
   },
-,
 };

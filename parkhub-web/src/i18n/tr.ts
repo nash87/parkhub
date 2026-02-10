@@ -805,5 +805,4 @@ export const tr = {
       other: 'Diğer',
     },
   },
-,
 };

@@ -790,5 +790,4 @@ export const es = {
       other: 'Otro',
     },
   },
-,
 };

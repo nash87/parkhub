@@ -805,5 +805,4 @@ export const ar = {
       other: 'أخرى',
     },
   },
-,
 };

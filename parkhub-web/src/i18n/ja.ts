@@ -805,5 +805,4 @@ export const ja = {
       other: 'その他',
     },
   },
-,
 };

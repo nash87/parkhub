@@ -805,5 +805,4 @@ export const pt = {
       other: 'Outro',
     },
   },
-,
 };
