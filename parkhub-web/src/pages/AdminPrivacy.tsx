@@ -22,7 +22,7 @@ export function AdminPrivacyPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('parkhub_token');
     setLoading(true);
     setError('');
     fetch('/api/v1/admin/privacy', { headers: { Authorization: 'Bearer ' + token } })
@@ -41,7 +41,7 @@ export function AdminPrivacyPage() {
     setError('');
     setSaved(false);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('parkhub_token');
       const res = await fetch('/api/v1/admin/privacy', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
