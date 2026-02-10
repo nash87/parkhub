@@ -3335,7 +3335,7 @@ async fn load_privacy_config(state: &AppState) -> PrivacyConfig {
                 audit_retention_days: state.config.audit_retention_days,
                 show_booker_name: state.config.show_booker_name,
                 license_plate_display: state.config.license_plate_display,
-                license_plate_entry_mode: 1
+                license_plate_entry_mode: 0
             })
         }
         _ => PrivacyConfig {
@@ -3346,7 +3346,7 @@ async fn load_privacy_config(state: &AppState) -> PrivacyConfig {
             audit_retention_days: state.config.audit_retention_days,
             show_booker_name: state.config.show_booker_name,
             license_plate_display: state.config.license_plate_display,
-                license_plate_entry_mode: 1
+                license_plate_entry_mode: 0
         },
     }
 }
