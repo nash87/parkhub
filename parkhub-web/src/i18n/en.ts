@@ -392,6 +392,14 @@ export const en = {
     toggle: "Switch language",
     de: "Deutsch",
     en: "English",
+      ar: 'العربية',
+      es: 'Español',
+      fr: 'Français',
+      hi: 'हिन्दी',
+      ja: '日本語',
+      pt: 'Português',
+      tr: 'Türkçe',
+      zh: '中文',
   },
 
   profile: {
