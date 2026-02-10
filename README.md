@@ -37,7 +37,7 @@ ParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, *
 | **Internationalization** | 10 languages: English, German, Spanish, French, Portuguese, Turkish, Arabic, Hindi, Japanese, Chinese |
 | **Accessibility** | Colorblind modes (protanopia, deuteranopia, tritanopia), font scaling, reduced motion, high contrast |
 | **Branding & Customization** | Custom logo, colors, and organization name via admin panel |
-| **Homeoffice Integration** | Set WFH patterns, auto-release parking spots for others |
+| **Absences & Homeoffice** | Homeoffice patterns + vacation/sick/business trips in one consolidated absences page (incl. iCal import) |
 | **GDPR / DSGVO** | Data export, account deletion, privacy policy — fully compliant |
 | **PWA-Ready** | Install as native app on any device |
 | **Single Binary** | ~30 MB, embedded redb database, zero external dependencies |
@@ -304,8 +304,8 @@ See the full [API Documentation](docs/API.md) for all 40+ endpoints with example
 | Animations | Framer Motion |
 | Icons | Phosphor Icons |
 | Build | Vite, Cargo |
-| Container | Docker (multi-stage, ~20 MB image) |
-| CI/CD | GitHub Actions |
+| Container | Docker/Podman (multi-stage, ~20 MB image) |
+| CI/CD | GitHub Actions (optional; mirror from Gitea) |
 
 ## Contributing
 
