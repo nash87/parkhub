@@ -23,7 +23,6 @@ import { SetupPage } from './pages/Setup';
 import { MaintenanceScreen } from './components/MaintenanceScreen';
 
 const AdminPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminPage })));
-const HomeofficePage = lazy(() => import('./pages/Homeoffice').then(m => ({ default: m.HomeofficePage })));
 const AbsencesPage = lazy(() => import('./pages/Absences').then(m => ({ default: m.AbsencesPage })));
 const ProfilePage = lazy(() => import('./pages/Profile').then(m => ({ default: m.ProfilePage })));
 const PrivacyPage = lazy(() => import('./pages/Privacy').then(m => ({ default: m.PrivacyPage })));

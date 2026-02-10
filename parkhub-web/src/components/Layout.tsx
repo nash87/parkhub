@@ -2,7 +2,7 @@ import { ReactNode, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  House, Airplane, Calendar,
+  House, Calendar,
   CalendarPlus,
   ListChecks,
   Car,

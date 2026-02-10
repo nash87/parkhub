@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import {
   House, Airplane, Calendar, CalendarCheck, Trash, Plus, CaretLeft, CaretRight,
   UploadSimple, UsersThree, FirstAidKit, Briefcase, NoteBlank, CalendarBlank,
-  X, Check, FunnelSimple,
+  X,
 } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
@@ -28,7 +28,6 @@ function isSameDay(a: Date, b: Date) { return a.getFullYear() === b.getFullYear(
 function isDateInRange(date: Date, start: string, end: string) { const d = date.toISOString().slice(0, 10); return d >= start && d <= end; }
 function getMonday(d: Date) { const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1); return new Date(d.getFullYear(), d.getMonth(), diff); }
 function toDateStr(d: Date) { return d.toISOString().slice(0, 10); }
-function daysBetween(start: string, end: string) { const s = new Date(start + 'T00:00:00'); const e = new Date(end + 'T00:00:00'); return Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1); }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
@@ -92,7 +91,7 @@ export function AbsencesPage() {
     const counts: Record<AbsenceType, number> = { homeoffice: 0, vacation: 0, sick: 0, business_trip: 0, other: 0 };
     for (let i = 0; i < 5; i++) {
       const d = new Date(monday); d.setDate(monday.getDate() + i);
-      const dStr = toDateStr(d);
+      
       const entry = entries.find(e => isDateInRange(d, e.start_date, e.end_date));
       if (entry) { counts[entry.absence_type as AbsenceType]++; continue; }
       const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
