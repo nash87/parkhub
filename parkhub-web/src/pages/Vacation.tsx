@@ -68,7 +68,7 @@ export function VacationPage() {
     try {
       const data = await api.importVacationIcal(file);
       if (data.success && data.data) {
-        setEntries(prev => [...prev, ...data.data].sort((a: VacationEntry, b: VacationEntry) => a.start_date.localeCompare(b.start_date)));
+        setEntries(prev => [...prev, ...(data.data || [])].sort((a: VacationEntry, b: VacationEntry) => a.start_date.localeCompare(b.start_date)));
         toast.success(t('vacation.imported', { count: data.data.length }));
       } else {
         toast.error(data.error?.message || 'Import failed');
