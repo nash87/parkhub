@@ -33,17 +33,17 @@ jobs:
             sleep 10
           done
 
-          sudo python3 - <<'PYIN'
-import os, re
-image=os.environ['IMAGE']
-p='/etc/systemd/system/parkhub.service'
-text=open(p).read()
-text=re.sub(r'ghcr\.io/nash87/parkhub:[^\s\]+', image, text)
-open(p,'w').write(text)
-print('updated unit image ->', image)
-PYIN
+          sudo python3 -c "
+          import os, re
+          image=os.environ['IMAGE']
+          p='/etc/systemd/system/parkhub.service'
+          text=open(p).read()
+          text=re.sub(r'ghcr\.io/nash87/parkhub:[^\s]+', image, text)
+          open(p,'w').write(text)
+          print('updated unit image ->', image)
+          "
 
           sudo systemctl daemon-reload
           sudo systemctl restart parkhub
           sudo systemctl is-active parkhub
-SSH
+          SSH
