@@ -824,7 +824,7 @@ async fn create_booking(
         return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("INVALID_TIME", "End time must be after start time")));
     }
     let now_check = Utc::now();
-    if req.start_time < now_check - chrono::Duration::minutes(5) {
+    if req.start_time < now_check - chrono::Duration::hours(24) {
         return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("PAST_BOOKING", "Cannot create bookings in the past")));
     }
 
