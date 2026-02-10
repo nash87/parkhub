@@ -22,7 +22,7 @@ use uuid::Uuid;
 
 use parkhub_common::models::{
     Booking, HomeofficeSettings, LotLayout, ParkingLot, ParkingSlot, User, Vehicle,
-    WaitlistEntry, PushSubscription,
+    WaitlistEntry, PushSubscription, VacationEntry,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -44,6 +44,7 @@ const LOT_LAYOUTS: TableDefinition<&str, &[u8]> = TableDefinition::new("lot_layo
 const WAITLIST: TableDefinition<&str, &[u8]> = TableDefinition::new("waitlist");
 const PUSH_SUBSCRIPTIONS: TableDefinition<&str, &[u8]> = TableDefinition::new("push_subscriptions");
 const BRANDING: TableDefinition<&str, &[u8]> = TableDefinition::new("branding");
+const VACATION: TableDefinition<&str, &[u8]> = TableDefinition::new("vacation");
 
 // Settings keys
 const SETTING_SETUP_COMPLETED: &str = "setup_completed";
@@ -897,6 +898,89 @@ impl Database {
             tracing::debug!("Deleted vehicle: {}", id);
         }
         Ok(existed)
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // VACATION OPERATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    pub async fn save_vacation_entry(&self, entry: &VacationEntry) -> Result<()> {
+        let id = entry.id.to_string();
+        let data = self.serialize(entry)?;
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        {
+            let mut table = write_txn.open_table(VACATION)?;
+            table.insert(id.as_str(), data.as_slice())?;
+        }
+        write_txn.commit()?;
+        debug!("Saved vacation entry: {}", entry.id);
+        Ok(())
+    }
+
+    pub async fn list_vacation_entries_by_user(&self, user_id: &str) -> Result<Vec<VacationEntry>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(VACATION)?;
+        let mut entries = Vec::new();
+        for item in table.iter()? {
+            let (_k, v) = item?;
+            let entry: VacationEntry = self.deserialize(v.value())?;
+            if entry.user_id.to_string() == user_id {
+                entries.push(entry);
+            }
+        }
+        entries.sort_by(|a, b| a.start_date.cmp(&b.start_date));
+        Ok(entries)
+    }
+
+    pub async fn list_all_vacation_entries(&self) -> Result<Vec<VacationEntry>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(VACATION)?;
+        let mut entries = Vec::new();
+        for item in table.iter()? {
+            let (_k, v) = item?;
+            let entry: VacationEntry = self.deserialize(v.value())?;
+            entries.push(entry);
+        }
+        Ok(entries)
+    }
+
+    pub async fn delete_vacation_entry(&self, id: &str) -> Result<bool> {
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        let existed;
+        {
+            let mut table = write_txn.open_table(VACATION)?;
+            existed = table.remove(id)?.is_some();
+        }
+        write_txn.commit()?;
+        if existed {
+            debug!("Deleted vacation entry: {}", id);
+        }
+        Ok(existed)
+    }
+
+    pub async fn get_vacation_entry(&self, id: &str) -> Result<Option<VacationEntry>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(VACATION)?;
+        match table.get(id)? {
+            Some(value) => Ok(Some(self.deserialize(value.value())?)),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn delete_vacation_entries_by_user(&self, user_id: &str) -> Result<u64> {
+        let entries = self.list_vacation_entries_by_user(user_id).await?;
+        let mut count = 0u64;
+        for entry in &entries {
+            if self.delete_vacation_entry(&entry.id.to_string()).await? {
+                count += 1;
+            }
+        }
+        Ok(count)
     }
 
     /// Delete homeoffice settings for a user (GDPR Art. 17)

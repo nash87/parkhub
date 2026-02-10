@@ -296,6 +296,38 @@ pub struct HomeofficeDay {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// VACATION MODELS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Source of a vacation entry
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum VacationSource {
+    Manual,
+    Import,
+}
+
+/// A vacation entry for a user
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VacationEntry {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    /// ISO date string (YYYY-MM-DD)
+    pub start_date: String,
+    /// ISO date string (YYYY-MM-DD)
+    pub end_date: String,
+    pub note: Option<String>,
+    pub source: VacationSource,
+}
+
+/// Team vacation overview entry (no private details)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TeamVacationEntry {
+    pub user_name: String,
+    pub start_date: String,
+    pub end_date: String,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // NOTIFICATION MODELS
 // ═══════════════════════════════════════════════════════════════════════════════
 

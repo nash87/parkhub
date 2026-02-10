@@ -5,6 +5,7 @@ export const en = {
     bookings: 'Bookings',
     vehicles: 'Vehicles',
     homeoffice: 'Home Office',
+    vacation: 'Vacation',
     admin: 'Admin',
     more: 'More',
     profile: 'Profile',
@@ -275,6 +276,7 @@ export const en = {
       sun: 'Sun',
     },
   },
+  vacation: {    title: "Vacation Management",    subtitle: "Manage your vacation days and free up your parking space.",    todayBanner: "You are on vacation today",    todayBannerDesc: "Your parking slot is available for colleagues.",    thisMonth: "This Month",    vacationDays: "vacation days",    totalEntries: "Total Entries",    entries: "entries",    addVacation: "Add Vacation",    startDate: "Start Date",    endDate: "End Date",    notePlaceholder: "Optional note (e.g. destination)",    addBtn: "Add Vacation",    importIcal: "Import from Calendar",    importDesc: "Upload an iCal (.ics) file to import vacation events automatically.",    importBtn: "Upload iCal File",    imported: "{{count}} vacation entries imported",    myVacations: "My Vacations",    noEntries: "No vacation entries planned",    added: "Vacation added",    removed: "Vacation removed",    legendVacation: "Vacation",    legendToday: "Today",    teamOverview: "Team Vacation Overview",    noTeamEntries: "No upcoming team vacations",  },
   admin: {
     title: 'Administration',
     subtitle: 'System & user management',

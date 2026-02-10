@@ -37,7 +37,7 @@ use parkhub_common::{
     ParkingLot, ParkingSlot, RefreshTokenRequest, RegisterRequest, ServerStatus,
     LotStatus, SlotStatus, User, UserRole, Vehicle, AdminStats,
     WaitlistEntry, PushSubscription, RecurrenceRule,
-    PROTOCOL_VERSION,
+    PROTOCOL_VERSION, VacationEntry, VacationSource, TeamVacationEntry,
 };
 
 use crate::db::Session;
@@ -188,6 +188,10 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/homeoffice/pattern", put(update_homeoffice_pattern))
         .route("/api/v1/homeoffice/days", post(add_homeoffice_day))
         .route("/api/v1/homeoffice/days/:id", delete(remove_homeoffice_day))
+        .route("/api/v1/vacation", get(list_vacation).post(create_vacation))
+        .route("/api/v1/vacation/:id", delete(delete_vacation))
+        .route("/api/v1/vacation/import", post(import_vacation_ical))
+        .route("/api/v1/vacation/team", get(team_vacation))
         .route("/api/v1/admin/users", get(admin_list_users).post(admin_create_user))
         .route("/api/v1/admin/bookings", get(admin_list_bookings))
         .route("/api/v1/admin/stats", get(admin_stats))
@@ -1390,6 +1394,204 @@ async fn remove_homeoffice_day(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// VACATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Deserialize)]
+pub struct CreateVacationRequest {
+    pub start_date: String,
+    pub end_date: String,
+    pub note: Option<String>,
+}
+
+async fn list_vacation(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<Vec<VacationEntry>>>) {
+    let state = state.read().await;
+    match state.db.list_vacation_entries_by_user(&auth_user.user_id.to_string()).await {
+        Ok(entries) => (StatusCode::OK, Json(ApiResponse::success(entries))),
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")))
+        }
+    }
+}
+
+async fn create_vacation(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<CreateVacationRequest>,
+) -> (StatusCode, Json<ApiResponse<VacationEntry>>) {
+    if req.start_date.is_empty() || req.end_date.is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("VALIDATION", "start_date and end_date are required")));
+    }
+    if req.end_date < req.start_date {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("VALIDATION", "end_date must be >= start_date")));
+    }
+    let entry = VacationEntry {
+        id: Uuid::new_v4(),
+        user_id: auth_user.user_id,
+        start_date: req.start_date,
+        end_date: req.end_date,
+        note: req.note,
+        source: VacationSource::Manual,
+    };
+    let state = state.read().await;
+    if let Err(e) = state.db.save_vacation_entry(&entry).await {
+        tracing::error!("Failed to save vacation entry: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save vacation")));
+    }
+    (StatusCode::CREATED, Json(ApiResponse::success(entry)))
+}
+
+async fn delete_vacation(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<()>>) {
+    let state = state.read().await;
+    // Verify ownership
+    match state.db.get_vacation_entry(&id).await {
+        Ok(Some(entry)) if entry.user_id == auth_user.user_id => {},
+        Ok(Some(_)) => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Not your vacation entry"))),
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Vacation entry not found"))),
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
+        }
+    }
+    match state.db.delete_vacation_entry(&id).await {
+        Ok(true) => (StatusCode::OK, Json(ApiResponse::success(()))),
+        Ok(false) => (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Vacation entry not found"))),
+        Err(e) => {
+            tracing::error!("Failed to delete vacation: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to delete vacation")))
+        }
+    }
+}
+
+/// Parse iCal data and extract vacation events
+fn parse_ical_vacation_events(ical_data: &str) -> Vec<(String, String, Option<String>)> {
+    let mut events = Vec::new();
+    let keywords = ["urlaub", "vacation", "holiday", "ooo", "out of office", "abwesend"];
+
+    let mut i = 0;
+    let lines: Vec<&str> = ical_data.lines().collect();
+    while i < lines.len() {
+        if lines[i].trim() == "BEGIN:VEVENT" {
+            let mut summary = String::new();
+            let mut dtstart = String::new();
+            let mut dtend = String::new();
+            let mut j = i + 1;
+            while j < lines.len() && lines[j].trim() != "END:VEVENT" {
+                let line = lines[j].trim();
+                if line.starts_with("SUMMARY:") {
+                    summary = line[8..].to_string();
+                } else if line.starts_with("DTSTART") {
+                    // Handle DTSTART;VALUE=DATE:20260101 or DTSTART:20260101T...
+                    if let Some(val) = line.split(':').last() {
+                        let val = val.trim();
+                        if val.len() >= 8 {
+                            dtstart = format!("{}-{}-{}", &val[0..4], &val[4..6], &val[6..8]);
+                        }
+                    }
+                } else if line.starts_with("DTEND") {
+                    if let Some(val) = line.split(':').last() {
+                        let val = val.trim();
+                        if val.len() >= 8 {
+                            dtend = format!("{}-{}-{}", &val[0..4], &val[4..6], &val[6..8]);
+                        }
+                    }
+                }
+                j += 1;
+            }
+            let summary_lower = summary.to_lowercase();
+            if keywords.iter().any(|kw| summary_lower.contains(kw)) && !dtstart.is_empty() {
+                if dtend.is_empty() {
+                    dtend = dtstart.clone();
+                }
+                // For all-day events, DTEND is exclusive, so subtract one day
+                // But we keep it simple: if dtend > dtstart, use dtend - 1 day
+                // Actually, let's keep end_date as-is for simplicity (inclusive interpretation)
+                events.push((dtstart, dtend, if summary.is_empty() { None } else { Some(summary) }));
+            }
+            i = j;
+        }
+        i += 1;
+    }
+    events
+}
+
+async fn import_vacation_ical(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    mut multipart: Multipart,
+) -> (StatusCode, Json<ApiResponse<Vec<VacationEntry>>>) {
+    let mut ical_data = String::new();
+    while let Ok(Some(field)) = multipart.next_field().await {
+        if let Ok(text) = field.text().await {
+            ical_data = text;
+            break;
+        }
+    }
+    if ical_data.is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("VALIDATION", "No iCal data provided")));
+    }
+
+    let events = parse_ical_vacation_events(&ical_data);
+    let mut entries = Vec::new();
+    let state = state.read().await;
+
+    for (start, end, note) in events {
+        let entry = VacationEntry {
+            id: Uuid::new_v4(),
+            user_id: auth_user.user_id,
+            start_date: start,
+            end_date: end,
+            note,
+            source: VacationSource::Import,
+        };
+        if let Err(e) = state.db.save_vacation_entry(&entry).await {
+            tracing::error!("Failed to save imported vacation: {}", e);
+            continue;
+        }
+        entries.push(entry);
+    }
+
+    (StatusCode::CREATED, Json(ApiResponse::success(entries)))
+}
+
+async fn team_vacation(
+    State(state): State<SharedState>,
+    Extension(_auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<Vec<TeamVacationEntry>>>) {
+    let state = state.read().await;
+    let all_entries = match state.db.list_all_vacation_entries().await {
+        Ok(e) => e,
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
+        }
+    };
+    let users = match state.db.list_users().await {
+        Ok(u) => u,
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
+        }
+    };
+    let user_map: std::collections::HashMap<String, String> = users.into_iter().map(|u| (u.id.to_string(), u.name)).collect();
+
+    let team: Vec<TeamVacationEntry> = all_entries.into_iter().filter_map(|e| {
+        let name = user_map.get(&e.user_id.to_string())?.clone();
+        Some(TeamVacationEntry { user_name: name, start_date: e.start_date, end_date: e.end_date })
+    }).collect();
+
+    (StatusCode::OK, Json(ApiResponse::success(team)))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // ADMIN
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1901,6 +2103,7 @@ async fn export_user_data(
     let bookings = state.db.list_bookings_by_user(&uid).await.unwrap_or_default();
     let vehicles = state.db.list_vehicles_by_user(&uid).await.unwrap_or_default();
     let homeoffice = state.db.get_homeoffice_settings(&uid).await.ok().flatten();
+    let vacation: Vec<VacationEntry> = state.db.list_vacation_entries_by_user(&uid).await.unwrap_or_default();
     let push_subs = state.db.list_push_subscriptions_by_user(&uid).await.unwrap_or_default();
 
     let export = serde_json::json!({
@@ -1923,6 +2126,7 @@ async fn export_user_data(
         "bookings": bookings,
         "vehicles": vehicles,
         "homeoffice_settings": homeoffice,
+        "vacation_entries": vacation,
         "push_subscriptions": push_subs.iter().map(|s| serde_json::json!({
             "endpoint": s.endpoint,
             "created_at": s.created_at,
@@ -1973,6 +2177,9 @@ async fn delete_own_account(
 
     // Delete homeoffice settings
     let _ = state.db.delete_homeoffice_settings(&uid).await;
+    // Delete vacation entries
+    let _ = state.db.delete_vacation_entries_by_user(&uid).await;
+    deleted.insert("vacation_entries".into(), serde_json::json!(true));
     deleted.insert("homeoffice_settings".into(), serde_json::json!(true));
 
     // Delete push subscriptions

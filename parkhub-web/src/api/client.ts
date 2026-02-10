@@ -19,6 +19,8 @@ interface ApiResponse<T> {
 
 class ApiClient {
   private token: string | null = null;
+  public get baseUrl() { return ''; }
+  public get authToken() { return this.getToken(); }
   private refreshingPromise: Promise<boolean> | null = null;
 
   setToken(token: string | null) {
@@ -249,6 +251,31 @@ class ApiClient {
     return this.request<void>(`/api/v1/homeoffice/days/${id}`, { method: 'DELETE' });
   }
 
+  // Vacation
+  async listVacation(): Promise<ApiResponse<VacationEntry[]>> {
+    return this.request<VacationEntry[]>("/api/v1/vacation");
+  }
+
+  async createVacation(start_date: string, end_date: string, note?: string): Promise<ApiResponse<VacationEntry>> {
+    return this.request<VacationEntry>("/api/v1/vacation", { method: "POST", body: JSON.stringify({ start_date, end_date, note }) });
+  }
+
+  async deleteVacation(id: string): Promise<ApiResponse<void>> {
+    return this.request<void>(`/api/v1/vacation/${id}`, { method: "DELETE" });
+  }
+
+  async teamVacation(): Promise<ApiResponse<TeamVacationEntry[]>> {
+    return this.request<TeamVacationEntry[]>("/api/v1/vacation/team");
+  }
+
+  async importVacationIcal(file: File): Promise<ApiResponse<VacationEntry[]>> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = this.getToken();
+    const resp = await fetch("/api/v1/vacation/import", { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formData });
+    return resp.json();
+  }
+
   // Admin
   async getAdminUsers(): Promise<ApiResponse<User[]>> {
     return this.request<User[]>('/api/v1/admin/users');
@@ -413,6 +440,7 @@ export interface HomeofficeSettings {
   parkingSlot?: { number: string; lotName: string };
 }
 
+export interface VacationEntry {  id: string;  user_id: string;  start_date: string;  end_date: string;  note?: string;  source: "Manual" | "Import";}export interface TeamVacationEntry {  user_name: string;  start_date: string;  end_date: string;}
 // Admin types
 export interface AdminStats {
   total_users: number;

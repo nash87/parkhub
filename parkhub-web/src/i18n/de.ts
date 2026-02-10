@@ -6,6 +6,7 @@ export const de = {
     bookings: 'Buchungen',
     vehicles: 'Fahrzeuge',
     homeoffice: 'Homeoffice',
+    vacation: 'Urlaub',
     admin: 'Admin',
     more: 'Mehr',
     profile: 'Profil',
@@ -304,6 +305,7 @@ export const de = {
   },
 
   // Admin
+  vacation: {    title: "Urlaubsverwaltung",    subtitle: "Verwalten Sie Ihre Urlaubstage und geben Sie Ihren Parkplatz frei.",    todayBanner: "Sie sind heute im Urlaub",    todayBannerDesc: "Ihr Parkplatz ist für Kollegen freigegeben.",    thisMonth: "Dieser Monat",    vacationDays: "Urlaubstage",    totalEntries: "Einträge gesamt",    entries: "Einträge",    addVacation: "Urlaub eintragen",    startDate: "Startdatum",    endDate: "Enddatum",    notePlaceholder: "Optionale Notiz (z.B. Reiseziel)",    addBtn: "Urlaub eintragen",    importIcal: "Aus Kalender importieren",    importDesc: "Laden Sie eine iCal-Datei (.ics) hoch, um Urlaubstermine automatisch zu importieren.",    importBtn: "iCal-Datei hochladen",    imported: "{{count}} Urlaubseinträge importiert",    myVacations: "Meine Urlaubstage",    noEntries: "Keine Urlaubseinträge geplant",    added: "Urlaub eingetragen",    removed: "Urlaub gelöscht",    legendVacation: "Urlaub",    legendToday: "Heute",    teamOverview: "Team-Urlaubsübersicht",    noTeamEntries: "Keine anstehenden Team-Urlaube",  },
   admin: {
     title: 'Administration',
     subtitle: 'System- und Benutzerverwaltung',

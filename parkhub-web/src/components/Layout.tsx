@@ -2,7 +2,7 @@ import { ReactNode, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  House,
+  House, Airplane,
   CalendarPlus,
   ListChecks,
   Car,
@@ -39,6 +39,7 @@ const navigationKeys = [
   { key: 'nav.bookings', href: '/bookings', icon: ListChecks },
   { key: 'nav.vehicles', href: '/vehicles', icon: Car },
   { key: 'nav.homeoffice', href: '/homeoffice', icon: House },
+  { key: 'nav.vacation', href: '/vacation', icon: Airplane },
 ];
 
 const adminNavKeys = [
@@ -374,6 +375,7 @@ const mobileTabKeys = [
   { key: 'nav.book', href: '/book', icon: CalendarPlus },
   { key: 'nav.bookings', href: '/bookings', icon: ListChecks },
   { key: 'nav.homeoffice', href: '/homeoffice', icon: House },
+  { key: 'nav.vacation', href: '/vacation', icon: Airplane },
   { key: 'nav.more', href: '#more', icon: DotsThreeCircle },
 ];
 
