@@ -777,4 +777,18 @@ export const fr = {
     hidePreview: "Masquer l'aperçu",
     showPreview: "Afficher l'aperçu",
   },
+  absences: {
+    title: 'Absences',
+    subtitle: 'Gérez toutes vos absences en un seul endroit.',
+    myCalendar: 'My Calendar',
+    teamView: 'Team',
+    types: {
+      homeoffice: 'Télétravail',
+      vacation: 'Vacances',
+      sick: 'Maladie',
+      business_trip: 'Déplacement',
+      other: 'Autre',
+    },
+  },
+,
 };

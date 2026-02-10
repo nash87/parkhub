@@ -24,6 +24,7 @@ import { MaintenanceScreen } from './components/MaintenanceScreen';
 
 const AdminPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminPage })));
 const HomeofficePage = lazy(() => import('./pages/Homeoffice').then(m => ({ default: m.HomeofficePage })));
+const AbsencesPage = lazy(() => import('./pages/Absences').then(m => ({ default: m.AbsencesPage })));
 const ProfilePage = lazy(() => import('./pages/Profile').then(m => ({ default: m.ProfilePage })));
 const PrivacyPage = lazy(() => import('./pages/Privacy').then(m => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import('./pages/Terms').then(m => ({ default: m.TermsPage })));
@@ -124,7 +125,9 @@ function AppRoutes() {
       <Route path="/book" element={<ProtectedRoute><BookPage /></ProtectedRoute>} />
       <Route path="/bookings" element={<ProtectedRoute><BookingsPage /></ProtectedRoute>} />
       <Route path="/vehicles" element={<ProtectedRoute><VehiclesPage /></ProtectedRoute>} />
-      <Route path="/homeoffice" element={<ProtectedRoute><Suspense fallback={<LoadingScreen />}><HomeofficePage /></Suspense></ProtectedRoute>} />
+      <Route path="/absences" element={<ProtectedRoute><Suspense fallback={<LoadingScreen />}><AbsencesPage /></Suspense></ProtectedRoute>} />
+      <Route path="/homeoffice" element={<Navigate to="/absences" replace />} />
+      <Route path="/vacation" element={<Navigate to="/absences" replace />} />
       <Route path="/profile" element={<ProtectedRoute><Suspense fallback={<LoadingScreen />}><ProfilePage /></Suspense></ProtectedRoute>} />
 
       {/* Admin */}

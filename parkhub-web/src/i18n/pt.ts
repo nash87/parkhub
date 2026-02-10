@@ -792,4 +792,18 @@ export const pt = {
     hidePreview: 'Ocultar pré-visualização',
     showPreview: 'Mostrar pré-visualização',
   },
+  absences: {
+    title: 'Ausências',
+    subtitle: 'Gerencie todas as suas ausências em um só lugar.',
+    myCalendar: 'My Calendar',
+    teamView: 'Team',
+    types: {
+      homeoffice: 'Home Office',
+      vacation: 'Férias',
+      sick: 'Doente',
+      business_trip: 'Viagem de negócios',
+      other: 'Outro',
+    },
+  },
+,
 };

@@ -777,4 +777,18 @@ export const es = {
     hidePreview: 'Ocultar vista previa',
     showPreview: 'Mostrar vista previa',
   },
+  absences: {
+    title: 'Ausencias',
+    subtitle: 'Gestione todas sus ausencias en un solo lugar.',
+    myCalendar: 'My Calendar',
+    teamView: 'Team',
+    types: {
+      homeoffice: 'Teletrabajo',
+      vacation: 'Vacaciones',
+      sick: 'Enfermedad',
+      business_trip: 'Viaje de negocios',
+      other: 'Otro',
+    },
+  },
+,
 };

@@ -777,4 +777,18 @@ export const zh = {
     hidePreview: '隐藏预览',
     showPreview: '显示预览',
   },
+  absences: {
+    title: '缺勤',
+    subtitle: '在一个地方管理您的所有缺勤。',
+    myCalendar: 'My Calendar',
+    teamView: 'Team',
+    types: {
+      homeoffice: '居家办公',
+      vacation: '休假',
+      sick: '病假',
+      business_trip: '出差',
+      other: '其他',
+    },
+  },
+,
 };

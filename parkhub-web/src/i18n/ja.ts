@@ -792,4 +792,18 @@ export const ja = {
     hidePreview: 'プレビューを隠す',
     showPreview: 'プレビューを表示',
   },
+  absences: {
+    title: '不在',
+    subtitle: 'すべての不在を一か所で管理します。',
+    myCalendar: 'My Calendar',
+    teamView: 'Team',
+    types: {
+      homeoffice: 'テレワーク',
+      vacation: '休暇',
+      sick: '病気',
+      business_trip: '出張',
+      other: 'その他',
+    },
+  },
+,
 };

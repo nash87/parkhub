@@ -792,4 +792,18 @@ export const tr = {
     hidePreview: 'Önizlemeyi gizle',
     showPreview: 'Önizlemeyi göster',
   },
+  absences: {
+    title: 'Devamsızlık',
+    subtitle: 'Tüm devamsızlıklarınızı tek bir yerden yönetin.',
+    myCalendar: 'My Calendar',
+    teamView: 'Team',
+    types: {
+      homeoffice: 'Evden Çalışma',
+      vacation: 'İzin',
+      sick: 'Hasta',
+      business_trip: 'İş Seyahati',
+      other: 'Diğer',
+    },
+  },
+,
 };

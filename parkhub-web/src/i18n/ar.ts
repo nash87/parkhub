@@ -792,4 +792,18 @@ export const ar = {
     hidePreview: 'إخفاء المعاينة',
     showPreview: 'عرض المعاينة',
   },
+  absences: {
+    title: 'الغياب',
+    subtitle: 'إدارة جميع حالات غيابك في مكان واحد.',
+    myCalendar: 'My Calendar',
+    teamView: 'Team',
+    types: {
+      homeoffice: 'عمل من المنزل',
+      vacation: 'إجازة',
+      sick: 'مرض',
+      business_trip: 'رحلة عمل',
+      other: 'أخرى',
+    },
+  },
+,
 };

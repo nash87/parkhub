@@ -276,6 +276,42 @@ class ApiClient {
     return resp.json();
   }
 
+
+  // ── Absences (unified) ──
+
+  async listAbsences(type?: string): Promise<ApiResponse<AbsenceEntry[]>> {
+    const q = type ? `?type=${type}` : '';
+    return this.request<AbsenceEntry[]>(`/api/v1/absences${q}`);
+  }
+
+  async createAbsence(absence_type: string, start_date: string, end_date: string, note?: string): Promise<ApiResponse<AbsenceEntry>> {
+    return this.request<AbsenceEntry>('/api/v1/absences', { method: 'POST', body: JSON.stringify({ absence_type, start_date, end_date, note }) });
+  }
+
+  async deleteAbsence(id: string): Promise<ApiResponse<void>> {
+    return this.request<void>(`/api/v1/absences/${id}`, { method: 'DELETE' });
+  }
+
+  async importAbsenceIcal(file: File): Promise<ApiResponse<AbsenceEntry[]>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = this.getToken();
+    const resp = await fetch('/api/v1/absences/import', { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formData });
+    return resp.json();
+  }
+
+  async teamAbsences(): Promise<ApiResponse<TeamAbsenceEntry[]>> {
+    return this.request<TeamAbsenceEntry[]>('/api/v1/absences/team');
+  }
+
+  async getAbsencePattern(): Promise<ApiResponse<AbsencePattern[]>> {
+    return this.request<AbsencePattern[]>('/api/v1/absences/pattern');
+  }
+
+  async setAbsencePattern(absence_type: string, weekdays: number[]): Promise<ApiResponse<AbsencePattern>> {
+    return this.request<AbsencePattern>('/api/v1/absences/pattern', { method: 'POST', body: JSON.stringify({ absence_type, weekdays }) });
+  }
+
   // Admin
   async getAdminUsers(): Promise<ApiResponse<User[]>> {
     return this.request<User[]>('/api/v1/admin/users');
@@ -441,6 +477,31 @@ export interface HomeofficeSettings {
 }
 
 export interface VacationEntry {  id: string;  user_id: string;  start_date: string;  end_date: string;  note?: string;  source: "Manual" | "Import";}export interface TeamVacationEntry {  user_name: string;  start_date: string;  end_date: string;}
+
+// Absence types (unified)
+export interface AbsenceEntry {
+  id: string;
+  user_id: string;
+  absence_type: string;
+  start_date: string;
+  end_date: string;
+  note?: string;
+  source: string;
+  created_at: string;
+}
+
+export interface TeamAbsenceEntry {
+  user_name: string;
+  absence_type: string;
+  start_date: string;
+  end_date: string;
+}
+
+export interface AbsencePattern {
+  user_id: string;
+  absence_type: string;
+  weekdays: number[];
+}
 // Admin types
 export interface AdminStats {
   total_users: number;

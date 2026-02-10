@@ -792,4 +792,18 @@ export const hi = {
     hidePreview: 'पूर्वावलोकन छिपाएं',
     showPreview: 'पूर्वावलोकन दिखाएं',
   },
+  absences: {
+    title: 'अनुपस्थिति',
+    subtitle: 'अपनी सभी अनुपस्थितियों को एक ही स्थान पर प्रबंधित करें।',
+    myCalendar: 'My Calendar',
+    teamView: 'Team',
+    types: {
+      homeoffice: 'होम ऑफिस',
+      vacation: 'छुट्टी',
+      sick: 'बीमार',
+      business_trip: 'व्यापार यात्रा',
+      other: 'अन्य',
+    },
+  },
+,
 };

@@ -38,6 +38,7 @@ use parkhub_common::{
     LotStatus, SlotStatus, User, UserRole, Vehicle, AdminStats,
     WaitlistEntry, PushSubscription, RecurrenceRule,
     PROTOCOL_VERSION, VacationEntry, VacationSource, TeamVacationEntry,
+    AbsenceEntry, AbsenceType, AbsenceSource, TeamAbsenceEntry, AbsencePattern,
 };
 
 use crate::db::Session;
@@ -192,6 +193,12 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/vacation/:id", delete(delete_vacation))
         .route("/api/v1/vacation/import", post(import_vacation_ical))
         .route("/api/v1/vacation/team", get(team_vacation))
+        // ── Unified Absence endpoints ──
+        .route("/api/v1/absences", get(list_absences).post(create_absence))
+        .route("/api/v1/absences/:id", delete(delete_absence))
+        .route("/api/v1/absences/import", post(import_absence_ical))
+        .route("/api/v1/absences/team", get(team_absences))
+        .route("/api/v1/absences/pattern", get(get_absence_pattern).post(set_absence_pattern))
         .route("/api/v1/admin/users", get(admin_list_users).post(admin_create_user))
         .route("/api/v1/admin/bookings", get(admin_list_bookings))
         .route("/api/v1/admin/stats", get(admin_stats))
@@ -1591,6 +1598,297 @@ async fn team_vacation(
     (StatusCode::OK, Json(ApiResponse::success(team)))
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ABSENCES (unified)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Deserialize)]
+pub struct AbsenceQueryParams {
+    #[serde(rename = "type")]
+    pub absence_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateAbsenceRequest {
+    pub absence_type: String,
+    pub start_date: String,
+    pub end_date: String,
+    pub note: Option<String>,
+}
+
+fn parse_absence_type(s: &str) -> Option<AbsenceType> {
+    match s.to_lowercase().as_str() {
+        "homeoffice" | "home_office" => Some(AbsenceType::Homeoffice),
+        "vacation" | "urlaub" => Some(AbsenceType::Vacation),
+        "sick" | "krank" => Some(AbsenceType::Sick),
+        "business_trip" | "dienstreise" => Some(AbsenceType::BusinessTrip),
+        "other" | "sonstiges" => Some(AbsenceType::Other),
+        _ => None,
+    }
+}
+
+async fn list_absences(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Query(params): Query<AbsenceQueryParams>,
+) -> (StatusCode, Json<ApiResponse<Vec<AbsenceEntry>>>) {
+    let state = state.read().await;
+    match state.db.list_absence_entries_by_user(&auth_user.user_id.to_string()).await {
+        Ok(entries) => {
+            let filtered = if let Some(ref t) = params.absence_type {
+                if let Some(at) = parse_absence_type(t) {
+                    entries.into_iter().filter(|e| e.absence_type == at).collect()
+                } else {
+                    entries
+                }
+            } else {
+                entries
+            };
+            (StatusCode::OK, Json(ApiResponse::success(filtered)))
+        }
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")))
+        }
+    }
+}
+
+async fn create_absence(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<CreateAbsenceRequest>,
+) -> (StatusCode, Json<ApiResponse<AbsenceEntry>>) {
+    let absence_type = match parse_absence_type(&req.absence_type) {
+        Some(t) => t,
+        None => return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("VALIDATION", "Invalid absence_type. Use: homeoffice, vacation, sick, business_trip, other"))),
+    };
+    if req.start_date.is_empty() || req.end_date.is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("VALIDATION", "start_date and end_date are required")));
+    }
+    if req.end_date < req.start_date {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("VALIDATION", "end_date must be >= start_date")));
+    }
+    let entry = AbsenceEntry {
+        id: Uuid::new_v4(),
+        user_id: auth_user.user_id,
+        absence_type,
+        start_date: req.start_date,
+        end_date: req.end_date,
+        note: req.note,
+        source: AbsenceSource::Manual,
+        created_at: Utc::now(),
+    };
+    let state = state.read().await;
+    if let Err(e) = state.db.save_absence_entry(&entry).await {
+        tracing::error!("Failed to save absence entry: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save absence")));
+    }
+    (StatusCode::CREATED, Json(ApiResponse::success(entry)))
+}
+
+async fn delete_absence(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<()>>) {
+    let state = state.read().await;
+    match state.db.get_absence_entry(&id).await {
+        Ok(Some(entry)) if entry.user_id == auth_user.user_id => {},
+        Ok(Some(_)) => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Not your absence entry"))),
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Absence entry not found"))),
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
+        }
+    }
+    match state.db.delete_absence_entry(&id).await {
+        Ok(true) => (StatusCode::OK, Json(ApiResponse::success(()))),
+        Ok(false) => (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Absence entry not found"))),
+        Err(e) => {
+            tracing::error!("Failed to delete absence: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to delete absence")))
+        }
+    }
+}
+
+/// Parse iCal data and extract absence events with type detection
+fn parse_ical_absence_events(ical_data: &str) -> Vec<(AbsenceType, String, String, Option<String>)> {
+    let mut events = Vec::new();
+
+    let vacation_kw = ["urlaub", "vacation", "holiday", "ooo", "out of office", "abwesend", "frei", "off"];
+    let sick_kw = ["krank", "sick", "illness", "arzt", "doctor"];
+    let trip_kw = ["dienstreise", "business trip", "travel", "reise", "konferenz", "conference", "messe"];
+    let ho_kw = ["homeoffice", "home office", "remote", "wfh", "work from home"];
+
+    let lines: Vec<&str> = ical_data.lines().collect();
+    let mut i = 0;
+    while i < lines.len() {
+        if lines[i].trim() == "BEGIN:VEVENT" {
+            let mut summary = String::new();
+            let mut dtstart = String::new();
+            let mut dtend = String::new();
+            let mut j = i + 1;
+            while j < lines.len() && lines[j].trim() != "END:VEVENT" {
+                let line = lines[j].trim();
+                if line.starts_with("SUMMARY:") {
+                    summary = line[8..].to_string();
+                } else if line.starts_with("DTSTART") {
+                    if let Some(val) = line.split(':').last() {
+                        let val = val.trim();
+                        if val.len() >= 8 {
+                            dtstart = format!("{}-{}-{}", &val[0..4], &val[4..6], &val[6..8]);
+                        }
+                    }
+                } else if line.starts_with("DTEND") {
+                    if let Some(val) = line.split(':').last() {
+                        let val = val.trim();
+                        if val.len() >= 8 {
+                            dtend = format!("{}-{}-{}", &val[0..4], &val[4..6], &val[6..8]);
+                        }
+                    }
+                }
+                j += 1;
+            }
+
+            if !dtstart.is_empty() {
+                if dtend.is_empty() { dtend = dtstart.clone(); }
+                let summary_lower = summary.to_lowercase();
+
+                let absence_type = if ho_kw.iter().any(|kw| summary_lower.contains(kw)) {
+                    Some(AbsenceType::Homeoffice)
+                } else if sick_kw.iter().any(|kw| summary_lower.contains(kw)) {
+                    Some(AbsenceType::Sick)
+                } else if trip_kw.iter().any(|kw| summary_lower.contains(kw)) {
+                    Some(AbsenceType::BusinessTrip)
+                } else if vacation_kw.iter().any(|kw| summary_lower.contains(kw)) {
+                    Some(AbsenceType::Vacation)
+                } else {
+                    None
+                };
+
+                if let Some(at) = absence_type {
+                    events.push((at, dtstart, dtend, if summary.is_empty() { None } else { Some(summary) }));
+                }
+            }
+            i = j;
+        }
+        i += 1;
+    }
+    events
+}
+
+async fn import_absence_ical(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    mut multipart: Multipart,
+) -> (StatusCode, Json<ApiResponse<Vec<AbsenceEntry>>>) {
+    let mut ical_data = String::new();
+    while let Ok(Some(field)) = multipart.next_field().await {
+        if let Ok(text) = field.text().await {
+            ical_data = text;
+            break;
+        }
+    }
+    if ical_data.is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("VALIDATION", "No iCal data provided")));
+    }
+
+    let events = parse_ical_absence_events(&ical_data);
+    let mut entries = Vec::new();
+    let state = state.read().await;
+
+    for (absence_type, start, end, note) in events {
+        let entry = AbsenceEntry {
+            id: Uuid::new_v4(),
+            user_id: auth_user.user_id,
+            absence_type,
+            start_date: start,
+            end_date: end,
+            note,
+            source: AbsenceSource::Import,
+            created_at: Utc::now(),
+        };
+        if let Err(e) = state.db.save_absence_entry(&entry).await {
+            tracing::error!("Failed to save imported absence: {}", e);
+            continue;
+        }
+        entries.push(entry);
+    }
+
+    (StatusCode::CREATED, Json(ApiResponse::success(entries)))
+}
+
+async fn team_absences(
+    State(state): State<SharedState>,
+    Extension(_auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<Vec<TeamAbsenceEntry>>>) {
+    let state = state.read().await;
+    let all_entries = match state.db.list_all_absence_entries().await {
+        Ok(e) => e,
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
+        }
+    };
+    let users = match state.db.list_users().await {
+        Ok(u) => u,
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")));
+        }
+    };
+    let user_map: std::collections::HashMap<String, String> = users.into_iter().map(|u| (u.id.to_string(), u.name)).collect();
+
+    let team: Vec<TeamAbsenceEntry> = all_entries.into_iter().filter_map(|e| {
+        let name = user_map.get(&e.user_id.to_string())?.clone();
+        Some(TeamAbsenceEntry { user_name: name, absence_type: e.absence_type, start_date: e.start_date, end_date: e.end_date })
+    }).collect();
+
+    (StatusCode::OK, Json(ApiResponse::success(team)))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SetAbsencePatternRequest {
+    pub absence_type: Option<String>,
+    pub weekdays: Vec<u8>,
+}
+
+async fn get_absence_pattern(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<Vec<AbsencePattern>>>) {
+    let state = state.read().await;
+    match state.db.get_absence_patterns_by_user(&auth_user.user_id.to_string()).await {
+        Ok(patterns) => (StatusCode::OK, Json(ApiResponse::success(patterns))),
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Internal server error")))
+        }
+    }
+}
+
+async fn set_absence_pattern(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<SetAbsencePatternRequest>,
+) -> (StatusCode, Json<ApiResponse<AbsencePattern>>) {
+    let absence_type = parse_absence_type(&req.absence_type.unwrap_or_else(|| "homeoffice".to_string()))
+        .unwrap_or(AbsenceType::Homeoffice);
+    let weekdays: Vec<u8> = req.weekdays.into_iter().filter(|&d| d <= 4).collect();
+    let pattern = AbsencePattern {
+        user_id: auth_user.user_id,
+        absence_type,
+        weekdays,
+    };
+    let state = state.read().await;
+    if let Err(e) = state.db.save_absence_pattern(&pattern).await {
+        tracing::error!("Failed to save absence pattern: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save pattern")));
+    }
+    (StatusCode::OK, Json(ApiResponse::success(pattern)))
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ADMIN
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2104,6 +2402,8 @@ async fn export_user_data(
     let vehicles = state.db.list_vehicles_by_user(&uid).await.unwrap_or_default();
     let homeoffice = state.db.get_homeoffice_settings(&uid).await.ok().flatten();
     let vacation: Vec<VacationEntry> = state.db.list_vacation_entries_by_user(&uid).await.unwrap_or_default();
+    let absences: Vec<AbsenceEntry> = state.db.list_absence_entries_by_user(&uid).await.unwrap_or_default();
+    let absence_patterns = state.db.get_absence_patterns_by_user(&uid).await.unwrap_or_default();
     let push_subs = state.db.list_push_subscriptions_by_user(&uid).await.unwrap_or_default();
 
     let export = serde_json::json!({
@@ -2127,6 +2427,8 @@ async fn export_user_data(
         "vehicles": vehicles,
         "homeoffice_settings": homeoffice,
         "vacation_entries": vacation,
+        "absence_entries": absences,
+        "absence_patterns": absence_patterns,
         "push_subscriptions": push_subs.iter().map(|s| serde_json::json!({
             "endpoint": s.endpoint,
             "created_at": s.created_at,
@@ -2179,6 +2481,10 @@ async fn delete_own_account(
     let _ = state.db.delete_homeoffice_settings(&uid).await;
     // Delete vacation entries
     let _ = state.db.delete_vacation_entries_by_user(&uid).await;
+    // Delete absence entries and patterns
+    let _ = state.db.delete_absence_entries_by_user(&uid).await;
+    let _ = state.db.delete_absence_patterns_by_user(&uid).await;
+    deleted.insert("absence_entries".into(), serde_json::json!(true));
     deleted.insert("vacation_entries".into(), serde_json::json!(true));
     deleted.insert("homeoffice_settings".into(), serde_json::json!(true));
 
