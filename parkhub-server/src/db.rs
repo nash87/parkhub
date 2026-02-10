@@ -22,7 +22,7 @@ use uuid::Uuid;
 
 use parkhub_common::models::{
     Booking, HomeofficeSettings, LotLayout, ParkingLot, ParkingSlot, User, Vehicle,
-    WaitlistEntry, PushSubscription, VacationEntry,
+    WaitlistEntry, PushSubscription, VacationEntry, AbsenceEntry, AbsencePattern,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -45,6 +45,8 @@ const WAITLIST: TableDefinition<&str, &[u8]> = TableDefinition::new("waitlist");
 const PUSH_SUBSCRIPTIONS: TableDefinition<&str, &[u8]> = TableDefinition::new("push_subscriptions");
 const BRANDING: TableDefinition<&str, &[u8]> = TableDefinition::new("branding");
 const VACATION: TableDefinition<&str, &[u8]> = TableDefinition::new("vacation");
+const ABSENCES: TableDefinition<&str, &[u8]> = TableDefinition::new("absences");
+const ABSENCE_PATTERNS: TableDefinition<&str, &[u8]> = TableDefinition::new("absence_patterns");
 
 // Settings keys
 const SETTING_SETUP_COMPLETED: &str = "setup_completed";
@@ -199,6 +201,8 @@ impl Database {
             let _ = write_txn.open_table(LOT_LAYOUTS)?;
             let _ = write_txn.open_table(WAITLIST)?;
             let _ = write_txn.open_table(PUSH_SUBSCRIPTIONS)?;
+            let _ = write_txn.open_table(ABSENCES)?;
+            let _ = write_txn.open_table(ABSENCE_PATTERNS)?;
         }
         write_txn.commit()?;
 
@@ -1120,6 +1124,8 @@ impl Database {
         collect_and_clear!(write_txn, WAITLIST);
         collect_and_clear!(write_txn, PUSH_SUBSCRIPTIONS);
         collect_and_clear!(write_txn, BRANDING);
+        collect_and_clear!(write_txn, ABSENCES);
+        collect_and_clear!(write_txn, ABSENCE_PATTERNS);
         collect_and_clear!(write_txn, SESSIONS);
         collect_and_clear_str!(write_txn, USERS_BY_USERNAME);
         collect_and_clear_str!(write_txn, USERS_BY_EMAIL);
@@ -1144,6 +1150,137 @@ impl Database {
                 count += 1;
             }
         }
+        Ok(count)
+    }
+
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ABSENCE OPERATIONS (unified)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    pub async fn save_absence_entry(&self, entry: &AbsenceEntry) -> Result<()> {
+        let id = entry.id.to_string();
+        let data = self.serialize(entry)?;
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        {
+            let mut table = write_txn.open_table(ABSENCES)?;
+            table.insert(id.as_str(), data.as_slice())?;
+        }
+        write_txn.commit()?;
+        debug!("Saved absence entry: {}", entry.id);
+        Ok(())
+    }
+
+    pub async fn get_absence_entry(&self, id: &str) -> Result<Option<AbsenceEntry>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(ABSENCES)?;
+        match table.get(id)? {
+            Some(value) => Ok(Some(self.deserialize(value.value())?)),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn list_absence_entries_by_user(&self, user_id: &str) -> Result<Vec<AbsenceEntry>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(ABSENCES)?;
+        let mut entries = Vec::new();
+        for item in table.iter()? {
+            let (_k, v) = item?;
+            let entry: AbsenceEntry = self.deserialize(v.value())?;
+            if entry.user_id.to_string() == user_id {
+                entries.push(entry);
+            }
+        }
+        entries.sort_by(|a, b| a.start_date.cmp(&b.start_date));
+        Ok(entries)
+    }
+
+    pub async fn list_all_absence_entries(&self) -> Result<Vec<AbsenceEntry>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(ABSENCES)?;
+        let mut entries = Vec::new();
+        for item in table.iter()? {
+            let (_k, v) = item?;
+            let entry: AbsenceEntry = self.deserialize(v.value())?;
+            entries.push(entry);
+        }
+        Ok(entries)
+    }
+
+    pub async fn delete_absence_entry(&self, id: &str) -> Result<bool> {
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        let existed;
+        {
+            let mut table = write_txn.open_table(ABSENCES)?;
+            existed = table.remove(id)?.is_some();
+        }
+        write_txn.commit()?;
+        if existed {
+            debug!("Deleted absence entry: {}", id);
+        }
+        Ok(existed)
+    }
+
+    pub async fn delete_absence_entries_by_user(&self, user_id: &str) -> Result<u64> {
+        let entries = self.list_absence_entries_by_user(user_id).await?;
+        let mut count = 0u64;
+        for entry in &entries {
+            if self.delete_absence_entry(&entry.id.to_string()).await? {
+                count += 1;
+            }
+        }
+        Ok(count)
+    }
+
+    // Absence pattern operations
+
+    pub async fn save_absence_pattern(&self, pattern: &AbsencePattern) -> Result<()> {
+        let key = format!("{}:{:?}", pattern.user_id, pattern.absence_type);
+        let data = self.serialize(pattern)?;
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        {
+            let mut table = write_txn.open_table(ABSENCE_PATTERNS)?;
+            table.insert(key.as_str(), data.as_slice())?;
+        }
+        write_txn.commit()?;
+        debug!("Saved absence pattern for user: {}", pattern.user_id);
+        Ok(())
+    }
+
+    pub async fn get_absence_patterns_by_user(&self, user_id: &str) -> Result<Vec<AbsencePattern>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(ABSENCE_PATTERNS)?;
+        let prefix = format!("{}:", user_id);
+        let mut patterns = Vec::new();
+        for item in table.iter()? {
+            let (k, v) = item?;
+            if k.value().starts_with(&prefix) {
+                patterns.push(self.deserialize(v.value())?);
+            }
+        }
+        Ok(patterns)
+    }
+
+    pub async fn delete_absence_patterns_by_user(&self, user_id: &str) -> Result<u64> {
+        let patterns = self.get_absence_patterns_by_user(user_id).await?;
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        let count = patterns.len() as u64;
+        {
+            let mut table = write_txn.open_table(ABSENCE_PATTERNS)?;
+            for p in &patterns {
+                let key = format!("{}:{:?}", p.user_id, p.absence_type);
+                table.remove(key.as_str())?;
+            }
+        }
+        write_txn.commit()?;
         Ok(count)
     }
 

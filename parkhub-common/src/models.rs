@@ -327,6 +327,64 @@ pub struct TeamVacationEntry {
     pub end_date: String,
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ABSENCE MODELS (unified homeoffice + vacation + sick + business trip)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Type of absence
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum AbsenceType {
+    Homeoffice,
+    Vacation,
+    Sick,
+    BusinessTrip,
+    Other,
+}
+
+/// Source of an absence entry
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum AbsenceSource {
+    Manual,
+    Import,
+    Pattern,
+}
+
+/// A unified absence entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AbsenceEntry {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub absence_type: AbsenceType,
+    /// ISO date string (YYYY-MM-DD)
+    pub start_date: String,
+    /// ISO date string (YYYY-MM-DD)
+    pub end_date: String,
+    pub note: Option<String>,
+    pub source: AbsenceSource,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Team absence overview entry (no private details)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TeamAbsenceEntry {
+    pub user_name: String,
+    pub absence_type: AbsenceType,
+    pub start_date: String,
+    pub end_date: String,
+}
+
+/// Absence pattern for recurring absences (e.g. weekly homeoffice)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AbsencePattern {
+    pub user_id: Uuid,
+    pub absence_type: AbsenceType,
+    /// Weekdays: 0=Mon, 1=Tue, ..., 4=Fri
+    pub weekdays: Vec<u8>,
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // NOTIFICATION MODELS
 // ═══════════════════════════════════════════════════════════════════════════════
