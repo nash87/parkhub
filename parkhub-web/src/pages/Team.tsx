@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 const statusConfig: Record<string, { icon: typeof Car; color: string; bgColor: string }> = {
   parked: { icon: Car, color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-50 dark:bg-emerald-900/30' },
-  homeoffice: { icon: House, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-900/30' },
+  homeoffice: { icon: House, color: 'text-primary-600 dark:text-primary-400', bgColor: 'bg-primary-50 dark:bg-primary-900/30' },
   vacation: { icon: Airplane, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-50 dark:bg-amber-900/30' },
   sick: { icon: Thermometer, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-50 dark:bg-red-900/30' },
   business_trip: { icon: MapPin, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-50 dark:bg-purple-900/30' },

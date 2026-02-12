@@ -635,6 +635,7 @@ export const pt = {
   palette: {
     title: 'Paleta de Cores',
     defaultBlue: 'Azul Padrão',
+    defaultAmber: 'Default Amber',
     solarized: 'Solarized',
     dracula: 'Dracula',
     nord: 'Nord',

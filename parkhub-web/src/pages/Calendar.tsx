@@ -11,7 +11,7 @@ const statusColors: Record<string, string> = {
   active: 'bg-emerald-500',
   pending: 'bg-amber-500',
   cancelled: 'bg-gray-400',
-  completed: 'bg-blue-500',
+  completed: 'bg-primary-500',
   autoreleased: 'bg-red-400',
 };
 
@@ -130,7 +130,7 @@ export function CalendarPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                       {e.title}
-                      {e.is_recurring && <ArrowsClockwise weight="bold" className="inline w-3.5 h-3.5 ml-1 text-blue-500" />}
+                      {e.is_recurring && <ArrowsClockwise weight="bold" className="inline w-3.5 h-3.5 ml-1 text-primary-500" />}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {format(new Date(e.start), 'HH:mm')} - {format(new Date(e.end), 'HH:mm')}

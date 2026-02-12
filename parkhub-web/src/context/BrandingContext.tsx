@@ -8,7 +8,7 @@ function hexToRgb(hex: string): string {
   const r = parseInt(h.substring(0, 2), 16);
   const g = parseInt(h.substring(2, 4), 16);
   const b = parseInt(h.substring(4, 6), 16);
-  if (isNaN(r) || isNaN(g) || isNaN(b)) return '59 130 246'; // fallback blue
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return '245 158 11'; // fallback blue
   return `${r} ${g} ${b}`;
 }
 

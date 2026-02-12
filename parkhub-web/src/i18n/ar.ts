@@ -635,6 +635,7 @@ export const ar = {
   palette: {
     title: 'لوحة الألوان',
     defaultBlue: 'أزرق افتراضي',
+    defaultAmber: 'Default Amber',
     solarized: 'Solarized',
     dracula: 'Dracula',
     nord: 'Nord',

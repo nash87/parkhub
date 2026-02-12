@@ -635,6 +635,7 @@ export const hi = {
   palette: {
     title: 'रंग पैलेट',
     defaultBlue: 'डिफ़ॉल्ट नीला',
+    defaultAmber: 'Default Amber',
     solarized: 'Solarized',
     dracula: 'Dracula',
     nord: 'Nord',

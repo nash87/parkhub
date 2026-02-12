@@ -827,6 +827,7 @@ export const en = {
   palette: {
     title: "Color Palette",
     defaultBlue: "Default Blue",
+    defaultAmber: "Default Amber",
     solarized: "Solarized",
     dracula: "Dracula",
     nord: "Nord",

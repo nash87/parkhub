@@ -85,7 +85,7 @@ function AdminOverview() {
   }, []);
 
   const statCards = [
-    { label: t('admin.overview.totalSlots'), value: stats ? String(stats.total_lots) : '0', icon: Buildings, color: 'bg-blue-100 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
+    { label: t('admin.overview.totalSlots'), value: stats ? String(stats.total_lots) : '0', icon: Buildings, color: 'bg-primary-100 dark:bg-primary-900/30', iconColor: 'text-primary-600 dark:text-primary-400' },
     { label: t('admin.overview.activeBookings'), value: stats ? String(stats.active_bookings) : '0', icon: Clock, color: 'bg-emerald-100 dark:bg-emerald-900/30', iconColor: 'text-emerald-600 dark:text-emerald-400' },
     { label: t('admin.overview.occupancyToday'), value: '-', icon: TrendUp, color: 'bg-amber-100 dark:bg-amber-900/30', iconColor: 'text-amber-600 dark:text-amber-400' },
     { label: t('admin.overview.homeofficeToday'), value: '-', icon: House, color: 'bg-purple-100 dark:bg-purple-900/30', iconColor: 'text-purple-600 dark:text-purple-400' },

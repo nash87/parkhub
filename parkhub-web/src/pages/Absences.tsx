@@ -17,7 +17,7 @@ type AbsenceType = 'homeoffice' | 'vacation' | 'sick' | 'business_trip' | 'other
 type ViewMode = 'calendar' | 'team';
 
 const ABSENCE_CONFIG: Record<AbsenceType, { icon: typeof House; color: string; bgLight: string; bgDark: string; ring: string; dot: string; emoji: string }> = {
-  homeoffice: { icon: House, color: 'text-blue-600 dark:text-blue-400', bgLight: 'bg-blue-100 dark:bg-blue-900/30', bgDark: 'bg-blue-200 dark:bg-blue-800/50', ring: 'ring-blue-400', dot: 'bg-blue-500', emoji: '🏠' },
+  homeoffice: { icon: House, color: 'text-primary-600 dark:text-primary-400', bgLight: 'bg-primary-100 dark:bg-primary-900/30', bgDark: 'bg-primary-200 dark:bg-primary-800/50', ring: 'ring-primary-400', dot: 'bg-primary-500', emoji: '🏠' },
   vacation: { icon: Airplane, color: 'text-orange-600 dark:text-orange-400', bgLight: 'bg-orange-100 dark:bg-orange-900/30', bgDark: 'bg-orange-200 dark:bg-orange-800/50', ring: 'ring-orange-400', dot: 'bg-orange-500', emoji: '🏖️' },
   sick: { icon: FirstAidKit, color: 'text-red-600 dark:text-red-400', bgLight: 'bg-red-100 dark:bg-red-900/30', bgDark: 'bg-red-200 dark:bg-red-800/50', ring: 'ring-red-400', dot: 'bg-red-500', emoji: '🤒' },
   business_trip: { icon: Briefcase, color: 'text-purple-600 dark:text-purple-400', bgLight: 'bg-purple-100 dark:bg-purple-900/30', bgDark: 'bg-purple-200 dark:bg-purple-800/50', ring: 'ring-purple-400', dot: 'bg-purple-500', emoji: '✈️' },
@@ -274,7 +274,7 @@ export function AbsencesPage() {
 
       {/* ── Today banner ── */}
       {todayAbsence && (
-        <motion.div variants={itemVariants} className={`card ${ABSENCE_CONFIG[todayAbsence].bgLight} border ${todayAbsence === 'homeoffice' ? 'border-blue-200 dark:border-blue-800' : todayAbsence === 'vacation' ? 'border-orange-200 dark:border-orange-800' : todayAbsence === 'sick' ? 'border-red-200 dark:border-red-800' : todayAbsence === 'business_trip' ? 'border-purple-200 dark:border-purple-800' : 'border-gray-200 dark:border-gray-800'} p-4`}>
+        <motion.div variants={itemVariants} className={`card ${ABSENCE_CONFIG[todayAbsence].bgLight} border ${todayAbsence === 'homeoffice' ? 'border-primary-200 dark:border-primary-800' : todayAbsence === 'vacation' ? 'border-orange-200 dark:border-orange-800' : todayAbsence === 'sick' ? 'border-red-200 dark:border-red-800' : todayAbsence === 'business_trip' ? 'border-purple-200 dark:border-purple-800' : 'border-gray-200 dark:border-gray-800'} p-4`}>
           <div className="flex items-center gap-3">
             {(() => { const Icon = ABSENCE_CONFIG[todayAbsence].icon; return <Icon weight="fill" className={`w-6 h-6 ${ABSENCE_CONFIG[todayAbsence].color}`} />; })()}
             <div>
@@ -292,7 +292,7 @@ export function AbsencesPage() {
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('absences.thisWeek')}</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {weekStats.homeoffice > 0 && <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">{weekStats.homeoffice}× {ABSENCE_CONFIG.homeoffice.emoji}</span>}
+                {weekStats.homeoffice > 0 && <span className="text-sm font-semibold text-primary-600 dark:text-primary-400">{weekStats.homeoffice}× {ABSENCE_CONFIG.homeoffice.emoji}</span>}
                 {weekStats.vacation > 0 && <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">{weekStats.vacation}× {ABSENCE_CONFIG.vacation.emoji}</span>}
                 {weekStats.sick > 0 && <span className="text-sm font-semibold text-red-600 dark:text-red-400">{weekStats.sick}× {ABSENCE_CONFIG.sick.emoji}</span>}
                 {weekStats.business_trip > 0 && <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">{weekStats.business_trip}× {ABSENCE_CONFIG.business_trip.emoji}</span>}
@@ -416,7 +416,7 @@ export function AbsencesPage() {
                 className="flex items-center justify-between w-full text-left"
               >
                 <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <House weight="fill" className="w-5 h-5 text-blue-600" />
+                  <House weight="fill" className="w-5 h-5 text-primary-600" />
                   {t('absences.weeklyPattern')}
                 </h3>
                 <CaretRight weight="bold" className={`w-4 h-4 text-gray-400 transition-transform ${showPattern ? 'rotate-90' : ''}`} />
@@ -561,7 +561,7 @@ function WeekdayToggle({ weekdays, onChange, t }: WeekdayToggleProps) {
             onClick={() => toggle(i)}
             className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl border-2 transition-all font-medium min-h-[44px] ${
               active
-                ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-400 dark:border-blue-600 text-blue-700 dark:text-blue-300'
+                ? 'bg-primary-100 dark:bg-primary-900/40 border-primary-400 dark:border-primary-600 text-primary-700 dark:text-primary-300'
                 : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
             }`}
           >

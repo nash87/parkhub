@@ -19,7 +19,7 @@ function PrivacyToggle({ checked, onChange, label, desc }: { checked: boolean; o
     <label className="flex items-start gap-3 cursor-pointer group">
       <div className="relative mt-0.5">
         <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="sr-only peer" />
-        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-blue-500 transition-colors" />
+        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-primary-500 transition-colors" />
         <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow peer-checked:translate-x-4 transition-transform" />
       </div>
       <div>
@@ -72,7 +72,7 @@ export function AdminPrivacyPage() {
     setSaving(false);
   };
 
-  if (loading) return <div className="flex justify-center py-12"><SpinnerGap className="w-8 h-8 animate-spin text-blue-500" /></div>;
+  if (loading) return <div className="flex justify-center py-12"><SpinnerGap className="w-8 h-8 animate-spin text-primary-500" /></div>;
 
   if (!config) return <div className="card p-6"><div className="text-sm text-red-600 dark:text-red-400">{error || 'Failed to load privacy settings'}</div></div>;
 
@@ -106,7 +106,7 @@ export function AdminPrivacyPage() {
       {/* Card 1: Booking Visibility */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <Eye weight="fill" className="w-5 h-5 text-blue-500" />
+          <Eye weight="fill" className="w-5 h-5 text-primary-500" />
           {t('admin.privacy.bookingVisibility.title', 'Booking Visibility')}
         </h3>
         <div className="space-y-4">
@@ -178,7 +178,7 @@ export function AdminPrivacyPage() {
         </h3>
         <div className="space-y-3">
           <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <Info weight="fill" className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+            <Info weight="fill" className="w-4 h-4 text-primary-500 mt-0.5 shrink-0" />
             <span>{t('admin.privacy.gdpr.info', 'Users can export and delete their data via Profile settings (Art. 15 & 17 GDPR). Configure visibility and retention above to minimize data exposure.')}</span>
           </div>
           <div className="flex flex-wrap gap-2 pt-2">
@@ -203,7 +203,7 @@ export function AdminPrivacyPage() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-xl transition-colors">
+        <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary-500 hover:bg-primary-600 text-stone-900 disabled:opacity-50 text-white font-medium rounded-xl transition-colors">
           {saving && <SpinnerGap className="w-4 h-4 animate-spin" />}
           {saving ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
         </button>

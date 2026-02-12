@@ -620,6 +620,7 @@ export const zh = {
   palette: {
     title: '调色板',
     defaultBlue: '默认蓝',
+    defaultAmber: 'Default Amber',
     solarized: 'Solarized',
     dracula: 'Dracula',
     nord: 'Nord',

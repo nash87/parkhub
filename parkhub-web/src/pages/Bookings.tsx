@@ -25,7 +25,7 @@ function BookingCard({ booking, onCancel, cancelling, vehiclePhoto, t, dateFnsLo
     cancelled: { label: t('bookings.statusCancelled'), class: 'badge-error', icon: XCircle },
   };
   const bookingTypeConfig: Record<string, { label: string; class: string }> = {
-    einmalig: { label: t('bookings.typeSingle'), class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+    einmalig: { label: t('bookings.typeSingle'), class: 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' },
     mehrtaegig: { label: t('bookings.typeMultiDay'), class: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
     dauer: { label: t('bookings.typeRecurring'), class: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
   };
@@ -37,7 +37,7 @@ function BookingCard({ booking, onCancel, cancelling, vehiclePhoto, t, dateFnsLo
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -100 }}
-      className={`card p-6 shadow-md dark:shadow-gray-900/50 border-l-4 transition-all hover:shadow-lg hover:-translate-y-0.5 ${isPastBooking ? 'border-l-gray-300 dark:border-l-gray-600 opacity-80' : isExpiringSoon ? 'border-l-amber-500' : isUpcoming ? 'border-l-blue-500' : 'border-l-primary-500'}`}>
+      className={`card p-6 shadow-md dark:shadow-gray-900/50 border-l-4 transition-all hover:shadow-lg hover:-translate-y-0.5 ${isPastBooking ? 'border-l-gray-300 dark:border-l-gray-600 opacity-80' : isExpiringSoon ? 'border-l-amber-500' : isUpcoming ? 'border-l-primary-500' : 'border-l-primary-500'}`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isPastBooking ? 'bg-gray-100 dark:bg-gray-800' : isExpiringSoon ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-primary-100 dark:bg-primary-900/30'}`}>
@@ -193,7 +193,7 @@ export function BookingsPage() {
       </div>
 
       <div>
-        <SectionHeader icon={CalendarPlus} title={t('bookings.upcoming')} count={upcomingBookings.length} color="text-blue-600" />
+        <SectionHeader icon={CalendarPlus} title={t('bookings.upcoming')} count={upcomingBookings.length} color="text-primary-600" />
         {upcomingBookings.length === 0 ? <EmptySection icon={CalendarCheck} text={t('bookings.noUpcoming')} t={t} /> : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4"><AnimatePresence>{upcomingBookings.map(bk => <BookingCard key={bk.id} booking={bk} now={Date.now()} onCancel={(id) => setConfirmCancelId(id)} cancelling={cancelling} vehiclePhoto={getVehiclePhoto(bk.vehicle_plate)} t={t} dateFnsLocale={dateFnsLocale} />)}</AnimatePresence></div>
         )}

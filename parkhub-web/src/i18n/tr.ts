@@ -635,6 +635,7 @@ export const tr = {
   palette: {
     title: 'Renk Paleti',
     defaultBlue: 'Varsayılan Mavi',
+    defaultAmber: 'Default Amber',
     solarized: 'Solarized',
     dracula: 'Dracula',
     nord: 'Nord',

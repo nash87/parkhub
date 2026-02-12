@@ -635,6 +635,7 @@ export const ja = {
   palette: {
     title: 'カラーパレット',
     defaultBlue: 'デフォルトブルー',
+    defaultAmber: 'Default Amber',
     solarized: 'Solarized',
     dracula: 'Dracula',
     nord: 'Nord',

@@ -50,7 +50,7 @@ export function AboutPage() {
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('about.architecture.title')}</h2>
         </div>
         <div className="flex items-center justify-center py-6 gap-2 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
-          <div className="px-4 py-3 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+          <div className="px-4 py-3 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium">
             <Globe weight="fill" className="w-5 h-5 mx-auto mb-1" />Browser
           </div>
           <span className="text-gray-400 text-lg">→</span>

@@ -293,7 +293,7 @@ export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCa
                     <div className="flex items-center gap-2">
                       <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded ${
                         row.side === 'top'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                          ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300'
                           : 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
                       }`}>
                         {row.side === 'top' ? t('lotEditor.top', 'Top') : t('lotEditor.bottom', 'Bottom')}
@@ -311,7 +311,7 @@ export function LotLayoutEditor({ initialLayout, lotName: initName, onSave, onCa
                         onClick={() => toggleEditMode(row.id)}
                         className={`p-1.5 rounded-lg transition-colors ${
                           isEditing
-                            ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
+                            ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-400'
                             : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500'
                         }`}
                         title={isEditing ? t('lotEditor.doneEditing', 'Done Editing') : t('lotEditor.editSlots', 'Edit Slots')}

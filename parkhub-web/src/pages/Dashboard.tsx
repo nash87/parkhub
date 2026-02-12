@@ -119,9 +119,9 @@ export function DashboardPage() {
       {/* Announcement Banner */}
       {announcements.length > 0 && announcements.map(ann => (
         <motion.div key={ann.id} variants={itemVariants}
-          className={`card p-4 border-l-4 ${ann.severity === 'critical' ? 'border-l-red-500 bg-red-50 dark:bg-red-900/20' : ann.severity === 'warning' ? 'border-l-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20'}`}>
+          className={`card p-4 border-l-4 ${ann.severity === 'critical' ? 'border-l-red-500 bg-red-50 dark:bg-red-900/20' : ann.severity === 'warning' ? 'border-l-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'border-l-primary-500 bg-primary-50 dark:bg-primary-900/20'}`}>
           <div className="flex items-start gap-3">
-            <Megaphone weight="fill" className={`w-5 h-5 mt-0.5 flex-shrink-0 ${ann.severity === 'critical' ? 'text-red-500' : ann.severity === 'warning' ? 'text-amber-500' : 'text-blue-500'}`} />
+            <Megaphone weight="fill" className={`w-5 h-5 mt-0.5 flex-shrink-0 ${ann.severity === 'critical' ? 'text-red-500' : ann.severity === 'warning' ? 'text-amber-500' : 'text-primary-500'}`} />
             <div>
               <p className="font-semibold text-gray-900 dark:text-white text-sm">{ann.title}</p>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{ann.message}</p>

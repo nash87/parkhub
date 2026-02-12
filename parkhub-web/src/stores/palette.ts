@@ -22,10 +22,10 @@ export interface ColorPalette {
 
 export const PALETTES: ColorPalette[] = [
   {
-    id: "default-blue",
-    name: "palette.defaultBlue",
-    light: { primary: "#3B82F6", secondary: "#6366F1", accent: "#0EA5E9", bg: "#F9FAFB", surface: "#FFFFFF" },
-    dark: { primary: "#3B82F6", secondary: "#6366F1", accent: "#0EA5E9", bg: "#030712", surface: "#111827" },
+    id: "default-amber",
+    name: "palette.defaultAmber",
+    light: { primary: "#F59E0B", secondary: "#6366F1", accent: "#0EA5E9", bg: "#F9FAFB", surface: "#FFFFFF" },
+    dark: { primary: "#F59E0B", secondary: "#6366F1", accent: "#0EA5E9", bg: "#030712", surface: "#111827" },
   },
   {
     id: "solarized",
@@ -91,7 +91,7 @@ interface PaletteStore {
 export const usePalette = create<PaletteStore>()(
   persist(
     (set) => ({
-      paletteId: "default-blue",
+      paletteId: "default-amber",
       setPalette: (id) => set({ paletteId: id }),
     }),
     { name: "parkhub-palette" }

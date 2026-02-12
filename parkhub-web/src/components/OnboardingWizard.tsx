@@ -23,7 +23,7 @@ interface OnboardingWizardProps {
 }
 
 const useCaseColors: Record<string, { bg: string; bgActive: string; text: string; border: string; check: string }> = {
-  corporate: { bg: "bg-blue-100 dark:bg-blue-900/40", bgActive: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-600 dark:text-blue-400", border: "border-blue-500", check: "text-blue-500" },
+  corporate: { bg: "bg-primary-100 dark:bg-primary-900/40", bgActive: "bg-primary-50 dark:bg-primary-900/20", text: "text-primary-600 dark:text-primary-400", border: "border-primary-500", check: "text-primary-500" },
   residential: { bg: "bg-emerald-100 dark:bg-emerald-900/40", bgActive: "bg-emerald-50 dark:bg-emerald-900/20", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500", check: "text-emerald-500" },
   family: { bg: "bg-amber-100 dark:bg-amber-900/40", bgActive: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500", check: "text-amber-500" },
   rental: { bg: "bg-purple-100 dark:bg-purple-900/40", bgActive: "bg-purple-50 dark:bg-purple-900/20", text: "text-purple-600 dark:text-purple-400", border: "border-purple-500", check: "text-purple-500" },

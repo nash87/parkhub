@@ -620,6 +620,7 @@ export const es = {
   palette: {
     title: 'Paleta de colores',
     defaultBlue: 'Azul predeterminado',
+    defaultAmber: 'Default Amber',
     solarized: 'Solarized',
     dracula: 'Dracula',
     nord: 'Nord',

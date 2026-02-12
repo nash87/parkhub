@@ -864,6 +864,7 @@ export const de = {
   palette: {
     title: "Farbpalette",
     defaultBlue: "Standard Blau",
+    defaultAmber: "Standard Amber",
     solarized: "Solarized",
     dracula: "Dracula",
     nord: "Nord",

@@ -359,7 +359,7 @@ export function LicensePlateInput({ value, onChange, className = '', required, a
               type="button"
               className={`w-full text-left px-3 py-2 flex items-center gap-3 text-sm transition-colors ${
                 idx === highlightIdx
-                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
               }`}
               onMouseDown={(e) => {
@@ -369,7 +369,7 @@ export function LicensePlateInput({ value, onChange, className = '', required, a
               onMouseEnter={() => setHighlightIdx(idx)}
             >
               <span className="font-mono font-bold text-base min-w-[3rem]">
-                <span className="text-blue-600 dark:text-blue-400">{code.substring(0, cityInput.length)}</span>
+                <span className="text-primary-600 dark:text-primary-400">{code.substring(0, cityInput.length)}</span>
                 <span>{code.substring(cityInput.length)}</span>
               </span>
               <span className="text-gray-500 dark:text-gray-400 truncate">{name}</span>
@@ -381,7 +381,7 @@ export function LicensePlateInput({ value, onChange, className = '', required, a
       {/* City name + format hint */}
       <div className="flex items-center justify-between mt-1.5">
         {cityName ? (
-          <span className="text-xs text-blue-500 dark:text-blue-400 flex items-center gap-1">
+          <span className="text-xs text-primary-500 dark:text-primary-400 flex items-center gap-1">
             <MapPin weight="bold" className="w-3 h-3" />
             {cityName}
           </span>

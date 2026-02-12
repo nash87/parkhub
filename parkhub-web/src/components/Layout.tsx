@@ -52,7 +52,7 @@ const adminNavKeys = [
 const notifIcon = { warning: Warning, info: Info, success: CheckCircle };
 const notifColor = {
   warning: 'text-amber-500',
-  info: 'text-blue-500',
+  info: 'text-primary-500',
   success: 'text-emerald-500',
 };
 
