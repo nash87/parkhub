@@ -4,12 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChartBar, Buildings, Users, ListChecks, Plus, CheckCircle, TrendUp, CaretRight,
   SpinnerGap, MagnifyingGlass, XCircle, Trash, PencilSimple,
-  Lightning, Pulse, ShieldCheck, Clock, House, Prohibit, Palette, GearSix, ArrowsClockwise,
+  Lightning, Pulse, ShieldCheck, Clock, House, Prohibit, Palette, GearSix, ArrowsClockwise, ClockCounterClockwise,
 } from '@phosphor-icons/react';
 import { api, ParkingLot, ParkingLotDetailed, User, Booking, AdminStats } from '../api/client';
 import { LotLayoutEditor } from '../components/LotLayoutEditor';
 import { AdminBrandingPage } from './AdminBranding';
 import { AdminPrivacyPage } from './AdminPrivacy';
+import { AuditLogPage } from './AuditLog';
 import { useTranslation } from 'react-i18next';
 
 declare global {
@@ -29,6 +30,7 @@ function AdminNav() {
     { name: t('admin.tabs.branding', 'Branding'), path: '/admin/branding', icon: Palette },
     { name: t('admin.tabs.privacy', 'Privacy'), path: '/admin/privacy', icon: ShieldCheck },
     { name: t('admin.tabs.system', 'System'), path: '/admin/system', icon: GearSix },
+    { name: t('admin.tabs.auditLog', 'Audit Log'), path: '/admin/audit-log', icon: ClockCounterClockwise },
   ];
   return (
     <div className="border-b border-gray-200 dark:border-gray-800 mb-8">

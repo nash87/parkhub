@@ -25,6 +25,7 @@ import {
   CalendarBlank, UsersThree,
 } from '@phosphor-icons/react';
 import { useAuth } from '../context/auth-hook';
+import { api, Notification as ApiNotification } from '../api/client';
 import { useUpdateStore } from '../stores/updateStore';
 import { useBranding } from '../context/branding-hook';
 import { useTheme, applyTheme } from '../stores/theme';
@@ -48,16 +49,6 @@ const adminNavKeys = [
   { key: 'nav.admin', href: '/admin', icon: GearSix },
 ];
 
-interface Notification {
-  id: string;
-  textKey: string;
-  textParams?: Record<string, string>;
-  type: 'warning' | 'info' | 'success';
-  read: boolean;
-}
-
-const initialNotifications: Notification[] = [];
-
 const notifIcon = { warning: Warning, info: Info, success: CheckCircle };
 const notifColor = {
   warning: 'text-amber-500',
@@ -75,7 +66,7 @@ export function Layout({ children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const [notifications, setNotifications] = useState<ApiNotification[]>([]);
   const { isDark, toggle } = useTheme();
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -118,8 +109,22 @@ export function Layout({ children }: LayoutProps) {
     return () => clearInterval(interval);
   }, [isAdmin, checkForUpdates]);
 
+  // Load notifications from API
+  useEffect(() => {
+    async function loadNotifs() {
+      try {
+        const res = await api.getNotifications();
+        if (res.success && res.data) setNotifications(res.data);
+      } catch { /* ignore */ }
+    }
+    loadNotifs();
+    const interval = setInterval(loadNotifs, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   function markAsRead(id: string) {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    api.markNotificationRead(id).catch(() => {});
   }
 
   return (
@@ -226,7 +231,8 @@ export function Layout({ children }: LayoutProps) {
                           </button>
                         )}
                         {notifications.map((n) => {
-                          const NIcon = notifIcon[n.type];
+                          const nType = (n.notification_type === 'warning' ? 'warning' : n.notification_type === 'success' ? 'success' : 'info') as keyof typeof notifIcon;
+                          const NIcon = notifIcon[nType];
                           return (
                             <motion.button
                               key={n.id}
@@ -235,10 +241,10 @@ export function Layout({ children }: LayoutProps) {
                               onClick={() => markAsRead(n.id)}
                               className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800/50 ${n.read ? 'opacity-60' : ''}`}
                             >
-                              <NIcon weight="fill" className={`w-5 h-5 mt-0.5 flex-shrink-0 ${notifColor[n.type]}`} />
+                              <NIcon weight="fill" className={`w-5 h-5 mt-0.5 flex-shrink-0 ${notifColor[nType]}`} />
                               <div className="flex-1 min-w-0">
                                 <p className={`text-sm ${n.read ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white font-medium'}`}>
-                                  {t(n.textKey, n.textParams)}
+                                  {n.message}
                                 </p>
                                 <p className="text-xs text-gray-400 mt-0.5">{t('notifications.timeAgo')}</p>
                               </div>

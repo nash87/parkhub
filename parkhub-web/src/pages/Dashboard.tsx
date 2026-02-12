@@ -11,9 +11,11 @@ import {
   Warning,
   CaretRight,
   DownloadSimple,
+  Lightning,
+  Megaphone,
 } from '@phosphor-icons/react';
 import { House, Briefcase } from '@phosphor-icons/react';
-import { api, ParkingLot, ParkingLotDetailed, Booking, HomeofficeSettings } from '../api/client';
+import { api, ParkingLot, ParkingLotDetailed, Booking, HomeofficeSettings, Announcement } from '../api/client';
 import { useAuth } from '../context/auth-hook';
 import { ParkingLotGrid } from '../components/ParkingLotGrid';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -31,6 +33,8 @@ export function DashboardPage() {
   const [activeBookings, setActiveBookings] = useState<Booking[]>([]);
   const [hoSettings, setHoSettings] = useState<HomeofficeSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [quickBooking, setQuickBooking] = useState(false);
   const { canInstall, install, dismiss } = useInstallPrompt();
   const { useCase } = useUseCaseStore();
   const organizationLabel = t(`usecase.${useCase}.labels.organization`);
@@ -39,10 +43,11 @@ export function DashboardPage() {
 
   async function loadData() {
     try {
-      const [lotsRes, bookingsRes, hoRes] = await Promise.all([
-        api.getLots(), api.getBookings(), api.getHomeofficeSettings(),
+      const [lotsRes, bookingsRes, hoRes, annRes] = await Promise.all([
+        api.getLots(), api.getBookings(), api.getHomeofficeSettings(), api.getActiveAnnouncements(),
       ]);
       if (hoRes.success && hoRes.data) setHoSettings(hoRes.data);
+      if (annRes.success && annRes.data) setAnnouncements(annRes.data);
       if (lotsRes.success && lotsRes.data) {
         setLots(lotsRes.data);
         const detailedPromises = lotsRes.data.map((lot) => api.getLotDetailed(lot.id));
@@ -53,6 +58,17 @@ export function DashboardPage() {
         setActiveBookings(bookingsRes.data.filter(b => b.status === 'active' || b.status === 'confirmed'));
       }
     } finally { setLoading(false); }
+  }
+
+  async function handleQuickBook() {
+    setQuickBooking(true);
+    try {
+      const res = await api.quickBook();
+      if (res.success && res.data?.booking) {
+        await loadData();
+      }
+    } catch { /* ignore */ }
+    setQuickBooking(false);
   }
 
   const todayDow = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
@@ -98,6 +114,36 @@ export function DashboardPage() {
             {t('dashboard.inOffice')}
           </span>
         )}
+      </motion.div>
+
+      {/* Announcement Banner */}
+      {announcements.length > 0 && announcements.map(ann => (
+        <motion.div key={ann.id} variants={itemVariants}
+          className={`card p-4 border-l-4 ${ann.severity === 'critical' ? 'border-l-red-500 bg-red-50 dark:bg-red-900/20' : ann.severity === 'warning' ? 'border-l-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20'}`}>
+          <div className="flex items-start gap-3">
+            <Megaphone weight="fill" className={`w-5 h-5 mt-0.5 flex-shrink-0 ${ann.severity === 'critical' ? 'text-red-500' : ann.severity === 'warning' ? 'text-amber-500' : 'text-blue-500'}`} />
+            <div>
+              <p className="font-semibold text-gray-900 dark:text-white text-sm">{ann.title}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{ann.message}</p>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+
+      {/* Quick Book Button */}
+      <motion.div variants={itemVariants}>
+        <button onClick={handleQuickBook} disabled={quickBooking}
+          className="w-full card bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors text-left">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 rounded-xl flex items-center justify-center">
+              <Lightning weight="fill" className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-emerald-800 dark:text-emerald-200">{t('quickBook.title', 'Quick Book')}</p>
+              <p className="text-sm text-emerald-600 dark:text-emerald-400">{t('quickBook.subtitle', 'Book your favorite spot for today')}</p>
+            </div>
+          </div>
+        </button>
       </motion.div>
 
       {/* ═══ PROMINENT BOOKING CTA — ABOVE THE FOLD ═══ */}

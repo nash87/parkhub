@@ -1031,4 +1031,49 @@ export const de = {
     endDate: 'Enddatum',
     created: 'Wiederkehrende Buchung erstellt',
   },
+
+  // Round 2 features
+  quickBook: {
+    title: 'Schnellbuchung',
+    subtitle: 'Deinen Lieblingsplatz für heute buchen',
+    success: 'Platz für heute gebucht!',
+    noFavorites: 'Keine Lieblingsplätze gesetzt. Wähle einen unter Buchen.',
+    allTaken: 'Alle Lieblingsplätze sind heute belegt.',
+  },
+  announcements: {
+    title: 'Ankündigungen',
+    create: 'Neue Ankündigung',
+    titleField: 'Titel',
+    messageField: 'Nachricht',
+    severity: 'Priorität',
+    noAnnouncements: 'Keine Ankündigungen',
+  },
+  auditLog: {
+    title: 'Audit-Protokoll',
+    subtitle: 'Alle Systemaktivitäten',
+    search: 'Aktionen oder Benutzer suchen...',
+    time: 'Zeit',
+    user: 'Benutzer',
+    action: 'Aktion',
+    details: 'Details',
+    empty: 'Keine Einträge gefunden',
+  },
+  userStats: {
+    title: 'Deine Statistiken',
+    totalBookings: 'Buchungen gesamt',
+    thisMonth: 'Diesen Monat',
+    homeOfficeDays: 'Home-Office-Tage',
+    avgDuration: 'Ø Dauer',
+    favoriteSlot: 'Lieblingsplatz',
+    minutes: 'Min',
+  },
+  heatmap: {
+    title: 'Buchungs-Heatmap',
+    subtitle: 'Wann werden Plätze am meisten genutzt?',
+  },
+  occupancy: {
+    title: 'Live-Belegung',
+    full: 'VOLL',
+    autoRefresh: 'Aktualisiert sich alle 30 Sekunden',
+  },
 };

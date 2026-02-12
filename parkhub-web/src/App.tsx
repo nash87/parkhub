@@ -35,6 +35,7 @@ const AboutPage = lazy(() => import('./pages/About').then(m => ({ default: m.Abo
 const HelpPage = lazy(() => import('./pages/Help').then(m => ({ default: m.HelpPage })));
 const TeamPage = lazy(() => import('./pages/Team').then(m => ({ default: m.TeamPage })));
 const CalendarPage = lazy(() => import('./pages/Calendar').then(m => ({ default: m.CalendarPage })));
+const OccupancyDisplayPage = lazy(() => import('./pages/OccupancyDisplay').then(m => ({ default: m.OccupancyDisplayPage })));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPassword").then(m => ({ default: m.ForgotPasswordPage })));
 
 const queryClient = new QueryClient({
@@ -119,6 +120,7 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public */}
+      <Route path="/display" element={<Suspense fallback={<LoadingScreen />}><OccupancyDisplayPage /></Suspense>} />
       <Route path="/maintenance" element={<MaintenanceScreen />} />
             <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/login" element={<LoginRedirectGuard />} />

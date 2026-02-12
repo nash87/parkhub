@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Envelope, Shield, MapPin, CalendarCheck, House, PencilSimple, FloppyDisk, ChartBar, Eye, TextAa, HandSwipeRight, CircleHalf, DownloadSimple, Trash } from '@phosphor-icons/react';
 import { useAuth } from '../context/auth-hook';
+import { api, UserStats } from '../api/client';
 import { useAccessibility, ColorMode, FontScale } from '../stores/accessibility';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
@@ -15,6 +16,11 @@ export function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({ name: user?.name || '', email: user?.email || '' });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [stats, setStats] = useState<UserStats | null>(null);
+
+  useEffect(() => {
+    api.getUserStats().then(res => { if (res.success && res.data) setStats(res.data); }).catch(() => {});
+  }, []);
 
   function handleSave() { setEditing(false); toast.success(t('profile.updated')); }
 
@@ -101,9 +107,9 @@ export function ProfilePage() {
 
       {/* Stats */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.bookingsThisMonth')}</p><p className="stat-value text-primary-600 dark:text-primary-400 mt-1">-</p></div><CalendarCheck weight="fill" className="w-8 h-8 text-primary-200 dark:text-primary-800" /></div></div>
-        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.homeOfficeDays')}</p><p className="stat-value text-sky-600 dark:text-sky-400 mt-1">-</p></div><House weight="fill" className="w-8 h-8 text-sky-200 dark:text-sky-800" /></div></div>
-        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.avgDuration')}</p><p className="stat-value text-amber-600 dark:text-amber-400 mt-1">-</p></div><ChartBar weight="fill" className="w-8 h-8 text-amber-200 dark:text-amber-800" /></div></div>
+        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.bookingsThisMonth')}</p><p className="stat-value text-primary-600 dark:text-primary-400 mt-1">{stats?.bookings_this_month ?? '-'}</p></div><CalendarCheck weight="fill" className="w-8 h-8 text-primary-200 dark:text-primary-800" /></div></div>
+        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.homeOfficeDays')}</p><p className="stat-value text-sky-600 dark:text-sky-400 mt-1">{stats?.homeoffice_days_this_month ?? '-'}</p></div><House weight="fill" className="w-8 h-8 text-sky-200 dark:text-sky-800" /></div></div>
+        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.avgDuration')}</p><p className="stat-value text-amber-600 dark:text-amber-400 mt-1">{stats ? `${stats.avg_duration_minutes} min` : '-'}</p></div><ChartBar weight="fill" className="w-8 h-8 text-amber-200 dark:text-amber-800" /></div></div>
       </motion.div>
 
 {/* Color Palette */}      <motion.div variants={itemVariants} className="card p-6">        <ThemeSelector />      </motion.div>

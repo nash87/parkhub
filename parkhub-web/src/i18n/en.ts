@@ -994,6 +994,51 @@ export const en = {
     endDate: 'End Date',
     created: 'Recurring booking created',
   },
+
+  // Round 2 features
+  quickBook: {
+    title: 'Quick Book',
+    subtitle: 'Book your favorite spot for today',
+    success: 'Spot booked for today!',
+    noFavorites: 'No favorite spots set. Go to Book to pick one.',
+    allTaken: 'All your favorites are taken today.',
+  },
+  announcements: {
+    title: 'Announcements',
+    create: 'New Announcement',
+    titleField: 'Title',
+    messageField: 'Message',
+    severity: 'Severity',
+    noAnnouncements: 'No announcements',
+  },
+  auditLog: {
+    title: 'Audit Log',
+    subtitle: 'All system activities',
+    search: 'Search actions or users...',
+    time: 'Time',
+    user: 'User',
+    action: 'Action',
+    details: 'Details',
+    empty: 'No entries found',
+  },
+  userStats: {
+    title: 'Your Statistics',
+    totalBookings: 'Total Bookings',
+    thisMonth: 'This Month',
+    homeOfficeDays: 'Home Office Days',
+    avgDuration: 'Avg Duration',
+    favoriteSlot: 'Favorite Spot',
+    minutes: 'min',
+  },
+  heatmap: {
+    title: 'Booking Heatmap',
+    subtitle: 'When are spots most used?',
+  },
+  occupancy: {
+    title: 'Live Occupancy',
+    full: 'FULL',
+    autoRefresh: 'Auto-refreshes every 30 seconds',
+  },
 };
 
 // Added for demo privacy options
