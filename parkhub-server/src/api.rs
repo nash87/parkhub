@@ -172,6 +172,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/settings/privacy", get(get_public_privacy))
         .route("/api/v1/system/version", get(get_system_version))
         .route("/api/v1/public/occupancy", get(public_occupancy))
+        .route("/api/v1/public/occupancy/:lot_id", get(public_occupancy_lot))
         .route("/display", get(occupancy_display_page));
 
     // Protected routes (auth required)
@@ -194,6 +195,7 @@ pub fn create_router(state: SharedState) -> Router {
         )
         .route("/api/v1/bookings/ical", get(export_ical))
         .route("/api/v1/bookings/:id/checkin", post(checkin_booking))
+        .route("/api/v1/bookings/:id/notes", put(update_booking_notes))
         .route("/api/v1/vehicles", get(list_vehicles).post(create_vehicle))
         .route("/api/v1/vehicles/:id", delete(delete_vehicle))
         .route("/api/v1/vehicles/:id/photo", post(upload_vehicle_photo))
@@ -270,6 +272,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/notifications/:id/read", put(mark_notification_read))
         .route("/api/v1/notifications/read-all", post(mark_all_notifications_read))
         .route("/api/v1/bookings/:id/swap-request", post(create_swap_request))
+        .route("/api/v1/bookings/swap", post(swap_booking))
         .route("/api/v1/swap-requests/:id", put(respond_swap_request))
         .route("/api/v1/admin/announcements", get(list_announcements).post(create_announcement))
         .route("/api/v1/admin/announcements/:id", delete(delete_announcement))
@@ -278,6 +281,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/admin/audit-log", get(admin_audit_log))
         .route("/api/v1/users/me/preferences", put(update_user_preferences))
         .route("/api/v1/lots/:id/qr", get(lot_qr_code))
+        .route("/api/v1/lots/:id/zones", get(get_lot_zones))
         .route("/api/v1/admin/settings/webhooks", get(get_webhook_settings).put(update_webhook_settings))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
@@ -6737,7 +6741,7 @@ async fn lot_qr_code(
 ) -> impl IntoResponse {
     let state_guard = state.read().await;
 
-    let lot = match state_guard.db.get_parking_lot(&lot_id).await {
+    let _lot = match state_guard.db.get_parking_lot(&lot_id).await {
         Ok(Some(l)) => l,
         _ => return (StatusCode::NOT_FOUND, [(header::CONTENT_TYPE, "application/json")],
             r#"{"success":false,"error":{"code":"NOT_FOUND","message":"Lot not found"}}"#.to_string()),
@@ -6756,4 +6760,170 @@ async fn lot_qr_code(
         .build();
 
     (StatusCode::OK, [(header::CONTENT_TYPE, "image/svg+xml")], svg)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FIX 1: BOOKING NOTES ENDPOINT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Deserialize)]
+struct UpdateNotesRequest {
+    notes: Option<String>,
+}
+
+async fn update_booking_notes(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(booking_id): Path<String>,
+    Json(req): Json<UpdateNotesRequest>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let mut booking = match state_guard.db.get_booking(&booking_id).await {
+        Ok(Some(b)) if b.user_id == auth_user.user_id => b,
+        Ok(Some(_)) => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Not your booking"))),
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Booking not found"))),
+    };
+
+    booking.notes = req.notes.clone();
+    booking.updated_at = Utc::now();
+
+    if let Err(e) = state_guard.db.save_booking(&booking).await {
+        tracing::error!("Failed to update booking notes: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save")));
+    }
+
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+        "id": booking.id.to_string(),
+        "notes": booking.notes,
+    }))))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FIX 2: BOOKING SWAP (convenience route)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Deserialize)]
+struct SwapBookingRequest {
+    booking_id: Uuid,
+    target_user_id: Uuid,
+}
+
+async fn swap_booking(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<SwapBookingRequest>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let my_booking = match state_guard.db.get_booking(&req.booking_id.to_string()).await {
+        Ok(Some(b)) if b.user_id == auth_user.user_id => b,
+        Ok(Some(_)) => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Not your booking"))),
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Booking not found"))),
+    };
+
+    // Find a booking by target user in the same lot on the same day
+    let all_bookings = state_guard.db.list_bookings().await.unwrap_or_default();
+    let target_booking = all_bookings.iter().find(|b| {
+        b.user_id == req.target_user_id
+            && b.lot_id == my_booking.lot_id
+            && b.start_time.date_naive() == my_booking.start_time.date_naive()
+            && (b.status == parkhub_common::models::BookingStatus::Confirmed || b.status == parkhub_common::models::BookingStatus::Active)
+    });
+
+    let swap_id = Uuid::new_v4();
+    let swap = serde_json::json!({
+        "id": swap_id.to_string(),
+        "requester_id": auth_user.user_id.to_string(),
+        "requester_booking_id": req.booking_id.to_string(),
+        "target_user_id": req.target_user_id.to_string(),
+        "target_booking_id": target_booking.map(|b| b.id.to_string()).unwrap_or_default(),
+        "status": "pending",
+        "created_at": Utc::now().to_rfc3339(),
+    });
+
+    let _ = state_guard.db.save_swap_request(&swap).await;
+
+    let notif = parkhub_common::models::Notification {
+        id: Uuid::new_v4(),
+        user_id: req.target_user_id,
+        notification_type: parkhub_common::models::NotificationType::SystemMessage,
+        title: "Swap Request".to_string(),
+        message: format!("Someone wants to swap parking slots with you"),
+        data: Some(serde_json::json!({"swap_id": swap_id.to_string()})),
+        read: false,
+        created_at: Utc::now(),
+    };
+    let _ = state_guard.db.save_notification(&notif).await;
+
+    (StatusCode::CREATED, Json(ApiResponse::success(swap)))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FIX 3: LOT ZONES ENDPOINT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn get_lot_zones(
+    State(state): State<SharedState>,
+    Extension(_auth_user): Extension<AuthUser>,
+    Path(lot_id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let lot = match state_guard.db.get_parking_lot(&lot_id).await {
+        Ok(Some(l)) => l,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Lot not found"))),
+    };
+
+    let slots = state_guard.db.list_slots_by_lot(&lot_id).await.unwrap_or_default();
+
+    // Group slots into zones by prefix (e.g., A1,A2 -> zone A; B1,B2 -> zone B)
+    let mut zones: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
+    for slot in &slots {
+        let zone_name = slot.slot_number.chars().take_while(|c| c.is_alphabetic()).collect::<String>();
+        let zone_name = if zone_name.is_empty() { "Default".to_string() } else { zone_name };
+        zones.entry(zone_name).or_default().push(serde_json::json!({
+            "id": slot.id.to_string(),
+            "slot_number": slot.slot_number,
+            "status": slot.status,
+        }));
+    }
+
+    let zone_list: Vec<serde_json::Value> = zones.into_iter().map(|(name, zone_slots)| {
+        serde_json::json!({
+            "name": name,
+            "slot_count": zone_slots.len(),
+            "slots": zone_slots,
+        })
+    }).collect();
+
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+        "lot_id": lot.id.to_string(),
+        "lot_name": lot.name,
+        "zones": zone_list,
+    }))))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FIX 4: PER-LOT PUBLIC OCCUPANCY ENDPOINT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn public_occupancy_lot(
+    State(state): State<SharedState>,
+    Path(lot_id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let lot = match state_guard.db.get_parking_lot(&lot_id).await {
+        Ok(Some(l)) => l,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Lot not found"))),
+    };
+
+    let occupied = lot.total_slots - lot.available_slots;
+    let pct = if lot.total_slots > 0 { (occupied as f64 / lot.total_slots as f64 * 100.0) as i32 } else { 0 };
+
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+        "lot_id": lot.id.to_string(),
+        "lot_name": lot.name,
+        "total_slots": lot.total_slots,
+        "available": lot.available_slots,
+        "occupied": occupied,
+        "percentage": pct,
+    }))))
 }
