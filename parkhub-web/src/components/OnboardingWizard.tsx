@@ -30,6 +30,7 @@ const useCaseColors: Record<string, { bg: string; bgActive: string; text: string
   public: { bg: "bg-red-100 dark:bg-red-900/40", bgActive: "bg-red-50 dark:bg-red-900/20", text: "text-red-600 dark:text-red-400", border: "border-red-500", check: "text-red-500" },
 };
 
+const useCaseIcons: Record<string, typeof Buildings> = {  corporate: Buildings,  residential: BuildingApartment,  family: Heart,  rental: Coins,  public: Globe,};
 const useCaseOptions: { type: UseCaseType; icon: typeof Buildings }[] = [
   { type: "corporate", icon: Buildings },
   { type: "residential", icon: BuildingApartment },
@@ -395,19 +396,19 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               <div className="space-y-4">
                 <div className="text-center mb-4">
                   <div className="w-16 h-16 mx-auto rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-3">
-                    <Buildings weight="fill" className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                    {(() => { const UCIcon = useCaseIcons[useCase || "corporate"] || Buildings; return <UCIcon weight="fill" className="w-8 h-8 text-primary-600 dark:text-primary-400" />; })()}
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {t(`onboarding.steps.company.title_${useCase}`, t('onboarding.steps.company.title'))}
+                    {t(`onboarding.steps.company_${useCase}.title`, t("onboarding.steps.company.title"))}
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {t(`onboarding.steps.company.desc_${useCase}`, t('onboarding.steps.company.desc'))}
+                    {t(`onboarding.steps.company_${useCase}.desc`, t("onboarding.steps.company.desc"))}
                   </p>
                 </div>
                 <div>
-                  <label className="label">{t(`onboarding.steps.company.nameLabel_${useCase}`, t('onboarding.steps.company.nameLabel'))}</label>
+                  <label className="label">{t(`onboarding.steps.company_${useCase}.nameLabel`, t("onboarding.steps.company.nameLabel"))}</label>
                   <input type="text" className="input" value={companyName}
-                    onChange={e => setCompanyName(e.target.value)} placeholder={t(`onboarding.steps.company.namePlaceholder_${useCase}`, t('onboarding.steps.company.namePlaceholder'))} />
+                    onChange={e => setCompanyName(e.target.value)} placeholder={t(`onboarding.steps.company_${useCase}.namePlaceholder`, t("onboarding.steps.company.namePlaceholder"))} />
                 </div>
               </div>
             )}

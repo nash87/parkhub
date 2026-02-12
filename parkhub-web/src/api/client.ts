@@ -325,6 +325,79 @@ class ApiClient {
     return this.request<AdminStats>('/api/v1/admin/stats');
   }
 
+
+  // Dashboard Charts
+  async getDashboardCharts(): Promise<ApiResponse<DashboardChartData>> {
+    return this.request<DashboardChartData>('/api/v1/admin/dashboard/charts');
+  }
+
+  // Calendar Events
+  async getCalendarEvents(from?: string, to?: string): Promise<ApiResponse<CalendarEvent[]>> {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    const q = params.toString() ? `?${params.toString()}` : '';
+    return this.request<CalendarEvent[]>(`/api/v1/calendar/events${q}`);
+  }
+
+  // Team Today
+  async getTeamToday(): Promise<ApiResponse<TeamMember[]>> {
+    return this.request<TeamMember[]>('/api/v1/team/today');
+  }
+
+  // Recurring Bookings
+  async createRecurringBooking(data: RecurringBookingData): Promise<ApiResponse<Booking[]>> {
+    return this.request<Booking[]>('/api/v1/bookings/recurring', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Guest Bookings
+  async createGuestBooking(data: GuestBookingData): Promise<ApiResponse<GuestBookingResponse>> {
+    return this.request<GuestBookingResponse>('/api/v1/bookings/guest', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Favorites
+  async addFavoriteSlot(slotId: string): Promise<ApiResponse<void>> {
+    return this.request<void>(`/api/v1/users/me/favorites/${slotId}`, { method: 'POST' });
+  }
+
+  async removeFavoriteSlot(slotId: string): Promise<ApiResponse<void>> {
+    return this.request<void>(`/api/v1/users/me/favorites/${slotId}`, { method: 'DELETE' });
+  }
+
+  // Auto-Release Settings
+  async getAutoReleaseSettings(): Promise<ApiResponse<AutoReleaseSettings>> {
+    return this.request<AutoReleaseSettings>('/api/v1/admin/settings/auto-release');
+  }
+
+  async updateAutoReleaseSettings(data: AutoReleaseSettings): Promise<ApiResponse<AutoReleaseSettings>> {
+    return this.request<AutoReleaseSettings>('/api/v1/admin/settings/auto-release', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Email Settings
+  async getEmailSettings(): Promise<ApiResponse<EmailSettings>> {
+    return this.request<EmailSettings>('/api/v1/admin/settings/email');
+  }
+
+  async updateEmailSettings(data: EmailSettings): Promise<ApiResponse<EmailSettings>> {
+    return this.request<EmailSettings>('/api/v1/admin/settings/email', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Push Unsubscribe
+  async pushUnsubscribe(): Promise<ApiResponse<void>> {
+    return this.request<void>('/api/v1/push/unsubscribe', { method: 'DELETE' });
+  }
   // Health
   async health() {
     return this.request<{ status: string }>('/health');
@@ -569,4 +642,77 @@ export async function uploadBrandingLogo(file: File): Promise<ApiResponse<{ logo
   } catch {
     return { success: false, error: { code: 'NETWORK_ERROR', message: 'Failed to upload logo' } };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NEW FEATURE API METHODS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Types for new features
+export interface DashboardChartData {
+  booking_trend_7d: { date: string; count: number }[];
+  booking_trend_30d: { date: string; count: number }[];
+  occupancy_trend: { date: string; rate: number }[];
+  peak_hours: { hour: number; count: number }[];
+}
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  status: string;
+  slot_number?: string;
+  lot_name?: string;
+  is_recurring: boolean;
+  is_guest: boolean;
+}
+
+export interface TeamMember {
+  user_id: string;
+  name: string;
+  status: 'parked' | 'homeoffice' | 'vacation' | 'sick' | 'business_trip' | 'not_scheduled';
+  slot_number?: string;
+  lot_name?: string;
+  department?: string;
+}
+
+export interface AutoReleaseSettings {
+  timeout_minutes: number;
+}
+
+export interface EmailSettings {
+  smtp_host: string;
+  smtp_port: number;
+  smtp_user: string;
+  smtp_pass: string;
+  from_address: string;
+  enabled: boolean;
+}
+
+export interface GuestBookingResponse {
+  booking: Booking;
+  guest_code: string;
+  share_link: string;
+}
+
+export interface RecurringBookingData {
+  lot_id: string;
+  slot_id: string;
+  days_of_week: number[];
+  start_time: string;
+  end_time: string;
+  start_date: string;
+  end_date: string;
+  license_plate?: string;
+  notes?: string;
+}
+
+export interface GuestBookingData {
+  lot_id: string;
+  slot_id: string;
+  guest_name: string;
+  start_time: string;
+  end_time: string;
+  license_plate?: string;
 }

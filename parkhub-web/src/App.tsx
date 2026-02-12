@@ -33,6 +33,8 @@ const TermsPage = lazy(() => import('./pages/Terms').then(m => ({ default: m.Ter
 const LegalPage = lazy(() => import('./pages/Legal').then(m => ({ default: m.LegalPage })));
 const AboutPage = lazy(() => import('./pages/About').then(m => ({ default: m.AboutPage })));
 const HelpPage = lazy(() => import('./pages/Help').then(m => ({ default: m.HelpPage })));
+const TeamPage = lazy(() => import('./pages/Team').then(m => ({ default: m.TeamPage })));
+const CalendarPage = lazy(() => import('./pages/Calendar').then(m => ({ default: m.CalendarPage })));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPassword").then(m => ({ default: m.ForgotPasswordPage })));
 
 const queryClient = new QueryClient({
@@ -139,6 +141,8 @@ function AppRoutes() {
       <Route path="/vacation" element={<Navigate to="/absences" replace />} />
       <Route path="/profile" element={<ProtectedRoute><Suspense fallback={<LoadingScreen />}><ProfilePage /></Suspense></ProtectedRoute>} />
 
+      <Route path="/team" element={<ProtectedRoute><Suspense fallback={<LoadingScreen />}><TeamPage /></Suspense></ProtectedRoute>} />
+      <Route path="/calendar" element={<ProtectedRoute><Suspense fallback={<LoadingScreen />}><CalendarPage /></Suspense></ProtectedRoute>} />
       {/* Admin */}
       <Route path="/admin/*" element={<AdminRoute><Suspense fallback={<LoadingScreen />}><AdminPage /></Suspense></AdminRoute>} />
 

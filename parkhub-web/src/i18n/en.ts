@@ -7,6 +7,8 @@ export const en = {
     homeoffice: 'Home Office',
     vacation: 'Vacation',
     absences: 'Absences',
+    team: 'Team',
+    calendar: 'Calendar',
     admin: 'Admin',
     more: 'More',
     profile: 'Profile',
@@ -68,6 +70,37 @@ export const en = {
     available247: 'Available',
     openSource: 'Open Source',
   },
+
+      company_corporate: {
+        title: 'About your company',
+        desc: 'Give your parking setup a name so everyone knows where they are.',
+        nameLabel: 'Company name',
+        namePlaceholder: 'e.g. Acme Corp',
+      },
+      company_residential: {
+        title: 'About your building',
+        desc: 'Name your building so residents can easily find their parking.',
+        nameLabel: 'Building name',
+        namePlaceholder: 'e.g. Maple Heights',
+      },
+      company_family: {
+        title: 'Name your home',
+        desc: 'A friendly name for your family parking setup.',
+        nameLabel: 'Household name',
+        namePlaceholder: 'e.g. The Smiths',
+      },
+      company_rental: {
+        title: 'About your property',
+        desc: 'Name your rental property for your tenants.',
+        nameLabel: 'Property name',
+        namePlaceholder: 'e.g. Sunset Apartments',
+      },
+      company_public: {
+        title: 'About your facility',
+        desc: 'Name your public parking facility.',
+        nameLabel: 'Facility name',
+        namePlaceholder: 'e.g. City Center Parking',
+      },
   register: {
     title: 'Create Account',
     subtitle: 'Fill in the form to get started',
@@ -921,6 +954,50 @@ export const en = {
     viewOnGithub: 'View on GitHub',
     reportIssue: 'Report issue',
     license: 'MIT License',
+  },
+  team: {
+    title: 'Team',
+    search: 'Search by name...',
+    slot: 'Slot',
+    status: {
+      parked: 'Parked',
+      homeoffice: 'Home Office',
+      vacation: 'Vacation',
+      sick: 'Sick',
+      business_trip: 'Business Trip',
+      not_scheduled: 'Not Scheduled',
+    },
+  },
+  calendar: {
+    title: 'Calendar',
+    noBookings: 'No bookings on this day',
+    days: {
+      mo: 'Mo',
+      tu: 'Tu',
+      we: 'We',
+      th: 'Th',
+      fr: 'Fr',
+      sa: 'Sa',
+      su: 'Su',
+    },
+  },
+  favorites: {
+    added: 'Added to favorites',
+    removed: 'Removed from favorites',
+  },
+  guest: {
+    title: 'Guest Parking',
+    guestName: 'Guest Name',
+    code: 'Guest Code',
+    shareLink: 'Share Link',
+    created: 'Guest booking created',
+  },
+  recurring: {
+    title: 'Recurring Booking',
+    daysOfWeek: 'Days of Week',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    created: 'Recurring booking created',
   },
 };
 

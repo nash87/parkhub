@@ -8,6 +8,8 @@ export const de = {
     homeoffice: 'Homeoffice',
     vacation: 'Urlaub',
     absences: 'Abwesenheit',
+    team: 'Team',
+    calendar: 'Kalender',
     admin: 'Admin',
     more: 'Mehr',
     profile: 'Profil',
@@ -77,6 +79,37 @@ export const de = {
     available247: 'Verfügbar',
     openSource: 'Open Source',
   },
+
+      company_corporate: {
+        title: 'Dein Unternehmen',
+        desc: 'Gib deinem Parkplatz-Setup einen Namen, damit alle wissen, wo sie sind.',
+        nameLabel: 'Firmenname',
+        namePlaceholder: 'z.B. Musterfirma GmbH',
+      },
+      company_residential: {
+        title: 'Dein Gebäude',
+        desc: 'Benenne dein Gebäude, damit Bewohner ihren Parkplatz leicht finden.',
+        nameLabel: 'Gebäudename',
+        namePlaceholder: 'z.B. Ahornhöhe',
+      },
+      company_family: {
+        title: 'Euer Zuhause',
+        desc: 'Ein freundlicher Name für euer Familien-Parksystem.',
+        nameLabel: 'Haushaltsname',
+        namePlaceholder: 'z.B. Familie Müller',
+      },
+      company_rental: {
+        title: 'Dein Mietobjekt',
+        desc: 'Benenne dein Mietobjekt für deine Mieter.',
+        nameLabel: 'Objektname',
+        namePlaceholder: 'z.B. Sonnenallee Apartments',
+      },
+      company_public: {
+        title: 'Deine Einrichtung',
+        desc: 'Benenne deine öffentliche Parkeinrichtung.',
+        nameLabel: 'Name der Einrichtung',
+        namePlaceholder: 'z.B. Stadtmitte Parkhaus',
+      },
 
   // Register
   register: {
@@ -958,5 +991,49 @@ export const de = {
     viewOnGithub: 'Auf GitHub ansehen',
     reportIssue: 'Problem melden',
     license: 'MIT-Lizenz',
+  },
+  team: {
+    title: 'Team',
+    search: 'Nach Name suchen...',
+    slot: 'Platz',
+    status: {
+      parked: 'Geparkt',
+      homeoffice: 'Homeoffice',
+      vacation: 'Urlaub',
+      sick: 'Krank',
+      business_trip: 'Dienstreise',
+      not_scheduled: 'Nicht eingeplant',
+    },
+  },
+  calendar: {
+    title: 'Kalender',
+    noBookings: 'Keine Buchungen an diesem Tag',
+    days: {
+      mo: 'Mo',
+      tu: 'Di',
+      we: 'Mi',
+      th: 'Do',
+      fr: 'Fr',
+      sa: 'Sa',
+      su: 'So',
+    },
+  },
+  favorites: {
+    added: 'Zu Favoriten hinzugefuegt',
+    removed: 'Aus Favoriten entfernt',
+  },
+  guest: {
+    title: 'Gaesteparkplatz',
+    guestName: 'Name des Gastes',
+    code: 'Gaestecode',
+    shareLink: 'Teilen-Link',
+    created: 'Gaestebuchung erstellt',
+  },
+  recurring: {
+    title: 'Wiederkehrende Buchung',
+    daysOfWeek: 'Wochentage',
+    startDate: 'Startdatum',
+    endDate: 'Enddatum',
+    created: 'Wiederkehrende Buchung erstellt',
   },
 };

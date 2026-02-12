@@ -16,7 +16,7 @@ use axum::{
     Extension, Json, Router,
 };
 use base64::Engine;
-use chrono::{Datelike, Utc};
+use chrono::{Datelike, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -251,6 +251,15 @@ pub fn create_router(state: SharedState) -> Router {
             "/api/v1/lots/:lot_id/slots/:slot_id",
             put(admin_update_slot_properties),
         )
+        .route("/api/v1/push/unsubscribe", delete(push_unsubscribe))
+        .route("/api/v1/bookings/recurring", post(create_recurring_booking))
+        .route("/api/v1/bookings/guest", post(create_guest_booking))
+        .route("/api/v1/admin/settings/auto-release", get(get_auto_release_settings).put(update_auto_release_settings))
+        .route("/api/v1/admin/settings/email", get(get_email_settings).put(update_email_settings))
+        .route("/api/v1/admin/dashboard/charts", get(admin_dashboard_charts))
+        .route("/api/v1/users/me/favorites/:slot_id", post(add_favorite_slot).delete(remove_favorite_slot))
+        .route("/api/v1/team/today", get(team_today))
+        .route("/api/v1/calendar/events", get(calendar_events))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
@@ -5332,3 +5341,613 @@ async fn get_public_privacy(
         license_plate_entry_mode: config.license_plate_entry_mode,
     }))
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 2: Push Unsubscribe
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn push_unsubscribe(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<()>>) {
+    let state_guard = state.read().await;
+    match state_guard.db.delete_push_subscriptions_by_user(&auth_user.user_id.to_string()).await {
+        Ok(_) => (StatusCode::OK, Json(ApiResponse::success(()))),
+        Err(e) => {
+            tracing::error!("Failed to delete push subscriptions: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to unsubscribe")))
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 3: Recurring Bookings
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Deserialize)]
+struct RecurringBookingRequest {
+    lot_id: Uuid,
+    slot_id: Uuid,
+    days_of_week: Vec<u8>,
+    start_time: String, // HH:MM
+    end_time: String,   // HH:MM
+    start_date: String, // YYYY-MM-DD
+    end_date: String,   // YYYY-MM-DD
+    license_plate: Option<String>,
+    notes: Option<String>,
+}
+
+async fn create_recurring_booking(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<RecurringBookingRequest>,
+) -> (StatusCode, Json<ApiResponse<Vec<Booking>>>) {
+    let state_guard = state.read().await;
+
+    let slot = match state_guard.db.get_parking_slot(&req.slot_id.to_string()).await {
+        Ok(Some(s)) => s,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Slot not found"))),
+    };
+
+    let lot_name = match state_guard.db.get_parking_lot(&req.lot_id.to_string()).await {
+        Ok(Some(lot)) => Some(lot.name),
+        _ => None,
+    };
+
+    let parent_id = Uuid::new_v4();
+    let mut bookings = Vec::new();
+    let now = Utc::now();
+
+    // Parse date range and create individual bookings
+    let start_date = chrono::NaiveDate::parse_from_str(&req.start_date, "%Y-%m-%d")
+        .unwrap_or(now.date_naive());
+    let end_date = chrono::NaiveDate::parse_from_str(&req.end_date, "%Y-%m-%d")
+        .unwrap_or(start_date + chrono::Duration::days(30));
+
+    let start_parts: Vec<&str> = req.start_time.split(':').collect();
+    let end_parts: Vec<&str> = req.end_time.split(':').collect();
+    let start_hour: u32 = start_parts.get(0).and_then(|s| s.parse().ok()).unwrap_or(8);
+    let start_min: u32 = start_parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
+    let end_hour: u32 = end_parts.get(0).and_then(|s| s.parse().ok()).unwrap_or(17);
+    let end_min: u32 = end_parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
+
+    let mut current = start_date;
+    while current <= end_date {
+        let weekday = current.weekday().num_days_from_monday() as u8; // 0=Mon
+        if req.days_of_week.contains(&weekday) {
+            let booking_start = current.and_hms_opt(start_hour, start_min, 0)
+                .map(|dt| chrono::DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc));
+            let booking_end = current.and_hms_opt(end_hour, end_min, 0)
+                .map(|dt| chrono::DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc));
+
+            if let (Some(bs), Some(be)) = (booking_start, booking_end) {
+                let booking = Booking {
+                    id: Uuid::new_v4(),
+                    user_id: auth_user.user_id,
+                    lot_id: req.lot_id,
+                    slot_id: req.slot_id,
+                    booking_type: parkhub_common::BookingType::Dauer,
+                    dauer_interval: Some(parkhub_common::DauerInterval::Weekly),
+                    lot_name: lot_name.clone(),
+                    slot_number: Some(slot.slot_number.clone()),
+                    vehicle_plate: req.license_plate.clone(),
+                    start_time: bs,
+                    end_time: be,
+                    status: BookingStatus::Confirmed,
+                    created_at: now,
+                    updated_at: now,
+                    notes: req.notes.clone(),
+                    recurrence: Some(RecurrenceRule {
+                        weekdays: req.days_of_week.clone(),
+                        until: req.end_date.clone(),
+                        parent_id: Some(parent_id),
+                    }),
+                    checked_in_at: None,
+                };
+                if let Err(e) = state_guard.db.save_booking(&booking).await {
+                    tracing::error!("Failed to save recurring booking: {}", e);
+                } else {
+                    bookings.push(booking);
+                }
+            }
+        }
+        current += chrono::Duration::days(1);
+    }
+
+    (StatusCode::CREATED, Json(ApiResponse::success(bookings)))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 6: Guest Parking
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Deserialize)]
+struct GuestBookingRequest {
+    lot_id: Uuid,
+    slot_id: Uuid,
+    guest_name: String,
+    start_time: chrono::DateTime<Utc>,
+    end_time: chrono::DateTime<Utc>,
+    license_plate: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct GuestBookingResponse {
+    booking: Booking,
+    guest_code: String,
+    share_link: String,
+}
+
+async fn create_guest_booking(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<GuestBookingRequest>,
+) -> (StatusCode, Json<ApiResponse<GuestBookingResponse>>) {
+    let state_guard = state.read().await;
+
+    let slot = match state_guard.db.get_parking_slot(&req.slot_id.to_string()).await {
+        Ok(Some(s)) => s,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Slot not found"))),
+    };
+
+    let lot_name = match state_guard.db.get_parking_lot(&req.lot_id.to_string()).await {
+        Ok(Some(lot)) => Some(lot.name),
+        _ => None,
+    };
+
+    let now = Utc::now();
+    let guest_code = format!("G-{}", &Uuid::new_v4().to_string()[..8].to_uppercase());
+
+    let booking = Booking {
+        id: Uuid::new_v4(),
+        user_id: auth_user.user_id,
+        lot_id: req.lot_id,
+        slot_id: req.slot_id,
+        booking_type: parkhub_common::BookingType::Einmalig,
+        dauer_interval: None,
+        lot_name: lot_name,
+        slot_number: Some(slot.slot_number.clone()),
+        vehicle_plate: req.license_plate,
+        start_time: req.start_time,
+        end_time: req.end_time,
+        status: BookingStatus::Confirmed,
+        created_at: now,
+        updated_at: now,
+        notes: Some(format!("Guest: {} (Code: {})", req.guest_name, guest_code)),
+        recurrence: None,
+        checked_in_at: None,
+    };
+
+    if let Err(e) = state_guard.db.save_booking(&booking).await {
+        tracing::error!("Failed to save guest booking: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to create booking")));
+    }
+
+    let share_link = format!("/guest/{}", guest_code);
+
+    (StatusCode::CREATED, Json(ApiResponse::success(GuestBookingResponse {
+        booking,
+        guest_code,
+        share_link,
+    })))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 7: Auto-Release Settings
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AutoReleaseSettings {
+    timeout_minutes: i64,
+}
+
+async fn get_auto_release_settings(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<AutoReleaseSettings>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let timeout = state_guard.db.get_setting("auto_release_minutes").await
+        .ok().flatten()
+        .and_then(|v| v.parse::<i64>().ok())
+        .unwrap_or(30);
+
+    (StatusCode::OK, Json(ApiResponse::success(AutoReleaseSettings { timeout_minutes: timeout })))
+}
+
+async fn update_auto_release_settings(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<AutoReleaseSettings>,
+) -> (StatusCode, Json<ApiResponse<AutoReleaseSettings>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    if let Err(e) = state_guard.db.set_setting("auto_release_minutes", &req.timeout_minutes.to_string()).await {
+        tracing::error!("Failed to save auto-release settings: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save settings")));
+    }
+
+    (StatusCode::OK, Json(ApiResponse::success(req)))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 8: Favorite Slots
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn add_favorite_slot(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(slot_id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<()>>) {
+    let state_guard = state.read().await;
+    let mut user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "User not found"))),
+    };
+
+    if !user.preferences.favorite_slots.contains(&slot_id) {
+        user.preferences.favorite_slots.push(slot_id);
+        user.updated_at = Utc::now();
+        if let Err(e) = state_guard.db.save_user(&user).await {
+            tracing::error!("Failed to save user: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save")));
+        }
+    }
+
+    (StatusCode::OK, Json(ApiResponse::success(())))
+}
+
+async fn remove_favorite_slot(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(slot_id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<()>>) {
+    let state_guard = state.read().await;
+    let mut user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "User not found"))),
+    };
+
+    user.preferences.favorite_slots.retain(|s| s != &slot_id);
+    user.updated_at = Utc::now();
+    if let Err(e) = state_guard.db.save_user(&user).await {
+        tracing::error!("Failed to save user: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save")));
+    }
+
+    (StatusCode::OK, Json(ApiResponse::success(())))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 9: Team View — Who's Here Today?
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Serialize)]
+struct TeamMember {
+    user_id: String,
+    name: String,
+    status: String,       // "parked", "homeoffice", "vacation", "sick", "not_scheduled"
+    slot_number: Option<String>,
+    lot_name: Option<String>,
+    department: Option<String>,
+}
+
+async fn team_today(
+    State(state): State<SharedState>,
+    Extension(_auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<Vec<TeamMember>>>) {
+    let state_guard = state.read().await;
+    let users = state_guard.db.list_users().await.unwrap_or_default();
+    let bookings = state_guard.db.list_bookings().await.unwrap_or_default();
+    let absences = state_guard.db.list_all_absence_entries().await.unwrap_or_default();
+    let today = Utc::now().format("%Y-%m-%d").to_string();
+    let now = Utc::now();
+
+    let mut team: Vec<TeamMember> = Vec::new();
+
+    for user in &users {
+        // Check if user has active booking today
+        let active_booking = bookings.iter().find(|b| {
+            b.user_id == user.id
+                && (b.status == BookingStatus::Confirmed || b.status == BookingStatus::Active)
+                && b.start_time.format("%Y-%m-%d").to_string() == today
+        });
+
+        if let Some(booking) = active_booking {
+            team.push(TeamMember {
+                user_id: user.id.to_string(),
+                name: user.name.clone(),
+                status: "parked".to_string(),
+                slot_number: booking.slot_number.clone(),
+                lot_name: booking.lot_name.clone(),
+                department: user.department.clone(),
+            });
+            continue;
+        }
+
+        // Check absences
+        let absence = absences.iter().find(|a| {
+            a.user_id == user.id && a.start_date <= today && a.end_date >= today
+        });
+
+        if let Some(abs) = absence {
+            let status = match abs.absence_type {
+                parkhub_common::AbsenceType::Homeoffice => "homeoffice",
+                parkhub_common::AbsenceType::Vacation => "vacation",
+                parkhub_common::AbsenceType::Sick => "sick",
+                parkhub_common::AbsenceType::BusinessTrip => "business_trip",
+                _ => "other",
+            };
+            team.push(TeamMember {
+                user_id: user.id.to_string(),
+                name: user.name.clone(),
+                status: status.to_string(),
+                slot_number: None,
+                lot_name: None,
+                department: user.department.clone(),
+            });
+            continue;
+        }
+
+        // Check homeoffice pattern
+        let ho = state_guard.db.get_homeoffice_settings(&user.id.to_string()).await.ok().flatten();
+        let today_dow = now.weekday().num_days_from_monday() as u8;
+        if let Some(ref ho_settings) = ho {
+            if ho_settings.pattern.weekdays.contains(&today_dow) {
+                team.push(TeamMember {
+                    user_id: user.id.to_string(),
+                    name: user.name.clone(),
+                    status: "homeoffice".to_string(),
+                    slot_number: None,
+                    lot_name: None,
+                    department: user.department.clone(),
+                });
+                continue;
+            }
+        }
+
+        team.push(TeamMember {
+            user_id: user.id.to_string(),
+            name: user.name.clone(),
+            status: "not_scheduled".to_string(),
+            slot_number: None,
+            lot_name: None,
+            department: user.department.clone(),
+        });
+    }
+
+    (StatusCode::OK, Json(ApiResponse::success(team)))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 10: Email Settings (Admin)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Serialize, Deserialize)]
+struct EmailSettings {
+    smtp_host: String,
+    smtp_port: u16,
+    smtp_user: String,
+    smtp_pass: String,
+    from_address: String,
+    enabled: bool,
+}
+
+async fn get_email_settings(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<EmailSettings>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let settings = EmailSettings {
+        smtp_host: state_guard.db.get_setting("smtp_host").await.ok().flatten().unwrap_or_default(),
+        smtp_port: state_guard.db.get_setting("smtp_port").await.ok().flatten().and_then(|v| v.parse().ok()).unwrap_or(587),
+        smtp_user: state_guard.db.get_setting("smtp_user").await.ok().flatten().unwrap_or_default(),
+        smtp_pass: String::new(), // never expose password
+        from_address: state_guard.db.get_setting("smtp_from").await.ok().flatten().unwrap_or_else(|| "noreply@parkhub.local".to_string()),
+        enabled: state_guard.db.get_setting("smtp_enabled").await.ok().flatten().map(|v| v == "true").unwrap_or(false),
+    };
+
+    (StatusCode::OK, Json(ApiResponse::success(settings)))
+}
+
+async fn update_email_settings(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<EmailSettings>,
+) -> (StatusCode, Json<ApiResponse<EmailSettings>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let _ = state_guard.db.set_setting("smtp_host", &req.smtp_host).await;
+    let _ = state_guard.db.set_setting("smtp_port", &req.smtp_port.to_string()).await;
+    let _ = state_guard.db.set_setting("smtp_user", &req.smtp_user).await;
+    if !req.smtp_pass.is_empty() {
+        let _ = state_guard.db.set_setting("smtp_pass", &req.smtp_pass).await;
+    }
+    let _ = state_guard.db.set_setting("smtp_from", &req.from_address).await;
+    let _ = state_guard.db.set_setting("smtp_enabled", if req.enabled { "true" } else { "false" }).await;
+
+    (StatusCode::OK, Json(ApiResponse::success(req)))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 1: Dashboard Stats with Chart Data
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Serialize)]
+struct DashboardChartData {
+    booking_trend_7d: Vec<DayCount>,
+    booking_trend_30d: Vec<DayCount>,
+    occupancy_trend: Vec<DayOccupancy>,
+    peak_hours: Vec<HourCount>,
+}
+
+#[derive(Debug, Serialize)]
+struct DayCount {
+    date: String,
+    count: i32,
+}
+
+#[derive(Debug, Serialize)]
+struct DayOccupancy {
+    date: String,
+    rate: f64,
+}
+
+#[derive(Debug, Serialize)]
+struct HourCount {
+    hour: u32,
+    count: i32,
+}
+
+async fn admin_dashboard_charts(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<DashboardChartData>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let bookings = state_guard.db.list_bookings().await.unwrap_or_default();
+    let lots = state_guard.db.list_parking_lots().await.unwrap_or_default();
+    let total_slots: i32 = lots.iter().map(|l| l.total_slots).sum();
+    let now = Utc::now();
+
+    // 7-day trend
+    let mut trend_7d = Vec::new();
+    for i in (0..7).rev() {
+        let date = (now - chrono::Duration::days(i)).format("%Y-%m-%d").to_string();
+        let count = bookings.iter().filter(|b| b.created_at.format("%Y-%m-%d").to_string() == date).count();
+        trend_7d.push(DayCount { date, count: count as i32 });
+    }
+
+    // 30-day trend
+    let mut trend_30d = Vec::new();
+    for i in (0..30).rev() {
+        let date = (now - chrono::Duration::days(i)).format("%Y-%m-%d").to_string();
+        let count = bookings.iter().filter(|b| b.created_at.format("%Y-%m-%d").to_string() == date).count();
+        trend_30d.push(DayCount { date, count: count as i32 });
+    }
+
+    // Occupancy trend (last 7 days)
+    let mut occupancy = Vec::new();
+    for i in (0..7).rev() {
+        let date = (now - chrono::Duration::days(i)).format("%Y-%m-%d").to_string();
+        let booked = bookings.iter().filter(|b| {
+            b.start_time.format("%Y-%m-%d").to_string() == date
+                && b.status != BookingStatus::Cancelled
+        }).count();
+        let rate = if total_slots > 0 { (booked as f64 / total_slots as f64 * 100.0).min(100.0) } else { 0.0 };
+        occupancy.push(DayOccupancy { date, rate });
+    }
+
+    // Peak hours
+    let mut hours = vec![0i32; 24];
+    for b in &bookings {
+        if b.status != BookingStatus::Cancelled {
+            let h = b.start_time.hour() as usize;
+            if h < 24 { hours[h] += 1; }
+        }
+    }
+    let peak_hours: Vec<HourCount> = hours.into_iter().enumerate()
+        .map(|(h, c)| HourCount { hour: h as u32, count: c })
+        .collect();
+
+    (StatusCode::OK, Json(ApiResponse::success(DashboardChartData {
+        booking_trend_7d: trend_7d,
+        booking_trend_30d: trend_30d,
+        occupancy_trend: occupancy,
+        peak_hours,
+    })))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 4: Calendar Data
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Deserialize)]
+struct CalendarQuery {
+    from: Option<String>,
+    to: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct CalendarEvent {
+    id: String,
+    title: String,
+    start: String,
+    end: String,
+    status: String,
+    slot_number: Option<String>,
+    lot_name: Option<String>,
+    is_recurring: bool,
+    is_guest: bool,
+}
+
+async fn calendar_events(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Query(_query): Query<CalendarQuery>,
+) -> (StatusCode, Json<ApiResponse<Vec<CalendarEvent>>>) {
+    let state_guard = state.read().await;
+    let bookings = state_guard.db.list_bookings_by_user(&auth_user.user_id.to_string()).await.unwrap_or_default();
+
+    let events: Vec<CalendarEvent> = bookings.iter().map(|b| {
+        let is_guest = b.notes.as_ref().map(|n| n.starts_with("Guest:")).unwrap_or(false);
+        let title = if is_guest {
+            b.notes.clone().unwrap_or_else(|| "Guest Parking".to_string())
+        } else {
+            format!("Slot {}", b.slot_number.as_deref().unwrap_or("?"))
+        };
+        CalendarEvent {
+            id: b.id.to_string(),
+            title,
+            start: b.start_time.to_rfc3339(),
+            end: b.end_time.to_rfc3339(),
+            status: format!("{:?}", b.status).to_lowercase(),
+            slot_number: b.slot_number.clone(),
+            lot_name: b.lot_name.clone(),
+            is_recurring: b.recurrence.is_some(),
+            is_guest,
+        }
+    }).collect();
+
+    (StatusCode::OK, Json(ApiResponse::success(events)))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN REPORTS - enhanced
+// ═══════════════════════════════════════════════════════════════════════════════

@@ -22,6 +22,7 @@ import {
   Translate,
   GithubLogo,
   ArrowsClockwise,
+  CalendarBlank, UsersThree,
 } from '@phosphor-icons/react';
 import { useAuth } from '../context/auth-hook';
 import { useUpdateStore } from '../stores/updateStore';
@@ -39,6 +40,8 @@ const navigationKeys = [
   { key: 'nav.bookings', href: '/bookings', icon: ListChecks },
   { key: 'nav.vehicles', href: '/vehicles', icon: Car },
   { key: 'nav.absences', href: '/absences', icon: Calendar },
+  { key: 'nav.team', href: '/team', icon: UsersThree },
+  { key: 'nav.calendar', href: '/calendar', icon: CalendarBlank },
 ];
 
 const adminNavKeys = [
@@ -377,6 +380,8 @@ const mobileTabKeys = [
   { key: 'nav.book', href: '/book', icon: CalendarPlus },
   { key: 'nav.bookings', href: '/bookings', icon: ListChecks },
   { key: 'nav.absences', href: '/absences', icon: Calendar },
+  { key: 'nav.team', href: '/team', icon: UsersThree },
+  { key: 'nav.calendar', href: '/calendar', icon: CalendarBlank },
   { key: 'nav.more', href: '#more', icon: DotsThreeCircle },
 ];
 
