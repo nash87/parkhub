@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Buildings, Car, Users, CheckCircle, ArrowRight, ArrowLeft, Database, Sparkle, ClipboardText, House, BuildingApartment, Heart, Coins, Globe } from '@phosphor-icons/react';
+import { Lock, Buildings, Car, Users, CheckCircle, ArrowRight, ArrowLeft, Database, Sparkle, ClipboardText, BuildingApartment, Heart, Coins, Globe } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useUseCaseStore, UseCaseType } from '../stores/usecase';
 
