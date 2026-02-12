@@ -1,10 +1,6 @@
 //! Rate Limiting
 
-use governor::{
-    clock::DefaultClock,
-    middleware::NoOpMiddleware,
-    Quota, RateLimiter,
-};
+use governor::{clock::DefaultClock, middleware::NoOpMiddleware, Quota, RateLimiter};
 use std::{num::NonZeroU32, sync::Arc};
 
 /// Per-IP rate limiter
@@ -13,7 +9,8 @@ pub mod per_ip {
     use governor::state::keyed::DashMapStateStore;
     use std::net::IpAddr;
 
-    pub type IpRateLimiter = RateLimiter<IpAddr, DashMapStateStore<IpAddr>, DefaultClock, NoOpMiddleware>;
+    pub type IpRateLimiter =
+        RateLimiter<IpAddr, DashMapStateStore<IpAddr>, DefaultClock, NoOpMiddleware>;
 
     pub fn create_ip_rate_limiter(requests_per_minute: u32) -> Arc<IpRateLimiter> {
         let quota = Quota::per_minute(NonZeroU32::new(requests_per_minute).unwrap());

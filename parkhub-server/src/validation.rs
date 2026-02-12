@@ -5,9 +5,8 @@ use regex::Regex;
 
 /// Username regex (alphanumeric + underscore, 3-30 chars)
 #[allow(dead_code)]
-pub static USERNAME_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^[a-zA-Z][a-zA-Z0-9_]{2,29}$").unwrap()
-});
+pub static USERNAME_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^[a-zA-Z][a-zA-Z0-9_]{2,29}$").unwrap());
 
 /// Custom validator for license plates
 pub fn validate_license_plate(plate: &str) -> Result<(), validator::ValidationError> {

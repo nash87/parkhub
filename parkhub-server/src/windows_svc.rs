@@ -48,12 +48,12 @@ pub mod windows_service {
     }
 
     pub fn uninstall_service() -> Result<(), Box<dyn std::error::Error>> {
-        let manager = ServiceManager::local_computer(
-            None::<&str>,
-            ServiceManagerAccess::CONNECT,
-        )?;
+        let manager = ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)?;
 
-        let service = manager.open_service(SERVICE_NAME, ServiceAccess::DELETE | ServiceAccess::QUERY_STATUS)?;
+        let service = manager.open_service(
+            SERVICE_NAME,
+            ServiceAccess::DELETE | ServiceAccess::QUERY_STATUS,
+        )?;
 
         // Stop service if running
         if let Ok(status) = service.query_status() {

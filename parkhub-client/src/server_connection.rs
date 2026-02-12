@@ -397,7 +397,10 @@ impl ServerConnection {
         if response.success {
             Ok(())
         } else {
-            Err(anyhow::anyhow!("Password reset failed: {:?}", response.error))
+            Err(anyhow::anyhow!(
+                "Password reset failed: {:?}",
+                response.error
+            ))
         }
     }
 
@@ -448,7 +451,10 @@ impl ServerConnection {
         if response.success {
             Ok(())
         } else {
-            Err(anyhow::anyhow!("Config update failed: {:?}", response.error))
+            Err(anyhow::anyhow!(
+                "Config update failed: {:?}",
+                response.error
+            ))
         }
     }
 

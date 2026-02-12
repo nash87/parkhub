@@ -163,7 +163,7 @@ async fn main() -> Result<()> {
             use windows_sys::Win32::Foundation::HWND;
             use windows_sys::Win32::UI::Input::KeyboardAndMouse::ReleaseCapture;
             use windows_sys::Win32::UI::WindowsAndMessaging::{
-                GetForegroundWindow, SendMessageW, WM_NCLBUTTONDOWN, HTCAPTION,
+                GetForegroundWindow, SendMessageW, HTCAPTION, WM_NCLBUTTONDOWN,
             };
 
             unsafe {
@@ -226,7 +226,11 @@ async fn main() -> Result<()> {
                 // Find the server info
                 let server_info = {
                     let state = state.read().await;
-                    state.discovered_servers.iter().find(|s| s.name == server_id).cloned()
+                    state
+                        .discovered_servers
+                        .iter()
+                        .find(|s| s.name == server_id)
+                        .cloned()
                 };
 
                 if let Some(info) = server_info {
@@ -379,7 +383,9 @@ async fn main() -> Result<()> {
                                     id: SharedString::from(user.id.to_string()),
                                     email: SharedString::from(&user.email),
                                     name: SharedString::from(&user.name),
-                                    initial: SharedString::from(user.name.chars().next().unwrap_or('?').to_string()),
+                                    initial: SharedString::from(
+                                        user.name.chars().next().unwrap_or('?').to_string(),
+                                    ),
                                     picture: SharedString::from(""),
                                     role: SharedString::from(format!("{:?}", user.role)),
                                 });
@@ -455,7 +461,9 @@ async fn main() -> Result<()> {
                                     id: SharedString::from(user.id.to_string()),
                                     email: SharedString::from(&user.email),
                                     name: SharedString::from(&user.name),
-                                    initial: SharedString::from(user.name.chars().next().unwrap_or('?').to_string()),
+                                    initial: SharedString::from(
+                                        user.name.chars().next().unwrap_or('?').to_string(),
+                                    ),
                                     picture: SharedString::from(""),
                                     role: SharedString::from(format!("{:?}", user.role)),
                                 });
@@ -545,7 +553,9 @@ async fn main() -> Result<()> {
                                     email: SharedString::from(&u.email),
                                     name: SharedString::from(&u.name),
                                     initial: SharedString::from(
-                                        u.name.chars().next()
+                                        u.name
+                                            .chars()
+                                            .next()
                                             .or_else(|| u.username.chars().next())
                                             .map(|c| c.to_uppercase().to_string())
                                             .unwrap_or_else(|| "?".to_string()),
@@ -610,7 +620,9 @@ async fn main() -> Result<()> {
                                         email: SharedString::from(&u.email),
                                         name: SharedString::from(&u.name),
                                         initial: SharedString::from(
-                                            u.name.chars().next()
+                                            u.name
+                                                .chars()
+                                                .next()
                                                 .or_else(|| u.username.chars().next())
                                                 .map(|c| c.to_uppercase().to_string())
                                                 .unwrap_or_else(|| "?".to_string()),
@@ -697,7 +709,9 @@ async fn main() -> Result<()> {
                                                 email: SharedString::from(&u.email),
                                                 name: SharedString::from(&u.name),
                                                 initial: SharedString::from(
-                                                    u.name.chars().next()
+                                                    u.name
+                                                        .chars()
+                                                        .next()
                                                         .or_else(|| u.username.chars().next())
                                                         .map(|c| c.to_uppercase().to_string())
                                                         .unwrap_or_else(|| "?".to_string()),
@@ -706,7 +720,9 @@ async fn main() -> Result<()> {
                                                 is_active: u.is_active,
                                                 last_login: SharedString::from(
                                                     u.last_login
-                                                        .map(|dt| dt.format("%d.%m.%Y %H:%M").to_string())
+                                                        .map(|dt| {
+                                                            dt.format("%d.%m.%Y %H:%M").to_string()
+                                                        })
                                                         .unwrap_or_else(|| "-".to_string()),
                                                 ),
                                                 created_at: SharedString::from(
@@ -869,8 +885,10 @@ async fn main() -> Result<()> {
             if let Ok(settings) = toml::from_str::<AccessibilitySettings>(&content) {
                 info!("Loaded accessibility settings from {:?}", config_path);
                 ui.global::<ThemeSettings>().set_mode(settings.theme_mode);
-                ui.global::<ThemeSettings>().set_font_scale(settings.font_scale);
-                ui.global::<ThemeSettings>().set_reduce_motion(settings.reduce_motion);
+                ui.global::<ThemeSettings>()
+                    .set_font_scale(settings.font_scale);
+                ui.global::<ThemeSettings>()
+                    .set_reduce_motion(settings.reduce_motion);
             }
         }
     }
@@ -919,10 +937,7 @@ async fn main() -> Result<()> {
 }
 
 /// Load parking data from server
-async fn load_parking_data(
-    state: Arc<RwLock<AppState>>,
-    ui_weak: slint::Weak<MainWindow>,
-) {
+async fn load_parking_data(state: Arc<RwLock<AppState>>, ui_weak: slint::Weak<MainWindow>) {
     let state = state.read().await;
     if let Some(ref server) = state.server {
         // Load parking lots
@@ -966,7 +981,10 @@ async fn load_parking_data(
                                         })
                                         .unwrap_or_default();
 
-                                    info!("Slot {}: row={}, col={}, status={:?}", s.slot_number, s.row, s.column, s.status);
+                                    info!(
+                                        "Slot {}: row={}, col={}, status={:?}",
+                                        s.slot_number, s.row, s.column, s.status
+                                    );
                                     ParkingSlotData {
                                         id: SharedString::from(s.id.to_string()),
                                         slot_number: s.slot_number,

@@ -17,9 +17,11 @@ use tracing::warn;
 
 mod api;
 mod audit;
+mod background_jobs;
 mod config;
 mod db;
 mod discovery;
+mod email;
 mod error;
 mod health;
 #[allow(dead_code)]
@@ -32,8 +34,6 @@ mod requests;
 mod static_files;
 mod tls;
 mod validation;
-mod email;
-mod background_jobs;
 
 #[cfg(all(windows, feature = "windows-svc"))]
 mod windows_svc;
@@ -48,9 +48,8 @@ slint::include_modules!();
 // System tray support
 #[cfg(all(feature = "gui", windows))]
 use tray_icon::{
-    TrayIconBuilder, TrayIconEvent,
     menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
-    Icon,
+    Icon, TrayIconBuilder, TrayIconEvent,
 };
 
 /// Application state shared across handlers
@@ -186,9 +185,15 @@ async fn main() -> Result<()> {
                 let title = CString::new("ParkHub Server").unwrap_or_default();
                 unsafe {
                     extern "system" {
-                        fn MessageBoxA(hwnd: *const (), text: *const i8, caption: *const i8, flags: u32) -> i32;
+                        fn MessageBoxA(
+                            hwnd: *const (),
+                            text: *const i8,
+                            caption: *const i8,
+                            flags: u32,
+                        ) -> i32;
                     }
-                    MessageBoxA(std::ptr::null(), text.as_ptr(), title.as_ptr(), 0x10); // MB_ICONERROR
+                    MessageBoxA(std::ptr::null(), text.as_ptr(), title.as_ptr(), 0x10);
+                    // MB_ICONERROR
                 }
             }
             Err(e)
@@ -301,7 +306,7 @@ async fn run() -> Result<()> {
                 .unwrap_or_else(|_| "ParkHub Server".to_string()),
             admin_password_hash: hash_password("admin")?,
             encryption_enabled: false, // Disable encryption for unattended setup
-            enable_tls: false, // Disable TLS for easier initial setup
+            enable_tls: false,         // Disable TLS for easier initial setup
             generate_dummy_users: true,
             ..Default::default()
         };
@@ -518,10 +523,7 @@ async fn run() -> Result<()> {
 
 /// Get the application data directory
 fn get_data_directory(portable_mode: Option<bool>) -> Result<PathBuf> {
-    let exe_dir = std::env::current_exe()?
-        .parent()
-        .unwrap()
-        .to_path_buf();
+    let exe_dir = std::env::current_exe()?.parent().unwrap().to_path_buf();
     let portable_data = exe_dir.join("parkhub-data");
 
     // If portable_mode is explicitly set (from wizard), use that preference
@@ -679,10 +681,10 @@ fn run_setup_wizard() -> Result<ServerConfig> {
             generate_dummy_users,
             username_style,
             license_plate_display,
-            session_timeout_minutes: 60,  // 1 hour default
+            session_timeout_minutes: 60, // 1 hour default
             allow_self_registration: false,
             require_email_verification: false,
-            max_concurrent_sessions: 0,  // Unlimited
+            max_concurrent_sessions: 0, // Unlimited
             auto_backup_enabled: true,
             backup_retention_count: 7,
             audit_logging_enabled: true,
@@ -829,7 +831,11 @@ async fn run_status_gui(
                     // Check for tray icon click events (double-click to show window)
                     if let Ok(event) = TrayIconEvent::receiver().try_recv() {
                         match event {
-                            TrayIconEvent::DoubleClick { .. } | TrayIconEvent::Click { button: tray_icon::MouseButton::Left, .. } => {
+                            TrayIconEvent::DoubleClick { .. }
+                            | TrayIconEvent::Click {
+                                button: tray_icon::MouseButton::Left,
+                                ..
+                            } => {
                                 // Click/double-click shows window
                                 if let Some(ui) = ui_weak_click.upgrade() {
                                     // First show the window, then unminimize
@@ -880,7 +886,10 @@ async fn run_status_gui(
                 Some(tray_and_timer)
             }
             Err(e) => {
-                warn!("Failed to create system tray icon: {}. Server will run without tray icon.", e);
+                warn!(
+                    "Failed to create system tray icon: {}. Server will run without tray icon.",
+                    e
+                );
                 None
             }
         }
@@ -996,8 +1005,10 @@ async fn run_status_gui(
 
     // Load accessibility settings from config via ThemeSettings global
     ui.global::<ThemeSettings>().set_mode(config.theme_mode);
-    ui.global::<ThemeSettings>().set_font_scale(config.font_scale);
-    ui.global::<ThemeSettings>().set_reduce_motion(config.reduce_motion);
+    ui.global::<ThemeSettings>()
+        .set_font_scale(config.font_scale);
+    ui.global::<ThemeSettings>()
+        .set_reduce_motion(config.reduce_motion);
     info!(
         "Loaded theme settings: mode={}, font_scale={}, reduce_motion={}",
         config.theme_mode, config.font_scale, config.reduce_motion
@@ -1076,8 +1087,10 @@ fn create_tray_icon_data() -> Vec<u8> {
             // Calculate distance to rounded rectangle
             let in_rounded_rect = {
                 let margin = 1.0f32;
-                let inner_x = fx.clamp(margin + corner_radius, fsize - margin - corner_radius - 1.0);
-                let inner_y = fy.clamp(margin + corner_radius, fsize - margin - corner_radius - 1.0);
+                let inner_x =
+                    fx.clamp(margin + corner_radius, fsize - margin - corner_radius - 1.0);
+                let inner_y =
+                    fy.clamp(margin + corner_radius, fsize - margin - corner_radius - 1.0);
                 let dx = fx - inner_x;
                 let dy = fy - inner_y;
                 let dist = (dx * dx + dy * dy).sqrt();
@@ -1095,7 +1108,7 @@ fn create_tray_icon_data() -> Vec<u8> {
 
                 if is_p {
                     // White "P"
-                    data[idx] = 255;     // R
+                    data[idx] = 255; // R
                     data[idx + 1] = 255; // G
                     data[idx + 2] = 255; // B
                     data[idx + 3] = 255; // A
@@ -1124,12 +1137,12 @@ fn create_tray_icon_data() -> Vec<u8> {
 #[cfg(all(feature = "gui", windows))]
 fn is_letter_p(x: i32, y: i32, size: i32) -> bool {
     // P dimensions relative to 32x32
-    let p_left = size / 4;        // 8
-    let p_right = size * 3 / 4;   // 24
-    let p_top = size / 5;         // 6
-    let p_bottom = size * 4 / 5;  // 25
-    let p_middle = size / 2 + 1;  // 17 - middle of the P bowl
-    let stroke = size / 8;        // 4 - stroke width
+    let p_left = size / 4; // 8
+    let p_right = size * 3 / 4; // 24
+    let p_top = size / 5; // 6
+    let p_bottom = size * 4 / 5; // 25
+    let p_middle = size / 2 + 1; // 17 - middle of the P bowl
+    let stroke = size / 8; // 4 - stroke width
 
     // Vertical bar of P (left side)
     let vertical_bar = x >= p_left && x < p_left + stroke && y >= p_top && y < p_bottom;
@@ -1141,17 +1154,16 @@ fn is_letter_p(x: i32, y: i32, size: i32) -> bool {
     let middle_bar = x >= p_left && x < p_right - stroke && y >= p_middle - stroke && y < p_middle;
 
     // Right vertical part of P bowl
-    let right_bar = x >= p_right - stroke - stroke && x < p_right - stroke && y >= p_top && y < p_middle;
+    let right_bar =
+        x >= p_right - stroke - stroke && x < p_right - stroke && y >= p_top && y < p_middle;
 
     // Rounded corner at top-right
     let tr_cx = (p_right - stroke - stroke) as f32;
     let tr_cy = (p_top + stroke) as f32;
     let tr_r = stroke as f32;
     let tr_dist = ((x as f32 - tr_cx).powi(2) + (y as f32 - tr_cy).powi(2)).sqrt();
-    let top_right_curve = x >= p_right - stroke - stroke
-        && y >= p_top
-        && y < p_top + stroke
-        && tr_dist <= tr_r + 0.5;
+    let top_right_curve =
+        x >= p_right - stroke - stroke && y >= p_top && y < p_top + stroke && tr_dist <= tr_r + 0.5;
 
     // Rounded corner at bottom-right of bowl
     let br_cx = (p_right - stroke - stroke) as f32;
@@ -1215,19 +1227,43 @@ impl UsernameStyle {
     fn generate(&self, first: &str, last: &str, index: usize) -> String {
         let base = match self {
             UsernameStyle::FirstLastLetter => {
-                let first_char = first.chars().next().unwrap_or('x').to_lowercase().next().unwrap();
-                let last_char = last.chars().last().unwrap_or('x').to_lowercase().next().unwrap();
+                let first_char = first
+                    .chars()
+                    .next()
+                    .unwrap_or('x')
+                    .to_lowercase()
+                    .next()
+                    .unwrap();
+                let last_char = last
+                    .chars()
+                    .last()
+                    .unwrap_or('x')
+                    .to_lowercase()
+                    .next()
+                    .unwrap();
                 format!("{}{}", first_char, last_char)
             }
             UsernameStyle::FirstDotLast => {
                 format!("{}.{}", first.to_lowercase(), last.to_lowercase())
             }
             UsernameStyle::InitialLast => {
-                let first_char = first.chars().next().unwrap_or('x').to_lowercase().next().unwrap();
+                let first_char = first
+                    .chars()
+                    .next()
+                    .unwrap_or('x')
+                    .to_lowercase()
+                    .next()
+                    .unwrap();
                 format!("{}{}", first_char, last.to_lowercase())
             }
             UsernameStyle::FirstInitial => {
-                let last_char = last.chars().next().unwrap_or('x').to_lowercase().next().unwrap();
+                let last_char = last
+                    .chars()
+                    .next()
+                    .unwrap_or('x')
+                    .to_lowercase()
+                    .next()
+                    .unwrap();
                 format!("{}{}", first.to_lowercase(), last_char)
             }
         };
@@ -1238,7 +1274,11 @@ impl UsernameStyle {
 
 /// Generate 50 GDPR-compliant dummy users for testing
 /// All users have password "12351235" and can login immediately
-async fn generate_dummy_users(db: &Database, username_style: UsernameStyle, data_dir: &std::path::Path) -> Result<()> {
+async fn generate_dummy_users(
+    db: &Database,
+    username_style: UsernameStyle,
+    data_dir: &std::path::Path,
+) -> Result<()> {
     use chrono::Utc;
     use parkhub_common::models::{User, UserPreferences, UserRole, Vehicle};
     use rand::Rng;
@@ -1246,24 +1286,66 @@ async fn generate_dummy_users(db: &Database, username_style: UsernameStyle, data
 
     // GDPR-compliant fictional first names (common, not identifying real people)
     let first_names = [
-        "Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Avery",
-        "Skyler", "Dakota", "Cameron", "Reese", "Parker", "Hayden", "Sage", "River",
-        "Phoenix", "Blake", "Drew", "Jamie", "Robin", "Charlie", "Sam", "Pat",
-        "Chris", "Lee", "Kim", "Ashley", "Lynn", "Terry", "Jesse", "Dana",
-        "Kelly", "Shannon", "Shawn", "Logan", "Peyton", "Kendall", "Reagan", "Finley",
-        "Emerson", "Ellis", "Rowan", "Ainsley", "Blair", "Devon", "Eden", "Gray",
-        "Harper", "Indigo",
+        "Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Avery", "Skyler",
+        "Dakota", "Cameron", "Reese", "Parker", "Hayden", "Sage", "River", "Phoenix", "Blake",
+        "Drew", "Jamie", "Robin", "Charlie", "Sam", "Pat", "Chris", "Lee", "Kim", "Ashley", "Lynn",
+        "Terry", "Jesse", "Dana", "Kelly", "Shannon", "Shawn", "Logan", "Peyton", "Kendall",
+        "Reagan", "Finley", "Emerson", "Ellis", "Rowan", "Ainsley", "Blair", "Devon", "Eden",
+        "Gray", "Harper", "Indigo",
     ];
 
     // GDPR-compliant fictional last names (common, not identifying real people)
     let last_names = [
-        "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
-        "Rodriguez", "Martinez", "Anderson", "Taylor", "Thomas", "Jackson", "White", "Harris",
-        "Martin", "Thompson", "Moore", "Young", "Allen", "King", "Wright", "Scott",
-        "Green", "Baker", "Adams", "Nelson", "Hill", "Ramirez", "Campbell", "Mitchell",
-        "Roberts", "Carter", "Phillips", "Evans", "Turner", "Torres", "Parker", "Collins",
-        "Edwards", "Stewart", "Flores", "Morris", "Murphy", "Rivera", "Cook", "Rogers",
-        "Morgan", "Peterson",
+        "Smith",
+        "Johnson",
+        "Williams",
+        "Brown",
+        "Jones",
+        "Garcia",
+        "Miller",
+        "Davis",
+        "Rodriguez",
+        "Martinez",
+        "Anderson",
+        "Taylor",
+        "Thomas",
+        "Jackson",
+        "White",
+        "Harris",
+        "Martin",
+        "Thompson",
+        "Moore",
+        "Young",
+        "Allen",
+        "King",
+        "Wright",
+        "Scott",
+        "Green",
+        "Baker",
+        "Adams",
+        "Nelson",
+        "Hill",
+        "Ramirez",
+        "Campbell",
+        "Mitchell",
+        "Roberts",
+        "Carter",
+        "Phillips",
+        "Evans",
+        "Turner",
+        "Torres",
+        "Parker",
+        "Collins",
+        "Edwards",
+        "Stewart",
+        "Flores",
+        "Morris",
+        "Murphy",
+        "Rivera",
+        "Cook",
+        "Rogers",
+        "Morgan",
+        "Peterson",
     ];
 
     // Default password for all dummy users - they can login with this
@@ -1272,12 +1354,19 @@ async fn generate_dummy_users(db: &Database, username_style: UsernameStyle, data
 
     // Role distribution: mostly Users, some Premium, few Admin
     let roles = [
-        UserRole::User, UserRole::User, UserRole::User, UserRole::User,
-        UserRole::Premium, UserRole::Admin,
+        UserRole::User,
+        UserRole::User,
+        UserRole::User,
+        UserRole::User,
+        UserRole::Premium,
+        UserRole::Admin,
     ];
     let mut rng = rand::thread_rng();
 
-    info!("Generating 50 GDPR-compliant dummy users (password: {})...", default_password);
+    info!(
+        "Generating 50 GDPR-compliant dummy users (password: {})...",
+        default_password
+    );
 
     for i in 0..50 {
         let first = first_names[rng.gen_range(0..first_names.len())];
@@ -1309,7 +1398,10 @@ async fn generate_dummy_users(db: &Database, username_style: UsernameStyle, data
     }
 
     info!("Created 50 dummy users successfully");
-    info!("Default login: any username with password '{}'", default_password);
+    info!(
+        "Default login: any username with password '{}'",
+        default_password
+    );
 
     // Create demo vehicles for the first 8 users
     let demo_vehicles = [
@@ -1360,9 +1452,15 @@ async fn generate_dummy_users(db: &Database, username_style: UsernameStyle, data
         let mut output = std::io::BufWriter::new(std::fs::File::create(&photo_path)?);
         img.write_to(&mut output, image::ImageFormat::Jpeg)?;
 
-        info!("Created demo vehicle: {} {} ({}) for user {}", make, model, plate, user_ids[i]);
+        info!(
+            "Created demo vehicle: {} {} ({}) for user {}",
+            make, model, plate, user_ids[i]
+        );
     }
 
-    info!("Created {} demo vehicles with placeholder photos", demo_vehicles.len().min(user_ids.len()));
+    info!(
+        "Created {} demo vehicles with placeholder photos",
+        demo_vehicles.len().min(user_ids.len())
+    );
     Ok(())
 }

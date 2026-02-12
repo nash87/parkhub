@@ -35,6 +35,7 @@ pub fn record_lot_occupancy(lot_id: &str, lot_name: &str, total: u64, occupied: 
     gauge!("parking_lot_total_slots", &labels).set(total as f64);
     gauge!("parking_lot_occupied_slots", &labels).set(occupied as f64);
     if total > 0 {
-        gauge!("parking_lot_occupancy_percent", &labels).set((occupied as f64 / total as f64) * 100.0);
+        gauge!("parking_lot_occupancy_percent", &labels)
+            .set((occupied as f64 / total as f64) * 100.0);
     }
 }

@@ -3,7 +3,7 @@
 //! Generates and loads self-signed certificates for secure connections.
 
 use anyhow::{Context, Result};
-use rcgen::{CertifiedKey, generate_simple_self_signed};
+use rcgen::{generate_simple_self_signed, CertifiedKey};
 use std::path::Path;
 use std::sync::Once;
 
@@ -70,4 +70,3 @@ fn generate_self_signed_cert() -> Result<(String, String)> {
 
     Ok((cert.pem(), key_pair.serialize_pem()))
 }
-

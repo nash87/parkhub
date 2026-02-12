@@ -10,7 +10,9 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::validation::{validate_booking_duration, validate_license_plate, validate_password_strength};
+use crate::validation::{
+    validate_booking_duration, validate_license_plate, validate_password_strength,
+};
 
 /// Login request (OpenAPI schema)
 #[derive(Debug, Deserialize, Validate, ToSchema)]
@@ -141,8 +143,12 @@ pub struct PaginationParams {
     pub per_page: i32,
 }
 
-fn default_page() -> i32 { 1 }
-fn default_per_page() -> i32 { 20 }
+fn default_page() -> i32 {
+    1
+}
+fn default_per_page() -> i32 {
+    20
+}
 
 /// Booking list filters (OpenAPI schema)
 #[derive(Debug, Deserialize, Validate, ToSchema, Default)]

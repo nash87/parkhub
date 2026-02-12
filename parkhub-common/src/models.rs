@@ -327,7 +327,6 @@ pub struct TeamVacationEntry {
     pub end_date: String,
 }
 
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // ABSENCE MODELS (unified homeoffice + vacation + sick + business trip)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -484,7 +483,10 @@ mod tests {
     #[test]
     fn test_user_role_serialization() {
         assert_eq!(serde_json::to_string(&UserRole::User).unwrap(), "\"user\"");
-        assert_eq!(serde_json::to_string(&UserRole::Admin).unwrap(), "\"admin\"");
+        assert_eq!(
+            serde_json::to_string(&UserRole::Admin).unwrap(),
+            "\"admin\""
+        );
     }
 
     #[test]
@@ -495,8 +497,14 @@ mod tests {
 
     #[test]
     fn test_slot_status_serialization() {
-        assert_eq!(serde_json::to_string(&SlotStatus::Available).unwrap(), "\"available\"");
-        assert_eq!(serde_json::to_string(&SlotStatus::HomeOffice).unwrap(), "\"home_office\"");
+        assert_eq!(
+            serde_json::to_string(&SlotStatus::Available).unwrap(),
+            "\"available\""
+        );
+        assert_eq!(
+            serde_json::to_string(&SlotStatus::HomeOffice).unwrap(),
+            "\"home_office\""
+        );
     }
 
     #[test]
@@ -507,8 +515,14 @@ mod tests {
 
     #[test]
     fn test_booking_type_serialization() {
-        assert_eq!(serde_json::to_string(&BookingType::Einmalig).unwrap(), "\"einmalig\"");
-        assert_eq!(serde_json::to_string(&BookingType::Dauer).unwrap(), "\"dauer\"");
+        assert_eq!(
+            serde_json::to_string(&BookingType::Einmalig).unwrap(),
+            "\"einmalig\""
+        );
+        assert_eq!(
+            serde_json::to_string(&BookingType::Dauer).unwrap(),
+            "\"dauer\""
+        );
     }
 
     #[test]

@@ -21,8 +21,8 @@ use tracing::{debug, info};
 use uuid::Uuid;
 
 use parkhub_common::models::{
-    Booking, HomeofficeSettings, LotLayout, ParkingLot, ParkingSlot, User, Vehicle,
-    WaitlistEntry, PushSubscription, VacationEntry, AbsenceEntry, AbsencePattern,
+    AbsenceEntry, AbsencePattern, Booking, HomeofficeSettings, LotLayout, ParkingLot, ParkingSlot,
+    PushSubscription, User, VacationEntry, Vehicle, WaitlistEntry,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -607,7 +607,7 @@ impl Database {
         Ok(existed)
     }
 
-        // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════════
     // BOOKING OPERATIONS
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -731,7 +731,10 @@ impl Database {
         Ok(())
     }
 
-    pub async fn get_homeoffice_settings(&self, user_id: &str) -> Result<Option<HomeofficeSettings>> {
+    pub async fn get_homeoffice_settings(
+        &self,
+        user_id: &str,
+    ) -> Result<Option<HomeofficeSettings>> {
         let db = self.inner.read().await;
         let read_txn = db.begin_read()?;
         let table = read_txn.open_table(HOMEOFFICE)?;
@@ -811,7 +814,11 @@ impl Database {
         Ok(())
     }
 
-    pub async fn list_waitlist_by_lot(&self, lot_id: &str, date: Option<&str>) -> Result<Vec<WaitlistEntry>> {
+    pub async fn list_waitlist_by_lot(
+        &self,
+        lot_id: &str,
+        date: Option<&str>,
+    ) -> Result<Vec<WaitlistEntry>> {
         let db = self.inner.read().await;
         let read_txn = db.begin_read()?;
         let table = read_txn.open_table(WAITLIST)?;
@@ -821,7 +828,9 @@ impl Database {
             let e: WaitlistEntry = self.deserialize(value.value())?;
             if e.lot_id.to_string() == lot_id {
                 if let Some(d) = date {
-                    if e.date == d { entries.push(e); }
+                    if e.date == d {
+                        entries.push(e);
+                    }
                 } else {
                     entries.push(e);
                 }
@@ -836,7 +845,8 @@ impl Database {
         let write_txn = db.begin_write()?;
         let existed = {
             let mut table = write_txn.open_table(WAITLIST)?;
-            let x = table.remove(id)?.is_some(); x
+            let x = table.remove(id)?.is_some();
+            x
         };
         write_txn.commit()?;
         Ok(existed)
@@ -872,7 +882,10 @@ impl Database {
         Ok(())
     }
 
-    pub async fn list_push_subscriptions_by_user(&self, user_id: &str) -> Result<Vec<PushSubscription>> {
+    pub async fn list_push_subscriptions_by_user(
+        &self,
+        user_id: &str,
+    ) -> Result<Vec<PushSubscription>> {
         let db = self.inner.read().await;
         let read_txn = db.begin_read()?;
         let table = read_txn.open_table(PUSH_SUBSCRIPTIONS)?;
@@ -886,7 +899,6 @@ impl Database {
         }
         Ok(subs)
     }
-
 
     /// Delete a vehicle by ID
     pub async fn delete_vehicle(&self, id: &str) -> Result<bool> {
@@ -1024,7 +1036,10 @@ impl Database {
     /// Delete all waitlist entries for a user (GDPR Art. 17)
     pub async fn delete_waitlist_entries_by_user(&self, user_id: &str) -> Result<u64> {
         let all = self.list_all_waitlist().await?;
-        let user_entries: Vec<_> = all.into_iter().filter(|e| e.user_id.to_string() == user_id).collect();
+        let user_entries: Vec<_> = all
+            .into_iter()
+            .filter(|e| e.user_id.to_string() == user_id)
+            .collect();
         let count = user_entries.len() as u64;
         for entry in &user_entries {
             self.delete_waitlist_entry(&entry.id.to_string()).await?;
@@ -1074,11 +1089,11 @@ impl Database {
     /// Reset ALL database data (admin reset)
     pub async fn reset_all_data(&self) -> Result<()> {
         let db = self.inner.write().await;
-        
+
         // Use two write transactions: first to collect keys, then to delete
         // We need write txn because open_table on write creates missing tables
         let write_txn = db.begin_write()?;
-        
+
         // Collect keys from byte-value tables
         macro_rules! collect_and_clear {
             ($txn:expr, $table:expr) => {{
@@ -1096,7 +1111,7 @@ impl Database {
                 }
             }};
         }
-        
+
         macro_rules! collect_and_clear_str {
             ($txn:expr, $table:expr) => {{
                 let mut t = $txn.open_table($table)?;
@@ -1113,7 +1128,7 @@ impl Database {
                 }
             }};
         }
-        
+
         collect_and_clear!(write_txn, BOOKINGS);
         collect_and_clear!(write_txn, PARKING_SLOTS);
         collect_and_clear!(write_txn, SLOTS_BY_LOT);
@@ -1129,7 +1144,7 @@ impl Database {
         collect_and_clear!(write_txn, SESSIONS);
         collect_and_clear_str!(write_txn, USERS_BY_USERNAME);
         collect_and_clear_str!(write_txn, USERS_BY_EMAIL);
-        
+
         {
             let mut t = write_txn.open_table(SETTINGS)?;
             t.insert(SETTING_SETUP_COMPLETED, "false")?;
@@ -1152,7 +1167,6 @@ impl Database {
         }
         Ok(count)
     }
-
 
     // ═══════════════════════════════════════════════════════════════════════════
     // ABSENCE OPERATIONS (unified)
@@ -1283,9 +1297,7 @@ impl Database {
         write_txn.commit()?;
         Ok(count)
     }
-
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -1355,4 +1367,3 @@ mod tests {
         assert_eq!(stats.bookings, 0);
     }
 }
-

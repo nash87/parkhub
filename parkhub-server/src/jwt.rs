@@ -77,32 +77,50 @@ impl JwtManager {
     pub fn new(config: JwtConfig) -> Self {
         let encoding_key = EncodingKey::from_secret(config.secret.as_bytes());
         let decoding_key = DecodingKey::from_secret(config.secret.as_bytes());
-        Self { config, encoding_key, decoding_key }
+        Self {
+            config,
+            encoding_key,
+            decoding_key,
+        }
     }
 
     #[allow(dead_code)]
-    pub fn generate_tokens(&self, user_id: &Uuid, username: &str, role: &str) -> Result<TokenPair, AppError> {
+    pub fn generate_tokens(
+        &self,
+        user_id: &Uuid,
+        username: &str,
+        role: &str,
+    ) -> Result<TokenPair, AppError> {
         let now = Utc::now();
         let access_exp = now + Duration::hours(self.config.access_token_expiry_hours);
         let access_claims = Claims {
-            sub: user_id.to_string(), username: username.to_string(), role: role.to_string(),
-            iat: now.timestamp(), exp: access_exp.timestamp(),
-            iss: self.config.issuer.clone(), token_type: TokenType::Access,
+            sub: user_id.to_string(),
+            username: username.to_string(),
+            role: role.to_string(),
+            iat: now.timestamp(),
+            exp: access_exp.timestamp(),
+            iss: self.config.issuer.clone(),
+            token_type: TokenType::Access,
         };
         let access_token = encode(&Header::default(), &access_claims, &self.encoding_key)
             .map_err(|e| AppError::InvalidInput(format!("Failed to create token: {}", e)))?;
 
         let refresh_exp = now + Duration::days(self.config.refresh_token_expiry_days);
         let refresh_claims = Claims {
-            sub: user_id.to_string(), username: username.to_string(), role: role.to_string(),
-            iat: now.timestamp(), exp: refresh_exp.timestamp(),
-            iss: self.config.issuer.clone(), token_type: TokenType::Refresh,
+            sub: user_id.to_string(),
+            username: username.to_string(),
+            role: role.to_string(),
+            iat: now.timestamp(),
+            exp: refresh_exp.timestamp(),
+            iss: self.config.issuer.clone(),
+            token_type: TokenType::Refresh,
         };
         let refresh_token = encode(&Header::default(), &refresh_claims, &self.encoding_key)
             .map_err(|e| AppError::InvalidInput(format!("Failed to create token: {}", e)))?;
 
         Ok(TokenPair {
-            access_token, refresh_token,
+            access_token,
+            refresh_token,
             token_type: "Bearer".to_string(),
             expires_in: self.config.access_token_expiry_hours * 3600,
         })
