@@ -183,23 +183,29 @@ export function LicensePlateInput({ value, onChange, className = '', required, a
   }, [cityInput, selectedCity]);
 
   // Detect selected city from existing value (e.g. when editing)
+  const inferredCity = useMemo(() => {
+    if (!value || selectedCity) return null;
+    const dashIdx = value.indexOf('-');
+    if (dashIdx <= 0) return null;
+    const code = value.substring(0, dashIdx);
+    return CITY_MAP.has(code) ? code : null;
+  }, [value, selectedCity]);
+
   useEffect(() => {
-    if (value && !selectedCity) {
-      const dashIdx = value.indexOf('-');
-      if (dashIdx > 0) {
-        const code = value.substring(0, dashIdx);
-        if (CITY_MAP.has(code)) {
-          setSelectedCity(code);
-        }
-      }
+    if (inferredCity) {
+      setTimeout(() => setSelectedCity(inferredCity), 0);
     }
-  }, []);
+  }, [inferredCity]);
 
   // Show dropdown when typing city portion and not yet selected
+  const shouldShowDropdown = useMemo(() => filteredCities.length > 0 && !selectedCity, [filteredCities, selectedCity]);
+
   useEffect(() => {
-    setShowDropdown(filteredCities.length > 0 && !selectedCity);
-    setHighlightIdx(0);
-  }, [filteredCities, selectedCity]);
+    setTimeout(() => {
+      setShowDropdown(shouldShowDropdown);
+      setHighlightIdx(0);
+    }, 0);
+  }, [shouldShowDropdown]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -224,7 +230,7 @@ export function LicensePlateInput({ value, onChange, className = '', required, a
   }, [value, onChange]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    let raw = e.target.value.toUpperCase();
+    const raw = e.target.value.toUpperCase();
 
     // If user clears to empty, reset city selection
     if (!raw) {

@@ -44,13 +44,11 @@ export function AbsencesPage() {
   const [showImport, setShowImport] = useState(false);
   const [showPattern, setShowPattern] = useState(false);
 
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const [calMonth, setCalMonth] = useState(today.getMonth());
   const [calYear, setCalYear] = useState(today.getFullYear());
 
-  useEffect(() => { loadData(); }, []);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const [absRes, teamRes, patRes] = await Promise.all([
         api.listAbsences(),
@@ -62,17 +60,50 @@ export function AbsencesPage() {
       if (patRes.success && patRes.data) setPatterns(patRes.data);
     } catch { /* ignore */ }
     setLoading(false);
-  }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => { void loadData(); }, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
 
   // ── Calendar navigation ──
-  function prevMonth() { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); }
-  function nextMonth() { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); }
+  function prevMonth() {
+    if (calMonth === 0) {
+      setCalMonth(11);
+      setCalYear(y => y - 1);
+    } else {
+      setCalMonth(m => m - 1);
+    }
+  }
+
+  function nextMonth() {
+    if (calMonth === 11) {
+      setCalMonth(0);
+      setCalYear(y => y + 1);
+    } else {
+      setCalMonth(m => m + 1);
+    }
+  }
 
   // Swipe support
   const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (info.offset.x > 80) prevMonth();
-    else if (info.offset.x < -80) nextMonth();
-  }, [calMonth, calYear]);
+    if (info.offset.x > 80) {
+      if (calMonth === 0) {
+        setCalMonth(11);
+        setCalYear(y => y - 1);
+      } else {
+        setCalMonth(m => m - 1);
+      }
+    } else if (info.offset.x < -80) {
+      if (calMonth === 11) {
+        setCalMonth(0);
+        setCalYear(y => y + 1);
+      } else {
+        setCalMonth(m => m + 1);
+      }
+    }
+  }, [calMonth]);
 
   // ── Stats ──
   const hoPattern = useMemo(() => patterns.find(p => p.absence_type === 'homeoffice'), [patterns]);
@@ -84,7 +115,7 @@ export function AbsencesPage() {
     const todayDow = today.getDay() === 0 ? 6 : today.getDay() - 1;
     if (hoPattern && hoPattern.weekdays.includes(todayDow)) return 'homeoffice' as AbsenceType;
     return null;
-  }, [entries, hoPattern, todayStr]);
+  }, [entries, hoPattern, today]);
 
   const weekStats = useMemo(() => {
     const monday = getMonday(today);
@@ -98,7 +129,7 @@ export function AbsencesPage() {
       if (hoPattern && hoPattern.weekdays.includes(dow)) counts.homeoffice++;
     }
     return counts;
-  }, [entries, hoPattern]);
+  }, [entries, hoPattern, today]);
 
   const nextAbsence = useMemo(() => {
     const future = entries.filter(e => e.end_date >= todayStr).sort((a, b) => a.start_date.localeCompare(b.start_date));
@@ -159,7 +190,7 @@ export function AbsencesPage() {
     }
 
     return days;
-  }, [entries, patterns, calMonth, calYear]);
+  }, [entries, hoPattern, calMonth, calYear, today]);
 
   const calMonthLabel = new Date(calYear, calMonth, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
@@ -613,7 +644,7 @@ function AddAbsenceSheet({ onClose, onAdd, t }: AddAbsenceSheetProps) {
   const [endDate, setEndDate] = useState('');
   const [note, setNote] = useState('');
 
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const todayStr = today.toISOString().slice(0, 10);
   const monday = getMonday(today);
   const friday = new Date(monday);

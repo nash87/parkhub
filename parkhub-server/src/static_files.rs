@@ -10,8 +10,10 @@ use axum::{
 use rust_embed::Embed;
 
 /// Embedded web frontend files
-#[derive(Embed)]
-#[folder = "../parkhub-web/dist"]
+#[cfg_attr(debug_assertions, derive(Embed))]
+#[cfg_attr(debug_assertions, folder = "../parkhub-web/public")]
+#[cfg_attr(not(debug_assertions), derive(Embed))]
+#[cfg_attr(not(debug_assertions), folder = "../parkhub-web/dist")]
 #[prefix = ""]
 struct WebAssets;
 
