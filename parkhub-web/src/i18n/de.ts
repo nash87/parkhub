@@ -1018,10 +1018,6 @@ export const de = {
       su: 'So',
     },
   },
-  favorites: {
-    added: 'Zu Favoriten hinzugefuegt',
-    removed: 'Aus Favoriten entfernt',
-  },
   guest: {
     title: 'Gaesteparkplatz',
     guestName: 'Name des Gastes',

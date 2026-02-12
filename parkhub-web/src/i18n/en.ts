@@ -981,10 +981,6 @@ export const en = {
       su: 'Su',
     },
   },
-  favorites: {
-    added: 'Added to favorites',
-    removed: 'Removed from favorites',
-  },
   guest: {
     title: 'Guest Parking',
     guestName: 'Guest Name',
