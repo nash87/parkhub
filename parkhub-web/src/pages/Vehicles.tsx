@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Car, Plus, Trash, SpinnerGap, Star, X, CheckCircle, Camera, PencilSimple } from '@phosphor-icons/react';
-import { api, Vehicle, generateCarPhotoSvg } from '../api/client';
-import { useTranslation, TFunction } from 'react-i18next';
+import { api, Vehicle, CreateVehicleData, generateCarPhotoSvg } from '../api/client';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LicensePlateInput } from '../components/LicensePlateInput';
@@ -176,7 +176,7 @@ function resizeImage(file: File): Promise<string> {
   });
 }
 
-function PhotoUpload({ photoUrl, color, onPhotoChange, t }: { photoUrl?: string; color?: string; onPhotoChange: (url: string) => void; t: TFunction }) {
+function PhotoUpload({ photoUrl, color, onPhotoChange, t }: { photoUrl?: string; color?: string; onPhotoChange: (url: string) => void; t: ReturnType<typeof useTranslation>["t"] }) {
   const [dragOver, setDragOver] = useState(false);
   const placeholder = color ? generateCarPhotoSvg(color) : undefined;
   const displayUrl = photoUrl || placeholder;
@@ -211,7 +211,7 @@ function PhotoUpload({ photoUrl, color, onPhotoChange, t }: { photoUrl?: string;
 // COLOR PICKER COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function ColorPicker({ value, onChange, t }: { value: string; onChange: (v: string) => void; t: TFunction }) {
+function ColorPicker({ value, onChange, t }: { value: string; onChange: (v: string) => void; t: ReturnType<typeof useTranslation>["t"] }) {
   return (
     <div>
       <label className="label">{t('vehicles.color')}</label>
@@ -263,7 +263,7 @@ function AddVehicleModal({ open, onClose, onSave }: { open: boolean; onClose: ()
     if (!formData.plate.trim()) return;
     setSaving(true);
     try {
-      const createData: Record<string, string | boolean | undefined> = {
+      const createData: CreateVehicleData = {
         plate: formData.plate.toUpperCase(),
         make: formData.make || undefined,
         model: formData.model || undefined,

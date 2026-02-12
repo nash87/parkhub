@@ -7,19 +7,19 @@ import {
   MagnifyingGlass, Funnel,
 } from '@phosphor-icons/react';
 import { api, Booking, Vehicle } from '../api/client';
-import { useTranslation, TFunction } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { format, formatDistanceToNow, isFuture, type Locale } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
-function BookingCard({ booking, onCancel, cancelling, vehiclePhoto, t, dateFnsLocale, now }: { booking: Booking; onCancel: (id: string) => void; cancelling: string | null; vehiclePhoto?: string; t: TFunction; dateFnsLocale: Locale; now: number }) {
+function BookingCard({ booking, onCancel, cancelling, vehiclePhoto, t, dateFnsLocale, now }: { booking: Booking; onCancel: (id: string) => void; cancelling: string | null; vehiclePhoto?: string; t: ReturnType<typeof useTranslation>["t"]; dateFnsLocale: Locale; now: number }) {
   const isExpiringSoon = booking.status === 'active' && new Date(booking.end_time).getTime() - now < 30 * 60 * 1000 && !isFuture(new Date(booking.start_time));
   const isUpcoming = booking.status === 'active' && isFuture(new Date(booking.start_time));
   const isActive = booking.status === 'active' && !isUpcoming;
   const isPastBooking = booking.status === 'completed' || booking.status === 'cancelled';
 
-  const statusConfig: Record<string, { label: string; class: string; icon: ComponentType<{ weight?: string; className?: string }> }> = {
+  const statusConfig: Record<string, { label: string; class: string; icon: ComponentType<{ weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone"; className?: string }> }> = {
     active: { label: t('bookings.statusActive'), class: 'badge-success', icon: Clock },
     completed: { label: t('bookings.statusCompleted'), class: 'badge-gray', icon: CheckCircle },
     cancelled: { label: t('bookings.statusCancelled'), class: 'badge-error', icon: XCircle },
@@ -90,11 +90,11 @@ function BookingCard({ booking, onCancel, cancelling, vehiclePhoto, t, dateFnsLo
   );
 }
 
-function SectionHeader({ icon: Icon, title, count, color }: { icon: ComponentType<{ weight?: string; className?: string }>; title: string; count: number; color: string }) {
+function SectionHeader({ icon: Icon, title, count, color }: { icon: ComponentType<{ weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone"; className?: string }>; title: string; count: number; color: string }) {
   return <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Icon weight="fill" className={`w-5 h-5 ${color}`} />{title}<span className="badge badge-gray text-xs">{count}</span></h2>;
 }
 
-function EmptySection({ icon: Icon, text, showAction = false, t }: { icon: ComponentType<{ weight?: string; className?: string }>; text: string; showAction?: boolean; t: TFunction }) {
+function EmptySection({ icon: Icon, text, showAction = false, t }: { icon: ComponentType<{ weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone"; className?: string }>; text: string; showAction?: boolean; t: ReturnType<typeof useTranslation>["t"] }) {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card p-12 text-center">
       <Icon weight="light" className="w-20 h-20 text-gray-200 dark:text-gray-700 mx-auto mb-4" /><p className="text-gray-500 dark:text-gray-400 mb-4">{text}</p>
