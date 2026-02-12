@@ -402,6 +402,126 @@ class ApiClient {
   async health() {
     return this.request<{ status: string }>('/health');
   }
+
+  // ═══ Round 2 API Methods ═══
+
+  async quickBook(): Promise<ApiResponse<QuickBookResult>> {
+    return this.request<QuickBookResult>('/api/v1/bookings/quick', { method: 'POST', body: JSON.stringify({}) });
+  }
+
+  async getUserStats(): Promise<ApiResponse<UserStats>> {
+    return this.request<UserStats>('/api/v1/users/me/stats');
+  }
+
+  async getAdminHeatmap(): Promise<ApiResponse<HeatmapEntry[]>> {
+    return this.request<HeatmapEntry[]>('/api/v1/admin/stats/heatmap');
+  }
+
+  async getNotifications(): Promise<ApiResponse<ApiNotification[]>> {
+    return this.request<ApiNotification[]>('/api/v1/notifications');
+  }
+
+  async markNotificationRead(id: string): Promise<ApiResponse<void>> {
+    return this.request<void>(`/api/v1/notifications/${id}/read`, { method: 'PUT' });
+  }
+
+  async markAllNotificationsRead(): Promise<ApiResponse<void>> {
+    return this.request<void>('/api/v1/notifications/read-all', { method: 'POST' });
+  }
+
+  async getActiveAnnouncements(): Promise<ApiResponse<Announcement[]>> {
+    return this.request<Announcement[]>('/api/v1/announcements/active');
+  }
+
+  async createAnnouncement(data: { title: string; message: string; severity: string; expires_at?: string }): Promise<ApiResponse<Announcement>> {
+    return this.request<Announcement>('/api/v1/admin/announcements', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async deleteAnnouncement(id: string): Promise<ApiResponse<void>> {
+    return this.request<void>(`/api/v1/admin/announcements/${id}`, { method: 'DELETE' });
+  }
+
+  async getAuditLog(page?: number, limit?: number): Promise<ApiResponse<AuditLogEntry[]>> {
+    const params = new URLSearchParams();
+    if (page) params.set('page', String(page));
+    if (limit) params.set('limit', String(limit));
+    const q = params.toString() ? `?${params.toString()}` : '';
+    return this.request<AuditLogEntry[]>(`/api/v1/admin/audit-log${q}`);
+  }
+
+  async getUserPreferences(): Promise<ApiResponse<UserPreferences>> {
+    return this.request<UserPreferences>('/api/v1/users/me/preferences');
+  }
+
+  async updateUserPreferences(prefs: UserPreferences): Promise<ApiResponse<UserPreferences>> {
+    return this.request<UserPreferences>('/api/v1/users/me/preferences', { method: 'PUT', body: JSON.stringify(prefs) });
+  }
+
+  async getLotQrCode(lotId: string): Promise<string> {
+    const token = this.getToken();
+    const resp = await fetch(`/api/v1/lots/${lotId}/qr`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    return resp.text();
+  }
+}
+
+
+// ═══ Round 2 Types ═══
+
+export interface QuickBookResult {
+  booking?: Booking;
+  error?: string;
+  alternatives?: { slot_id: string; slot_number: string; lot_name: string }[];
+}
+
+export interface UserStats {
+  total_bookings: number;
+  bookings_this_month: number;
+  homeoffice_days_this_month: number;
+  avg_duration_minutes: number;
+  favorite_slot?: string;
+  favorite_lot?: string;
+}
+
+export interface HeatmapEntry {
+  day: number;
+  hour: number;
+  count: number;
+}
+
+export interface ApiNotification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  notification_type: string;
+  read: boolean;
+  created_at: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  message: string;
+  severity: 'info' | 'warning' | 'critical';
+  active: boolean;
+  created_at: string;
+  expires_at?: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  user_id?: string;
+  user_name?: string;
+  action: string;
+  details?: string;
+  ip_address?: string;
+  created_at: string;
+}
+
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+  notifications_enabled: boolean;
 }
 
 export const api = new ApiClient();
@@ -715,143 +835,4 @@ export interface GuestBookingData {
   start_time: string;
   end_time: string;
   license_plate?: string;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ROUND 2 API METHODS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export interface QuickBookResult {
-  booking?: Booking;
-  error?: string;
-  alternatives?: { slot_id: string; slot_number: string; lot_name: string }[];
-}
-
-export interface UserStats {
-  total_bookings: number;
-  bookings_this_month: number;
-  homeoffice_days_this_month: number;
-  avg_duration_minutes: number;
-  favorite_slot?: string;
-  favorite_lot?: string;
-}
-
-export interface HeatmapEntry {
-  day: number; // 0=Mon..6=Sun
-  hour: number; // 0..23
-  count: number;
-}
-
-export interface Notification {
-  id: string;
-  user_id: string;
-  title: string;
-  message: string;
-  notification_type: string;
-  read: boolean;
-  created_at: string;
-}
-
-export interface Announcement {
-  id: string;
-  title: string;
-  message: string;
-  severity: 'info' | 'warning' | 'critical';
-  active: boolean;
-  created_at: string;
-  expires_at?: string;
-}
-
-export interface AuditLogEntry {
-  id: string;
-  user_id?: string;
-  user_name?: string;
-  action: string;
-  details?: string;
-  ip_address?: string;
-  created_at: string;
-}
-
-export interface UserPreferences {
-  theme: 'light' | 'dark' | 'system';
-  language: string;
-  notifications_enabled: boolean;
-}
-
-// Extend ApiClient class by adding methods via prototype
-ApiClient.prototype.quickBook = async function(): Promise<ApiResponse<QuickBookResult>> {
-  return (this as any).request<QuickBookResult>('/api/v1/bookings/quick', { method: 'POST', body: JSON.stringify({}) });
-};
-
-ApiClient.prototype.getUserStats = async function(): Promise<ApiResponse<UserStats>> {
-  return (this as any).request<UserStats>('/api/v1/users/me/stats');
-};
-
-ApiClient.prototype.getAdminHeatmap = async function(): Promise<ApiResponse<HeatmapEntry[]>> {
-  return (this as any).request<HeatmapEntry[]>('/api/v1/admin/stats/heatmap');
-};
-
-ApiClient.prototype.getNotifications = async function(): Promise<ApiResponse<Notification[]>> {
-  return (this as any).request<Notification[]>('/api/v1/notifications');
-};
-
-ApiClient.prototype.markNotificationRead = async function(id: string): Promise<ApiResponse<void>> {
-  return (this as any).request<void>(`/api/v1/notifications/${id}/read`, { method: 'PUT' });
-};
-
-ApiClient.prototype.markAllNotificationsRead = async function(): Promise<ApiResponse<void>> {
-  return (this as any).request<void>('/api/v1/notifications/read-all', { method: 'POST' });
-};
-
-ApiClient.prototype.getActiveAnnouncements = async function(): Promise<ApiResponse<Announcement[]>> {
-  return (this as any).request<Announcement[]>('/api/v1/announcements/active');
-};
-
-ApiClient.prototype.createAnnouncement = async function(data: { title: string; message: string; severity: string; expires_at?: string }): Promise<ApiResponse<Announcement>> {
-  return (this as any).request<Announcement>('/api/v1/admin/announcements', { method: 'POST', body: JSON.stringify(data) });
-};
-
-ApiClient.prototype.deleteAnnouncement = async function(id: string): Promise<ApiResponse<void>> {
-  return (this as any).request<void>(`/api/v1/admin/announcements/${id}`, { method: 'DELETE' });
-};
-
-ApiClient.prototype.getAuditLog = async function(page?: number, limit?: number): Promise<ApiResponse<AuditLogEntry[]>> {
-  const params = new URLSearchParams();
-  if (page) params.set('page', String(page));
-  if (limit) params.set('limit', String(limit));
-  const q = params.toString() ? `?${params.toString()}` : '';
-  return (this as any).request<AuditLogEntry[]>(`/api/v1/admin/audit-log${q}`);
-};
-
-ApiClient.prototype.getUserPreferences = async function(): Promise<ApiResponse<UserPreferences>> {
-  return (this as any).request<UserPreferences>('/api/v1/users/me/preferences');
-};
-
-ApiClient.prototype.updateUserPreferences = async function(prefs: UserPreferences): Promise<ApiResponse<UserPreferences>> {
-  return (this as any).request<UserPreferences>('/api/v1/users/me/preferences', { method: 'PUT', body: JSON.stringify(prefs) });
-};
-
-ApiClient.prototype.getLotQrCode = async function(lotId: string): Promise<string> {
-  const token = (this as any).getToken();
-  const resp = await fetch(`/api/v1/lots/${lotId}/qr`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-  return resp.text();
-};
-
-// Type augmentation
-declare module './client' {
-  interface ApiClient {
-    quickBook(): Promise<ApiResponse<QuickBookResult>>;
-    getUserStats(): Promise<ApiResponse<UserStats>>;
-    getAdminHeatmap(): Promise<ApiResponse<HeatmapEntry[]>>;
-    getNotifications(): Promise<ApiResponse<Notification[]>>;
-    markNotificationRead(id: string): Promise<ApiResponse<void>>;
-    markAllNotificationsRead(): Promise<ApiResponse<void>>;
-    getActiveAnnouncements(): Promise<ApiResponse<Announcement[]>>;
-    createAnnouncement(data: { title: string; message: string; severity: string; expires_at?: string }): Promise<ApiResponse<Announcement>>;
-    deleteAnnouncement(id: string): Promise<ApiResponse<void>>;
-    getAuditLog(page?: number, limit?: number): Promise<ApiResponse<AuditLogEntry[]>>;
-    getUserPreferences(): Promise<ApiResponse<UserPreferences>>;
-    updateUserPreferences(prefs: UserPreferences): Promise<ApiResponse<UserPreferences>>;
-    getLotQrCode(lotId: string): Promise<string>;
-  }
 }

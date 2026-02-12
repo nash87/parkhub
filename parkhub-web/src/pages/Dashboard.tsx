@@ -50,12 +50,12 @@ export function DashboardPage() {
       if (annRes.success && annRes.data) setAnnouncements(annRes.data);
       if (lotsRes.success && lotsRes.data) {
         setLots(lotsRes.data);
-        const detailedPromises = lotsRes.data.map((lot) => api.getLotDetailed(lot.id));
+        const detailedPromises = lotsRes.data.map((lot: ParkingLot) => api.getLotDetailed(lot.id));
         const detailedResults = await Promise.all(detailedPromises);
-        setDetailedLots(detailedResults.filter((r) => r.success && r.data).map((r) => r.data!));
+        setDetailedLots(detailedResults.filter((r: {success: boolean; data?: ParkingLotDetailed}) => r.success && r.data).map((r: {success: boolean; data?: ParkingLotDetailed}) => r.data!));
       }
       if (bookingsRes.success && bookingsRes.data) {
-        setActiveBookings(bookingsRes.data.filter(b => b.status === 'active' || b.status === 'confirmed'));
+        setActiveBookings(bookingsRes.data.filter((b: Booking) => b.status === 'active' || b.status === 'confirmed'));
       }
     } finally { setLoading(false); }
   }

@@ -25,7 +25,7 @@ import {
   CalendarBlank, UsersThree,
 } from '@phosphor-icons/react';
 import { useAuth } from '../context/auth-hook';
-import { api, Notification as ApiNotification } from '../api/client';
+import { api, ApiNotification } from '../api/client';
 import { useUpdateStore } from '../stores/updateStore';
 import { useBranding } from '../context/branding-hook';
 import { useTheme, applyTheme } from '../stores/theme';

@@ -19,7 +19,7 @@ export function ProfilePage() {
   const [stats, setStats] = useState<UserStats | null>(null);
 
   useEffect(() => {
-    api.getUserStats().then(res => { if (res.success && res.data) setStats(res.data); }).catch(() => {});
+    api.getUserStats().then((res: { success: boolean; data?: UserStats }) => { if (res.success && res.data) setStats(res.data); }).catch(() => {});
   }, []);
 
   function handleSave() { setEditing(false); toast.success(t('profile.updated')); }

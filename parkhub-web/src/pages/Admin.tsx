@@ -673,7 +673,7 @@ export function AdminPage() {
     <div>
       <div className="mb-2"><h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('admin.title')}</h1><p className="text-gray-500 dark:text-gray-400 mt-1">{t('admin.subtitle')}</p></div>
       <AdminNav />
-      <Routes><Route path="/" element={<AdminOverview />} /><Route path="/lots" element={<AdminLots />} /><Route path="/users" element={<AdminUsers />} /><Route path="/bookings" element={<AdminBookings />} /><Route path="/branding" element={<AdminBrandingPage />} /><Route path="/privacy" element={<AdminPrivacyPage />} /><Route path="/system" element={<AdminSystem />} /></Routes>
+      <Routes><Route path="/" element={<AdminOverview />} /><Route path="/lots" element={<AdminLots />} /><Route path="/users" element={<AdminUsers />} /><Route path="/bookings" element={<AdminBookings />} /><Route path="/branding" element={<AdminBrandingPage />} /><Route path="/privacy" element={<AdminPrivacyPage />} /><Route path="/audit-log" element={<AuditLogPage />} /><Route path="/system" element={<AdminSystem />} /></Routes>
     </div>
   );
 }
