@@ -3258,6 +3258,7 @@ async fn admin_update_user(
 
 #[derive(Debug, Deserialize)]
 struct AdminUpdateSlotRequest {
+    is_disabled: Option<bool>,
     reserved_for_department: Option<String>,
 }
 
@@ -3304,6 +3305,9 @@ async fn admin_update_slot(
         }
     };
     slot.reserved_for_department = req.reserved_for_department;
+    if let Some(disabled) = req.is_disabled {
+        slot.status = if disabled { SlotStatus::Disabled } else { SlotStatus::Available };
+    }
     if let Err(e) = state_guard.db.save_parking_slot(&slot).await {
         tracing::error!("Failed to update slot: {}", e);
         return (
