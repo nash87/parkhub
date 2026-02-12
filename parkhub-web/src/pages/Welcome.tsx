@@ -3,7 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supportedLanguages } from '../i18n/index';
 import { useAccessibility, applyAccessibility } from '../stores/accessibility';
-import { useSetupStatus } from '../components/SetupGuard';
+import { useSetupStatus } from '../components/setup-status-hook';
 import {
   TextAa,
   SunDim,

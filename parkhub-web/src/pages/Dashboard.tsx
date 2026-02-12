@@ -14,7 +14,7 @@ import {
 } from '@phosphor-icons/react';
 import { House, Briefcase } from '@phosphor-icons/react';
 import { api, ParkingLot, ParkingLotDetailed, Booking, HomeofficeSettings } from '../api/client';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth-hook';
 import { ParkingLotGrid } from '../components/ParkingLotGrid';
 import { format, formatDistanceToNow } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';

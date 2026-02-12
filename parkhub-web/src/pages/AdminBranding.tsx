@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Palette, Upload, SpinnerGap, Check, Eye, Image } from '@phosphor-icons/react';
 import { BrandingConfig, getBranding, updateBranding, uploadBrandingLogo } from '../api/client';
-import { useBranding } from '../context/BrandingContext';
+import { useBranding } from '../context/branding-hook';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 

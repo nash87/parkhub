@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 /// Health check response
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct HealthResponse {
     pub status: HealthStatus,
@@ -13,6 +14,7 @@ pub struct HealthResponse {
 }
 
 /// Health status
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, ToSchema, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum HealthStatus {
@@ -22,6 +24,7 @@ pub enum HealthStatus {
 }
 
 /// Individual component health
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ComponentHealth {
     pub name: String,
@@ -33,6 +36,7 @@ pub struct ComponentHealth {
 }
 
 /// Readiness response
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ReadyResponse {
     pub ready: bool,

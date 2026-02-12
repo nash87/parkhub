@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Car, Eye, EyeSlash, ArrowRight, SpinnerGap, User, Envelope, Lock , Moon, Sun, Globe } from '@phosphor-icons/react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth-hook';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useTheme } from '../stores/theme';

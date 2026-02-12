@@ -1,4 +1,4 @@
-import { useBranding } from "../context/BrandingContext";
+import { useBranding } from "../context/branding-hook";
 
 interface ParkHubLogoProps {
   size?: "sm" | "md" | "lg";

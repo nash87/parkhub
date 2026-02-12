@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -105,10 +105,7 @@ export function BookPage() {
 
 
 
-  useEffect(() => { loadInitialData(); }, []);
-  useEffect(() => { if (selectedLot) loadDetailedLot(selectedLot); }, [selectedLot]);
-
-  async function loadInitialData() {
+  const loadInitialData = useCallback(async () => {
     try {
       const [lotsRes, vehiclesRes, privacyRes] = await Promise.all([
         api.getLots(),
@@ -119,7 +116,10 @@ export function BookPage() {
       if (lotsRes.success && lotsRes.data) { setLots(lotsRes.data); if (preselectedLot) setSelectedLot(preselectedLot); }
       if (vehiclesRes.success && vehiclesRes.data) { setVehicles(vehiclesRes.data); const def = vehiclesRes.data.find(v => v.is_default); if (def) setSelectedVehicle(def.id); }
     } finally { setLoading(false); }
-  }
+  }, [preselectedLot]);
+
+  useEffect(() => { void loadInitialData(); }, [loadInitialData]);
+  useEffect(() => { if (selectedLot) loadDetailedLot(selectedLot); }, [selectedLot]);
 
   async function loadDetailedLot(lotId: string) {
     const res = await api.getLotDetailed(lotId);
@@ -179,7 +179,7 @@ export function BookPage() {
         try {
           const vRes = await api.createVehicle({ plate: normalizedPlate, is_default: vehicles.length === 0 });
           if (vRes.success) toast.success(t("book.vehicleSaved"));
-        } catch (_) { /* ignore vehicle save errors */ }
+        } catch { /* ignore vehicle save errors */ }
       }
     } else {
       toast.error(res.error?.message || t('book.bookingFailed'));

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { SpinnerGap } from '@phosphor-icons/react';
-import { useAuth } from '../context/AuthContext';
-import { useSetupStatus } from '../components/SetupGuard';
+import { useAuth } from '../context/auth-hook';
+import { useSetupStatus } from '../components/setup-status-hook';
 import { OnboardingWizard } from '../components/OnboardingWizard';
 import { useTranslation } from 'react-i18next';
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { User, Envelope, Shield, MapPin, CalendarCheck, House, PencilSimple, FloppyDisk, ChartBar, Eye, TextAa, HandSwipeRight, CircleHalf, DownloadSimple, Trash } from '@phosphor-icons/react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth-hook';
 import { useAccessibility, ColorMode, FontScale } from '../stores/accessibility';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';

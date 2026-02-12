@@ -2046,18 +2046,18 @@ fn parse_ical_vacation_events(ical_data: &str) -> Vec<(String, String, Option<St
             let mut j = i + 1;
             while j < lines.len() && lines[j].trim() != "END:VEVENT" {
                 let line = lines[j].trim();
-                if line.starts_with("SUMMARY:") {
-                    summary = line[8..].to_string();
+                if let Some(stripped) = line.strip_prefix("SUMMARY:") {
+                    summary = stripped.to_string();
                 } else if line.starts_with("DTSTART") {
                     // Handle DTSTART;VALUE=DATE:20260101 or DTSTART:20260101T...
-                    if let Some(val) = line.split(':').last() {
+                    if let Some(val) = line.split(':').next_back() {
                         let val = val.trim();
                         if val.len() >= 8 {
                             dtstart = format!("{}-{}-{}", &val[0..4], &val[4..6], &val[6..8]);
                         }
                     }
                 } else if line.starts_with("DTEND") {
-                    if let Some(val) = line.split(':').last() {
+                    if let Some(val) = line.split(':').next_back() {
                         let val = val.trim();
                         if val.len() >= 8 {
                             dtend = format!("{}-{}-{}", &val[0..4], &val[4..6], &val[6..8]);
@@ -2389,17 +2389,17 @@ fn parse_ical_absence_events(
             let mut j = i + 1;
             while j < lines.len() && lines[j].trim() != "END:VEVENT" {
                 let line = lines[j].trim();
-                if line.starts_with("SUMMARY:") {
-                    summary = line[8..].to_string();
+                if let Some(stripped) = line.strip_prefix("SUMMARY:") {
+                    summary = stripped.to_string();
                 } else if line.starts_with("DTSTART") {
-                    if let Some(val) = line.split(':').last() {
+                    if let Some(val) = line.split(':').next_back() {
                         let val = val.trim();
                         if val.len() >= 8 {
                             dtstart = format!("{}-{}-{}", &val[0..4], &val[4..6], &val[6..8]);
                         }
                     }
                 } else if line.starts_with("DTEND") {
-                    if let Some(val) = line.split(':').last() {
+                    if let Some(val) = line.split(':').next_back() {
                         let val = val.trim();
                         if val.len() >= 8 {
                             dtend = format!("{}-{}-{}", &val[0..4], &val[4..6], &val[6..8]);

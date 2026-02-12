@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useEffect, useState, ReactNode } from 'react';
 import { BrandingConfig, getBranding } from '../api/client';
 
 interface BrandingContextType {
@@ -17,15 +17,11 @@ const defaultBranding: BrandingConfig = {
   custom_css: null,
 };
 
-const BrandingContext = createContext<BrandingContextType>({
+export const BrandingContext = createContext<BrandingContextType>({
   branding: defaultBranding,
   loading: true,
   refresh: async () => {},
 });
-
-export function useBranding() {
-  return useContext(BrandingContext);
-}
 
 /** Convert hex color to space-separated RGB for Tailwind CSS variable */
 function hexToRgb(hex: string): string {

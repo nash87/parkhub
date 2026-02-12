@@ -2,7 +2,8 @@ import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/auth-hook';
 import { BrandingProvider } from './context/BrandingContext';
 import { useTheme, applyTheme } from './stores/theme';
 import { useAccessibility, applyAccessibility } from './stores/accessibility';
@@ -19,7 +20,8 @@ import { VehiclesPage } from './pages/Vehicles';
 import { ConsentBanner } from './components/ConsentBanner';
 import { SpinnerGap } from '@phosphor-icons/react';
 import { WelcomePage } from './pages/Welcome';
-import { SetupGuard, useSetupStatus } from './components/SetupGuard';
+import { SetupGuard } from './components/SetupGuard';
+import { useSetupStatus } from './components/setup-status-hook';
 import { SetupPage } from './pages/Setup';
 import { MaintenanceScreen } from './components/MaintenanceScreen';
 
@@ -89,7 +91,7 @@ function ThemeInitializer({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { applyTheme(theme.isDark); }, [theme.isDark]);
   useEffect(() => { applyPalette(palette.paletteId, theme.isDark); }, [palette.paletteId, theme.isDark]);
-  useEffect(() => { applyAccessibility(accessibility); }, [accessibility.colorMode, accessibility.fontScale, accessibility.reducedMotion, accessibility.highContrast]);
+  useEffect(() => { applyAccessibility(accessibility); }, [accessibility]);
   useEffect(() => {
     const normalized = i18n.resolvedLanguage ?? i18n.language ?? 'en';
     const active = supportedLanguages.find(({ code }) => normalized.startsWith(code));
