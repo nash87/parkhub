@@ -57,7 +57,7 @@ mdns-sd = "0.11"
 parkhub-common = { path = "parkhub-common" }
 
 [profile.release]
-lto = "thin"
+lto = false
 codegen-units = 4
 strip = true
 opt-level = 3
