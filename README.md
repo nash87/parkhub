@@ -47,6 +47,43 @@ ParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, *
 | **Waitlist System** | Automatic notification when a spot becomes available |
 | **Welcome Screen** | Guided first-run experience with language selection |
 | **Auto-Onboarding Wizard** | Step-by-step setup: password, use-case, organization, dummy data, registration mode |
+
+## Screenshots
+
+### Mobile Interface
+
+<div align=center>
+  <img src=docs/screenshots/dashboard_mobile.png width=300 alt=Dashboard Mobile>
+  <img src=docs/screenshots/absences_mobile.png width=300 alt=Absences Mobile>
+  <img src=docs/screenshots/bookings_mobile.png width=300 alt=Bookings Mobile>
+</div>
+
+<div align=center>
+  <img src=docs/screenshots/book_mobile.png width=300 alt=Book Mobile>
+  <img src=docs/screenshots/admin_mobile.png width=300 alt=Admin Mobile>
+  <img src=docs/screenshots/vehicles_mobile.png width=300 alt=Vehicles Mobile>
+</div>
+
+### Desktop Interface
+
+<div align=center>
+  <img src=docs/screenshots/dashboard_desktop.png width=800 alt=Dashboard Desktop>
+</div>
+
+<div align=center>
+  <img src=docs/screenshots/absences_desktop.png width=800 alt=Absences Desktop>
+</div>
+
+<div align=center>
+  <img src=docs/screenshots/admin_desktop.png width=800 alt=Admin Desktop>
+</div>
+
+### Landing Page
+
+<div align=center>
+  <img src=docs/screenshots/landing.png width=800 alt=Landing Page>
+</div>
+
 | **Vehicle Management** | Add vehicles with autocomplete (50+ brands), German license plate format (XX-YY 1234), photo upload with auto-resize |
 | **Booking Date/Time** | Select specific date and time range for bookings |
 | **Slot Favorites** | Mark preferred parking slots for quick booking |
