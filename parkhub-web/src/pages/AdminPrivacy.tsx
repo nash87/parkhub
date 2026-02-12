@@ -132,13 +132,13 @@ export function AdminPrivacyPage() {
           </div>
           <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('admin.privacy.plateDisplay', 'License plate display mode')}</label>
-            <select value={config.license_plate_display} onChange={e => setConfig({ ...config, license_plate_display: Number(e.target.value) })} className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm">
+            <select value={config.license_plate_display} onChange={e => setConfig({ ...config, license_plate_display: Number(e.target.value) })} className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2.5 text-base">
               {plateOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('admin.privacy.plateEntry', 'License plate input')}</label>
-            <select value={config.license_plate_entry_mode} onChange={e => setConfig({ ...config, license_plate_entry_mode: Number(e.target.value) })} className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm">
+            <select value={config.license_plate_entry_mode} onChange={e => setConfig({ ...config, license_plate_entry_mode: Number(e.target.value) })} className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2.5 text-base">
               {plateEntryOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('admin.privacy.plateEntryDesc', 'Control whether users must provide a license plate when booking. For GDPR, consider Optional or Disabled.')}</p>
@@ -158,12 +158,12 @@ export function AdminPrivacyPage() {
           <div className="border-t border-gray-100 dark:border-gray-800 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('admin.privacy.bookingRetention', 'Booking data retention (days)')}</label>
-              <input type="number" min={0} value={config.data_retention_days} onChange={e => setConfig({ ...config, data_retention_days: Math.max(0, Number(e.target.value)) })} className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm" />
+              <input type="number" min={0} value={config.data_retention_days} onChange={e => setConfig({ ...config, data_retention_days: Math.max(0, Number(e.target.value)) })} className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2.5 text-base" />
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('admin.privacy.retentionHint', '0 = keep forever')}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('admin.privacy.auditRetention', 'Audit log retention (days)')}</label>
-              <input type="number" min={0} value={config.audit_retention_days} onChange={e => setConfig({ ...config, audit_retention_days: Math.max(0, Number(e.target.value)) })} className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm" />
+              <input type="number" min={0} value={config.audit_retention_days} onChange={e => setConfig({ ...config, audit_retention_days: Math.max(0, Number(e.target.value)) })} className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2.5 text-base" />
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('admin.privacy.retentionHint', '0 = keep forever')}</p>
             </div>
           </div>

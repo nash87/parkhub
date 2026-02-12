@@ -173,15 +173,15 @@ export function BookingsPage() {
             <MagnifyingGlass weight="regular" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input type="text" value={searchLot} onChange={(e) => setSearchLot(e.target.value)} placeholder={t('bookingFilters.searchLot')} className="input pl-9 text-sm" />
           </div>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input text-sm">
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input">
             <option value="all">{t('bookingFilters.statusAll')}</option>
             <option value="active">{t('bookingFilters.statusActive')}</option>
             <option value="confirmed">{t('bookingFilters.statusConfirmed')}</option>
             <option value="cancelled">{t('bookingFilters.statusCancelled')}</option>
             <option value="completed">{t('bookingFilters.statusCompleted')}</option>
           </select>
-          <input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="input text-sm" placeholder={t('bookingFilters.dateFrom')} />
-          <input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="input text-sm" placeholder={t('bookingFilters.dateTo')} />
+          <input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="input" placeholder={t('bookingFilters.dateFrom')} />
+          <input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="input" placeholder={t('bookingFilters.dateTo')} />
         </div>
       </div>
 
