@@ -307,7 +307,7 @@ async fn run() -> Result<()> {
             admin_password_hash: hash_password("admin")?,
             encryption_enabled: false, // Disable encryption for unattended setup
             enable_tls: false,         // Disable TLS for easier initial setup
-            generate_dummy_users: true,
+            generate_dummy_users: false,
             ..Default::default()
         };
         config.save(&config_path)?;
