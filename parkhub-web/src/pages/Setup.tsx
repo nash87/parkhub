@@ -15,14 +15,16 @@ export function SetupPage() {
 
   // Auto-login as admin/admin if not authenticated — MUST be before any conditional returns
   useEffect(() => {
-    if (!authLoading && !isAuthenticated && !autoLoginAttempted) {
+    if (authLoading || isAuthenticated || autoLoginAttempted) return;
+    const id = requestAnimationFrame(() => {
       setAutoLoginAttempted(true);
-      login('admin', 'admin').then(success => {
-        if (!success) {
-          setAutoLoginFailed(true);
-        }
-      });
-    }
+    });
+    login('admin', 'admin').then(success => {
+      if (!success) {
+        setAutoLoginFailed(true);
+      }
+    });
+    return () => cancelAnimationFrame(id);
   }, [authLoading, isAuthenticated, autoLoginAttempted, login]);
 
   // If setup is already complete, redirect to home

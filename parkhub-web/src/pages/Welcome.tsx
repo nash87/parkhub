@@ -66,11 +66,6 @@ export function WelcomePage() {
     }
   }, [setupComplete]);
 
-  // If setup is already complete, redirect to login/dashboard
-  if (setupComplete) {
-    return <Navigate to="/" replace />;
-  }
-
   const selectLanguage = useCallback(
     (code: string) => {
       i18n.changeLanguage(code);
@@ -93,6 +88,11 @@ export function WelcomePage() {
     },
     [i18n, navigate, setupComplete]
   );
+
+  // If setup is already complete, redirect to login/dashboard
+  if (setupComplete) {
+    return <Navigate to="/" replace />;
+  }
 
   const setFontScale = (scale: 'small' | 'normal' | 'large' | 'xlarge') => {
     accessibility.setFontScale(scale);

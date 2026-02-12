@@ -1,15 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 
 export function ConsentBanner() {
   const { t } = useTranslation();
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (!localStorage.getItem('parkhub_consent')) setVisible(true);
-  }, []);
+  const [visible, setVisible] = useState(() => !localStorage.getItem('parkhub_consent'));
 
   function accept() {
     localStorage.setItem('parkhub_consent', 'accepted');

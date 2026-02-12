@@ -13,6 +13,23 @@ interface PrivacyConfig {
   license_plate_entry_mode: number;
 }
 
+
+function PrivacyToggle({ checked, onChange, label, desc }: { checked: boolean; onChange: (v: boolean) => void; label: string; desc?: string }) {
+  return (
+    <label className="flex items-start gap-3 cursor-pointer group">
+      <div className="relative mt-0.5">
+        <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="sr-only peer" />
+        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-blue-500 transition-colors" />
+        <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow peer-checked:translate-x-4 transition-transform" />
+      </div>
+      <div>
+        <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
+        {desc && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc}</p>}
+      </div>
+    </label>
+  );
+}
+
 export function AdminPrivacyPage() {
   const { t } = useTranslation();
   const [config, setConfig] = useState<PrivacyConfig | null>(null);
@@ -23,16 +40,17 @@ export function AdminPrivacyPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('parkhub_token');
-    setLoading(true);
-    setError('');
+    let cancelled = false;
     fetch('/api/v1/admin/privacy', { headers: { Authorization: 'Bearer ' + token } })
       .then(r => r.json())
       .then(d => {
+        if (cancelled) return;
         if (d.data) setConfig(d.data);
         else setError(d.error?.message || 'Failed to load privacy settings');
       })
-      .catch(() => setError('Failed to load privacy settings'))
-      .finally(() => setLoading(false));
+      .catch(() => { if (!cancelled) setError('Failed to load privacy settings'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const save = async () => {
@@ -58,19 +76,7 @@ export function AdminPrivacyPage() {
 
   if (!config) return <div className="card p-6"><div className="text-sm text-red-600 dark:text-red-400">{error || 'Failed to load privacy settings'}</div></div>;
 
-  const Toggle = ({ checked, onChange, label, desc }: { checked: boolean; onChange: (v: boolean) => void; label: string; desc?: string }) => (
-    <label className="flex items-start gap-3 cursor-pointer group">
-      <div className="relative mt-0.5">
-        <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="sr-only peer" />
-        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-blue-500 transition-colors" />
-        <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow peer-checked:translate-x-4 transition-transform" />
-      </div>
-      <div>
-        <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
-        {desc && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc}</p>}
-      </div>
-    </label>
-  );
+  // Toggle extracted to module-level PrivacyToggle component below
 
   const visibilityOptions = [
     { value: 0, label: t('admin.privacy.visibility.full', 'Full name + plate'), desc: t('admin.privacy.visibility.fullDesc', 'Show booker name and license plate') },
@@ -121,8 +127,8 @@ export function AdminPrivacyPage() {
             </div>
           </div>
           <div className="border-t border-gray-100 dark:border-gray-800 pt-4 space-y-3">
-            <Toggle checked={config.show_booker_name} onChange={v => setConfig({ ...config, show_booker_name: v })} label={t('admin.privacy.showBookerName', 'Show booker name on slots')} desc={t('admin.privacy.showBookerNameDesc', 'Allow users to see who booked which slot')} />
-            <Toggle checked={config.show_plates_to_users} onChange={v => setConfig({ ...config, show_plates_to_users: v })} label={t('admin.privacy.showPlatesToUsers', 'Show license plates to users')} desc={t('admin.privacy.showPlatesToUsersDesc', 'Non-admin users can see license plates')} />
+            <PrivacyToggle checked={config.show_booker_name} onChange={v => setConfig({ ...config, show_booker_name: v })} label={t('admin.privacy.showBookerName', 'Show booker name on slots')} desc={t('admin.privacy.showBookerNameDesc', 'Allow users to see who booked which slot')} />
+            <PrivacyToggle checked={config.show_plates_to_users} onChange={v => setConfig({ ...config, show_plates_to_users: v })} label={t('admin.privacy.showPlatesToUsers', 'Show license plates to users')} desc={t('admin.privacy.showPlatesToUsersDesc', 'Non-admin users can see license plates')} />
           </div>
           <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('admin.privacy.plateDisplay', 'License plate display mode')}</label>
@@ -148,7 +154,7 @@ export function AdminPrivacyPage() {
           {t('admin.privacy.dataStorage.title', 'Data Storage')}
         </h3>
         <div className="space-y-4">
-          <Toggle checked={config.store_ip_addresses} onChange={v => setConfig({ ...config, store_ip_addresses: v })} label={t('admin.privacy.storeIp', 'Store IP addresses in audit logs')} desc={t('admin.privacy.storeIpDesc', 'When disabled, IP addresses are not recorded (recommended for GDPR)')} />
+          <PrivacyToggle checked={config.store_ip_addresses} onChange={v => setConfig({ ...config, store_ip_addresses: v })} label={t('admin.privacy.storeIp', 'Store IP addresses in audit logs')} desc={t('admin.privacy.storeIpDesc', 'When disabled, IP addresses are not recorded (recommended for GDPR)')} />
           <div className="border-t border-gray-100 dark:border-gray-800 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('admin.privacy.bookingRetention', 'Booking data retention (days)')}</label>

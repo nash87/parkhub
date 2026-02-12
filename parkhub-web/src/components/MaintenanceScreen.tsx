@@ -11,15 +11,9 @@ interface MaintenanceScreenProps {
 export function MaintenanceScreen({ progress: externalProgress, message: externalMessage, step: externalStep }: MaintenanceScreenProps) {
   const { t } = useTranslation();
   const [dots, setDots] = useState("");
-  const [progress, setProgress] = useState(externalProgress ?? 0);
-  const [message, setMessage] = useState(externalMessage ?? "");
-  const [step, setStep] = useState(externalStep ?? "");
-
-  useEffect(() => {
-    if (externalProgress !== undefined) setProgress(externalProgress);
-    if (externalMessage !== undefined) setMessage(externalMessage);
-    if (externalStep !== undefined) setStep(externalStep);
-  }, [externalProgress, externalMessage, externalStep]);
+  const progress = externalProgress ?? 0;
+  const message = externalMessage ?? "";
+  const step = externalStep ?? "";
 
   const [timedOut, setTimedOut] = useState(false);
 

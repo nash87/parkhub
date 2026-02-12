@@ -88,9 +88,12 @@ export function Layout({ children }: LayoutProps) {
   useEffect(() => { applyTheme(isDark); }, [isDark]);
 
   useEffect(() => {
-    setMobileMenuOpen(false);
-    setUserMenuOpen(false);
-    setNotifOpen(false);
+    const id = requestAnimationFrame(() => {
+      setMobileMenuOpen(false);
+      setUserMenuOpen(false);
+      setNotifOpen(false);
+    });
+    return () => cancelAnimationFrame(id);
   }, [location.pathname]);
 
   useEffect(() => {
