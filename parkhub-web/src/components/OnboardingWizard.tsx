@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Buildings, Car, Users, CheckCircle, ArrowRight, ArrowLeft, Database, Sparkle, ClipboardText, House, UsersThree, Key, MapPin, Apartment, Heart, Coins, Globe } from '@phosphor-icons/react';
+import { Lock, Buildings, Car, Users, CheckCircle, ArrowRight, ArrowLeft, Database, Sparkle, ClipboardText, House, BuildingApartment, Heart, Coins, Globe } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useUseCaseStore, UseCaseType } from '../stores/usecase';
 
@@ -32,7 +32,7 @@ const useCaseColors: Record<string, { bg: string; bgActive: string; text: string
 
 const useCaseOptions: { type: UseCaseType; icon: typeof Buildings }[] = [
   { type: "corporate", icon: Buildings },
-  { type: "residential", icon: Apartment },
+  { type: "residential", icon: BuildingApartment },
   { type: "family", icon: Heart },
   { type: "rental", icon: Coins },
   { type: "public", icon: Globe },
