@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
-const scriptDir = path.dirname(new URL(import.meta.url).pathname);
+const scriptPath = fileURLToPath(import.meta.url);
+const scriptDir = path.dirname(scriptPath);
 const webRoot = path.resolve(scriptDir, '..');
 const i18nDir = path.join(webRoot, 'src', 'i18n');
 const baselineFile = path.join(webRoot, 'scripts', 'i18n-coverage-baseline.json');
