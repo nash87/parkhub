@@ -16,7 +16,7 @@ COPY parkhub-server/ ./parkhub-server/
 COPY parkhub-client/ ./parkhub-client/
 COPY --from=web-builder /app/web/dist ./parkhub-web/dist/
 ENV OPENSSL_STATIC=1 OPENSSL_DIR=/usr
-RUN cargo build --release --package parkhub-server --no-default-features --features headless --target x86_64-unknown-linux-musl
+RUN cargo build --release -j2 --package parkhub-server --no-default-features --features headless --target x86_64-unknown-linux-musl
 
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates wget
