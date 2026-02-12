@@ -382,7 +382,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                         </p>
                       </div>
                       {useCase === type && (
-                        <CheckCircle weight="fill" className="w-5 h-5 text-primary-500 ml-auto flex-shrink-0" />
+                        <CheckCircle weight="fill" className={`w-5 h-5 ${useCaseColors[type].check} ml-auto flex-shrink-0`} />
                       )}
                     </button>
                   ))}
@@ -429,7 +429,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setLoadDummyData(true)}
-                    className={`p-4 rounded-xl border-2 text-center transition-all ${loadDummyData === true ? `${useCaseColors[type].border} ${useCaseColors[type].bgActive}` : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
+                    className={`p-4 rounded-xl border-2 text-center transition-all ${loadDummyData === true ? `${useCaseColors[useCase || "corporate"].border} ${useCaseColors[useCase || "corporate"].bgActive}` : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
                   >
                     <Sparkle weight="fill" className="w-6 h-6 mx-auto mb-2 text-primary-500" />
                     <p className="font-medium text-sm">{t('onboarding.steps.dummyData.yes')}</p>
@@ -437,7 +437,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   </button>
                   <button
                     onClick={() => setLoadDummyData(false)}
-                    className={`p-4 rounded-xl border-2 text-center transition-all ${loadDummyData === false ? `${useCaseColors[type].border} ${useCaseColors[type].bgActive}` : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
+                    className={`p-4 rounded-xl border-2 text-center transition-all ${loadDummyData === false ? `${useCaseColors[useCase || "corporate"].border} ${useCaseColors[useCase || "corporate"].bgActive}` : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
                   >
                     <Buildings weight="regular" className="w-6 h-6 mx-auto mb-2 text-gray-400" />
                     <p className="font-medium text-sm">{t('onboarding.steps.dummyData.no')}</p>
@@ -482,14 +482,14 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 <div className="grid grid-cols-1 gap-3">
                   <button
                     onClick={() => setSelfRegistration(true)}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${selfRegistration ? `${useCaseColors[type].border} ${useCaseColors[type].bgActive}` : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${selfRegistration ? `${useCaseColors[useCase || "corporate"].border} ${useCaseColors[useCase || "corporate"].bgActive}` : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
                   >
                     <p className="font-medium text-sm">{t('onboarding.steps.users.selfRegister')}</p>
                     <p className="text-xs text-gray-400 mt-1">{t('onboarding.steps.users.selfRegisterDesc')}</p>
                   </button>
                   <button
                     onClick={() => setSelfRegistration(false)}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${!selfRegistration ? `${useCaseColors[type].border} ${useCaseColors[type].bgActive}` : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${!selfRegistration ? `${useCaseColors[useCase || "corporate"].border} ${useCaseColors[useCase || "corporate"].bgActive}` : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
                   >
                     <p className="font-medium text-sm">{t('onboarding.steps.users.manual')}</p>
                     <p className="text-xs text-gray-400 mt-1">{t('onboarding.steps.users.manualDesc')}</p>
