@@ -1,0 +1,584 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ParkHub API",
+    "description": "Open source parking lot management system API",
+    "contact": {
+      "name": "ParkHub",
+      "url": "https://github.com/nash87/parkhub"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "API v1"
+    }
+  ],
+  "paths": {},
+  "components": {
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "description": "API Error Response",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Error code for programmatic handling"
+          },
+          "details": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            },
+            "description": "Optional field-level errors (for validation)"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message"
+          }
+        }
+      },
+      "BookingFiltersParams": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PaginationParams"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "from_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "lot_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              },
+              "status": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "to_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              }
+            }
+          }
+        ],
+        "description": "Booking list filters (OpenAPI schema)"
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "description": "Password change request (OpenAPI schema)",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "properties": {
+          "current_password": {
+            "type": "string"
+          },
+          "new_password": {
+            "type": "string"
+          }
+        }
+      },
+      "ComponentHealth": {
+        "type": "object",
+        "description": "Individual component health",
+        "required": [
+          "name",
+          "status"
+        ],
+        "properties": {
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "response_time_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "status": {
+            "$ref": "#/components/schemas/HealthStatus"
+          }
+        }
+      },
+      "CreateBookingRequest": {
+        "type": "object",
+        "description": "Create booking request (OpenAPI schema)",
+        "required": [
+          "lot_id",
+          "slot_id",
+          "start_time",
+          "duration_minutes"
+        ],
+        "properties": {
+          "duration_minutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "license_plate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lot_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "slot_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "vehicle_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "CreateParkingLotRequest": {
+        "type": "object",
+        "description": "Create parking lot request (OpenAPI schema)",
+        "required": [
+          "name",
+          "address",
+          "latitude",
+          "longitude",
+          "total_slots"
+        ],
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "name": {
+            "type": "string"
+          },
+          "total_slots": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ExtendBookingRequest": {
+        "type": "object",
+        "description": "Extend booking request (OpenAPI schema)",
+        "required": [
+          "additional_minutes"
+        ],
+        "properties": {
+          "additional_minutes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "FieldError": {
+        "type": "object",
+        "description": "Field-level validation error",
+        "required": [
+          "field",
+          "message"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "Field name"
+          },
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "description": "Health check response",
+        "required": [
+          "status",
+          "version",
+          "uptime_seconds",
+          "checks"
+        ],
+        "properties": {
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComponentHealth"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/HealthStatus"
+          },
+          "uptime_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthStatus": {
+        "type": "string",
+        "description": "Health status",
+        "enum": [
+          "healthy",
+          "degraded",
+          "unhealthy"
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "description": "Login request (OpenAPI schema)",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "PaginationParams": {
+        "type": "object",
+        "description": "Pagination parameters (OpenAPI schema)",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "per_page": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ReadyResponse": {
+        "type": "object",
+        "description": "Readiness response",
+        "required": [
+          "ready"
+        ],
+        "properties": {
+          "ready": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "RefreshTokenRequest": {
+        "type": "object",
+        "description": "Token refresh request (OpenAPI schema)",
+        "required": [
+          "refresh_token"
+        ],
+        "properties": {
+          "refresh_token": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "description": "Registration request (OpenAPI schema)",
+        "required": [
+          "username",
+          "email",
+          "password",
+          "name"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenPair": {
+        "type": "object",
+        "description": "Token pair (access + refresh) - used in OpenAPI schema",
+        "required": [
+          "access_token",
+          "refresh_token",
+          "token_type",
+          "expires_in"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "expires_in": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateBookingRequest": {
+        "type": "object",
+        "description": "Update booking request (OpenAPI schema)",
+        "properties": {
+          "duration_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "start_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "UpdateParkingLotRequest": {
+        "type": "object",
+        "description": "Update parking lot request (OpenAPI schema)",
+        "properties": {
+          "address": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "UpdatePreferencesRequest": {
+        "type": "object",
+        "description": "Update user preferences request (OpenAPI schema)",
+        "properties": {
+          "default_duration_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "email_reminders": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notifications_enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "theme": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "description": "Update user profile request (OpenAPI schema)",
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "picture": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "VehicleRequest": {
+        "type": "object",
+        "description": "Vehicle request (OpenAPI schema)",
+        "required": [
+          "license_plate"
+        ],
+        "properties": {
+          "color": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "license_plate": {
+            "type": "string"
+          },
+          "make": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication endpoints"
+    },
+    {
+      "name": "Users",
+      "description": "User management"
+    },
+    {
+      "name": "Bookings",
+      "description": "Parking bookings"
+    },
+    {
+      "name": "Lots",
+      "description": "Parking lots and slots"
+    },
+    {
+      "name": "Vehicles",
+      "description": "User vehicles"
+    },
+    {
+      "name": "Health",
+      "description": "Health check endpoints"
+    },
+    {
+      "name": "Monitoring",
+      "description": "Metrics and monitoring"
+    },
+    {
+      "name": "Admin",
+      "description": "Administrative endpoints"
+    }
+  ]
+}
