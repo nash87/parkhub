@@ -72,3 +72,7 @@ scripts/
 start-server.bat
 update.sh
 test-results/
+
+# Keep web quality scripts tracked
+!parkhub-web/scripts/
+!parkhub-web/scripts/**

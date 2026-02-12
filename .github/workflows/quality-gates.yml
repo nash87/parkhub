@@ -1,0 +1,61 @@
+name: Quality Gates
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+jobs:
+  rust:
+    name: Rust checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: parkhub-web/package-lock.json
+      - uses: Swatinem/rust-cache@v2
+      - name: Build web assets for embedded static files
+        working-directory: parkhub-web
+        run: |
+          npm ci
+          npm run build
+      - name: cargo fmt
+        run: cargo fmt --all --check
+      - name: cargo clippy
+        run: |
+          cargo clippy -p parkhub-common --all-targets -- -D warnings
+          cargo clippy -p parkhub-server --no-default-features --all-targets -- -D warnings
+      - name: cargo test
+        run: |
+          cargo test -p parkhub-common
+          cargo test -p parkhub-server --no-default-features
+      - name: OpenAPI snapshot check
+        run: cargo test -p parkhub-server --no-default-features openapi_snapshot_is_in_sync
+
+  web:
+    name: Web checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: parkhub-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: parkhub-web/package-lock.json
+      - name: install dependencies
+        run: npm ci
+      - name: lint
+        run: npm run lint
+      - name: typecheck
+        run: npm run typecheck
+      - name: test
+        run: npm test
+      - name: build
+        run: npm run build

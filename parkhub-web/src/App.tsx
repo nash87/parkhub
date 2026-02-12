@@ -8,6 +8,7 @@ import { useTheme, applyTheme } from './stores/theme';
 import { useAccessibility, applyAccessibility } from './stores/accessibility';
 import { usePalette, applyPalette } from "./stores/palette";
 import { useTranslation } from 'react-i18next';
+import { supportedLanguages } from './i18n';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/Login';
 import { RegisterPage } from './pages/Register';
@@ -89,7 +90,14 @@ function ThemeInitializer({ children }: { children: React.ReactNode }) {
   useEffect(() => { applyTheme(theme.isDark); }, [theme.isDark]);
   useEffect(() => { applyPalette(palette.paletteId, theme.isDark); }, [palette.paletteId, theme.isDark]);
   useEffect(() => { applyAccessibility(accessibility); }, [accessibility.colorMode, accessibility.fontScale, accessibility.reducedMotion, accessibility.highContrast]);
-  useEffect(() => { document.documentElement.lang = i18n.language?.startsWith('en') ? 'en' : 'de'; }, [i18n.language]);
+  useEffect(() => {
+    const normalized = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+    const active = supportedLanguages.find(({ code }) => normalized.startsWith(code));
+    const lang = active?.code ?? 'en';
+    document.documentElement.lang = lang;
+    const dir = active && 'dir' in active ? active.dir : undefined;
+    document.documentElement.dir = dir === 'rtl' ? 'rtl' : 'ltr';
+  }, [i18n.language, i18n.resolvedLanguage]);
 
   return <>{children}</>;
 }

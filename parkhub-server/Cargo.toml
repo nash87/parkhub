@@ -81,7 +81,7 @@ validator = { version = "0.18", features = ["derive"] }
 
 # OpenAPI documentation
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
-utoipa-swagger-ui = { version = "8", features = ["axum"] }
+utoipa-swagger-ui = { version = "8", features = ["axum"], optional = true }
 
 # === PHASE 2: Production Ready ===
 # JWT Authentication
@@ -131,9 +131,10 @@ windows-sys = { version = "0.59", features = [
 windows-service = { version = "0.7", optional = true }
 
 [features]
-default = ["gui"]
+default = ["gui", "swagger-ui"]
 gui = ["slint", "slint-build", "tray-icon"]
 headless = []
+swagger-ui = ["utoipa-swagger-ui"]
 windows-svc = ["windows-service"]
 
 [dev-dependencies]
