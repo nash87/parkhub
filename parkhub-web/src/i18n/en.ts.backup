@@ -844,17 +844,17 @@ export const en = {
     subtitle: 'This helps us customize your experience',
     corporate: {
       name: 'Corporate',
-      description: 'Perfect for workplaces and business offices',
+      description: 'Office & company parking management',
       labels: {
         users: 'Employees',
-        department: 'Team',
+        department: 'Department',
         organization: 'Company',
         admin: 'Admin',
       },
     },
     residential: {
       name: 'Residential',
-      description: 'Great for apartment buildings and condos',
+      description: 'Apartment & condo parking',
       labels: {
         users: 'Residents',
         department: 'Unit',
@@ -864,7 +864,7 @@ export const en = {
     },
     family: {
       name: 'Family',
-      description: 'Keep your family parking organized at home',
+      description: 'Shared family parking at home',
       labels: {
         users: 'Family Members',
         department: 'Person',
@@ -874,7 +874,7 @@ export const en = {
     },
     rental: {
       name: 'Rental',
-      description: 'Manage parking for your rental properties',
+      description: 'Tenant parking for rental properties',
       labels: {
         users: 'Tenants',
         department: 'Unit',

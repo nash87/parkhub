@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Buildings, Car, Users, CheckCircle, ArrowRight, ArrowLeft, Database, Sparkle, ClipboardText, House, UsersThree, Key, MapPin, Apartment, Heart, Coins, Globe } from '@phosphor-icons/react';
+import { Lock, Buildings, Car, Users, CheckCircle, ArrowRight, ArrowLeft, Database, Sparkle, ClipboardText, House, UsersThree, Key, MapPin } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useUseCaseStore, UseCaseType } from '../stores/usecase';
 
@@ -22,20 +22,12 @@ interface OnboardingWizardProps {
   onComplete: () => void;
 }
 
-const useCaseColors: Record<string, { bg: string; bgActive: string; text: string; border: string; check: string }> = {
-  corporate: { bg: "bg-blue-100 dark:bg-blue-900/40", bgActive: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-600 dark:text-blue-400", border: "border-blue-500", check: "text-blue-500" },
-  residential: { bg: "bg-emerald-100 dark:bg-emerald-900/40", bgActive: "bg-emerald-50 dark:bg-emerald-900/20", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500", check: "text-emerald-500" },
-  family: { bg: "bg-amber-100 dark:bg-amber-900/40", bgActive: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500", check: "text-amber-500" },
-  rental: { bg: "bg-purple-100 dark:bg-purple-900/40", bgActive: "bg-purple-50 dark:bg-purple-900/20", text: "text-purple-600 dark:text-purple-400", border: "border-purple-500", check: "text-purple-500" },
-  public: { bg: "bg-red-100 dark:bg-red-900/40", bgActive: "bg-red-50 dark:bg-red-900/20", text: "text-red-600 dark:text-red-400", border: "border-red-500", check: "text-red-500" },
-};
-
 const useCaseOptions: { type: UseCaseType; icon: typeof Buildings }[] = [
-  { type: "corporate", icon: Buildings },
-  { type: "residential", icon: Apartment },
-  { type: "family", icon: Heart },
-  { type: "rental", icon: Coins },
-  { type: "public", icon: Globe },
+  { type: 'corporate', icon: Buildings },
+  { type: 'residential', icon: House },
+  { type: 'family', icon: UsersThree },
+  { type: 'rental', icon: Key },
+  { type: 'public', icon: MapPin },
 ];
 
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
@@ -358,18 +350,18 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                       onClick={() => setUseCase(type)}
                       className={`p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 ${
                         useCase === type
-                          ? `${useCaseColors[type].border} ${useCaseColors[type].bgActive}`
+                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                       }`}
                     >
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
                         useCase === type
-                          ? useCaseColors[type].bg
+                          ? 'bg-primary-100 dark:bg-primary-900/40'
                           : 'bg-gray-100 dark:bg-gray-800'
                       }`}>
                         <Icon weight="fill" className={`w-5 h-5 ${
                           useCase === type
-                            ? useCaseColors[type].text
+                            ? 'text-primary-600 dark:text-primary-400'
                             : 'text-gray-500 dark:text-gray-400'
                         }`} />
                       </div>
@@ -429,7 +421,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setLoadDummyData(true)}
-                    className={`p-4 rounded-xl border-2 text-center transition-all ${loadDummyData === true ? `${useCaseColors[type].border} ${useCaseColors[type].bgActive}` : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
+                    className={`p-4 rounded-xl border-2 text-center transition-all ${loadDummyData === true ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
                   >
                     <Sparkle weight="fill" className="w-6 h-6 mx-auto mb-2 text-primary-500" />
                     <p className="font-medium text-sm">{t('onboarding.steps.dummyData.yes')}</p>
@@ -437,7 +429,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   </button>
                   <button
                     onClick={() => setLoadDummyData(false)}
-                    className={`p-4 rounded-xl border-2 text-center transition-all ${loadDummyData === false ? `${useCaseColors[type].border} ${useCaseColors[type].bgActive}` : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
+                    className={`p-4 rounded-xl border-2 text-center transition-all ${loadDummyData === false ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
                   >
                     <Buildings weight="regular" className="w-6 h-6 mx-auto mb-2 text-gray-400" />
                     <p className="font-medium text-sm">{t('onboarding.steps.dummyData.no')}</p>
@@ -482,14 +474,14 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 <div className="grid grid-cols-1 gap-3">
                   <button
                     onClick={() => setSelfRegistration(true)}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${selfRegistration ? `${useCaseColors[type].border} ${useCaseColors[type].bgActive}` : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${selfRegistration ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
                   >
                     <p className="font-medium text-sm">{t('onboarding.steps.users.selfRegister')}</p>
                     <p className="text-xs text-gray-400 mt-1">{t('onboarding.steps.users.selfRegisterDesc')}</p>
                   </button>
                   <button
                     onClick={() => setSelfRegistration(false)}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${!selfRegistration ? `${useCaseColors[type].border} ${useCaseColors[type].bgActive}` : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${!selfRegistration ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
                   >
                     <p className="font-medium text-sm">{t('onboarding.steps.users.manual')}</p>
                     <p className="text-xs text-gray-400 mt-1">{t('onboarding.steps.users.manualDesc')}</p>

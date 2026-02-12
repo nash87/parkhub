@@ -21,7 +21,7 @@ use tracing::{debug, info};
 use uuid::Uuid;
 
 use parkhub_common::models::{
-    AbsenceEntry, AbsencePattern, Booking, HomeofficeSettings, LotLayout, ParkingLot, ParkingSlot,
+    AbsenceEntry, AbsencePattern, Booking, BookingStatus, HomeofficeSettings, LotLayout, ParkingLot, ParkingSlot,
     PushSubscription, User, VacationEntry, Vehicle, WaitlistEntry,
 };
 
@@ -652,6 +652,15 @@ impl Database {
         Ok(all_bookings
             .into_iter()
             .filter(|b| b.user_id.to_string() == user_id)
+            .collect())
+    }
+
+
+    pub async fn list_bookings_for_slot(&self, slot_id: &str) -> Result<Vec<Booking>> {
+        let all_bookings = self.list_bookings().await?;
+        Ok(all_bookings
+            .into_iter()
+            .filter(|b| b.slot_id.to_string() == slot_id && matches!(b.status, BookingStatus::Pending | BookingStatus::Confirmed | BookingStatus::Active))
             .collect())
     }
 

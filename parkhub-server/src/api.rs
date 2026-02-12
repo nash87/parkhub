@@ -1039,14 +1039,31 @@ async fn create_booking(
         }
     };
 
-    if slot.status != SlotStatus::Available {
+    if slot.status == SlotStatus::Disabled {
         return (
             StatusCode::CONFLICT,
             Json(ApiResponse::error(
                 "SLOT_UNAVAILABLE",
-                "This slot is not available",
+                "This slot is disabled",
             )),
         );
+    }
+
+    // Check for overlapping bookings on this slot
+    if let Ok(existing_bookings) = state_guard.db.list_bookings_for_slot(&req.slot_id.to_string()).await {
+        let req_start = req.start_time;
+        let req_end = req.end_time.unwrap_or(req.start_time + chrono::Duration::hours(1));
+        for b in &existing_bookings {
+            if req_start < b.end_time && req_end > b.start_time {
+                return (
+                    StatusCode::CONFLICT,
+                    Json(ApiResponse::error(
+                        "SLOT_CONFLICT",
+                        "This slot is already booked for the requested time period",
+                    )),
+                );
+            }
+        }
     }
 
     if let Some(ref dept) = slot.reserved_for_department {
@@ -1156,9 +1173,8 @@ async fn create_booking(
         );
     }
 
-    let mut updated_slot = slot;
-    updated_slot.status = SlotStatus::Reserved;
-    let _ = state_guard.db.save_parking_slot(&updated_slot).await;
+    // Note: We no longer change slot status on booking creation.
+    // Slot availability is determined by checking for overlapping bookings.
 
     // Audit log
     AuditEntry::builder(AuditEventType::BookingCreated)
@@ -1386,14 +1402,7 @@ async fn cancel_booking(
         );
     }
 
-    if let Ok(Some(mut slot)) = state_guard
-        .db
-        .get_parking_slot(&booking.slot_id.to_string())
-        .await
-    {
-        slot.status = SlotStatus::Available;
-        let _ = state_guard.db.save_parking_slot(&slot).await;
-    }
+    // Slot status no longer changed on cancellation (time-based availability)
 
     AuditEntry::builder(AuditEventType::BookingCancelled)
         .user(auth_user.user_id, "")
@@ -2903,14 +2912,6 @@ async fn checkin_booking(
         );
     }
 
-    if let Ok(Some(mut slot)) = state_guard
-        .db
-        .get_parking_slot(&updated_booking.slot_id.to_string())
-        .await
-    {
-        slot.status = SlotStatus::Occupied;
-        let _ = state_guard.db.save_parking_slot(&slot).await;
-    }
 
     AuditEntry::builder(AuditEventType::CheckIn)
         .user(auth_user.user_id, "")
