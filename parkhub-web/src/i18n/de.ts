@@ -80,37 +80,6 @@ export const de = {
     openSource: 'Open Source',
   },
 
-      company_corporate: {
-        title: 'Dein Unternehmen',
-        desc: 'Gib deinem Parkplatz-Setup einen Namen, damit alle wissen, wo sie sind.',
-        nameLabel: 'Firmenname',
-        namePlaceholder: 'z.B. Musterfirma GmbH',
-      },
-      company_residential: {
-        title: 'Dein Gebäude',
-        desc: 'Benenne dein Gebäude, damit Bewohner ihren Parkplatz leicht finden.',
-        nameLabel: 'Gebäudename',
-        namePlaceholder: 'z.B. Ahornhöhe',
-      },
-      company_family: {
-        title: 'Euer Zuhause',
-        desc: 'Ein freundlicher Name für euer Familien-Parksystem.',
-        nameLabel: 'Haushaltsname',
-        namePlaceholder: 'z.B. Familie Müller',
-      },
-      company_rental: {
-        title: 'Dein Mietobjekt',
-        desc: 'Benenne dein Mietobjekt für deine Mieter.',
-        nameLabel: 'Objektname',
-        namePlaceholder: 'z.B. Sonnenallee Apartments',
-      },
-      company_public: {
-        title: 'Deine Einrichtung',
-        desc: 'Benenne deine öffentliche Parkeinrichtung.',
-        nameLabel: 'Name der Einrichtung',
-        namePlaceholder: 'z.B. Stadtmitte Parkhaus',
-      },
-
   // Register
   register: {
     title: 'Konto erstellen',
@@ -797,10 +766,40 @@ export const de = {
         changeBtn: 'Passwort ändern',
       },
       company: {
-        title: 'Firmeneinstellungen',
-        desc: 'Konfigurieren Sie Ihren Firmennamen und Grundeinstellungen.',
+        title: 'Dein Setup',
+        desc: 'Gib deinem Parkplatz-Setup einen Namen.',
+        nameLabel: 'Name',
+        namePlaceholder: 'z.B. Mein Parkplatz',
+      },
+      company_corporate: {
+        title: 'Dein Unternehmen',
+        desc: 'Gib deinem Parkplatz-Setup einen Namen, damit alle wissen, wo sie sind.',
         nameLabel: 'Firmenname',
-        namePlaceholder: 'z.B. Meine Firma GmbH',
+        namePlaceholder: 'z.B. Musterfirma GmbH',
+      },
+      company_residential: {
+        title: 'Dein Gebäude',
+        desc: 'Benenne dein Gebäude, damit Bewohner ihren Parkplatz leicht finden.',
+        nameLabel: 'Gebäudename',
+        namePlaceholder: 'z.B. Ahornhöhe',
+      },
+      company_family: {
+        title: 'Euer Zuhause',
+        desc: 'Ein freundlicher Name für euer Familien-Parksystem.',
+        nameLabel: 'Haushaltsname',
+        namePlaceholder: 'z.B. Familie Müller',
+      },
+      company_rental: {
+        title: 'Dein Mietobjekt',
+        desc: 'Benenne dein Mietobjekt für deine Mieter.',
+        nameLabel: 'Objektname',
+        namePlaceholder: 'z.B. Sonnenallee Apartments',
+      },
+      company_public: {
+        title: 'Deine Einrichtung',
+        desc: 'Benenne deine öffentliche Parkeinrichtung.',
+        nameLabel: 'Name der Einrichtung',
+        namePlaceholder: 'z.B. Stadtmitte Parkhaus',
       },
       dummyData: {
         title: 'Beispieldaten laden?',

@@ -70,37 +70,6 @@ export const en = {
     available247: 'Available',
     openSource: 'Open Source',
   },
-
-      company_corporate: {
-        title: 'About your company',
-        desc: 'Give your parking setup a name so everyone knows where they are.',
-        nameLabel: 'Company name',
-        namePlaceholder: 'e.g. Acme Corp',
-      },
-      company_residential: {
-        title: 'About your building',
-        desc: 'Name your building so residents can easily find their parking.',
-        nameLabel: 'Building name',
-        namePlaceholder: 'e.g. Maple Heights',
-      },
-      company_family: {
-        title: 'Name your home',
-        desc: 'A friendly name for your family parking setup.',
-        nameLabel: 'Household name',
-        namePlaceholder: 'e.g. The Smiths',
-      },
-      company_rental: {
-        title: 'About your property',
-        desc: 'Name your rental property for your tenants.',
-        nameLabel: 'Property name',
-        namePlaceholder: 'e.g. Sunset Apartments',
-      },
-      company_public: {
-        title: 'About your facility',
-        desc: 'Name your public parking facility.',
-        nameLabel: 'Facility name',
-        namePlaceholder: 'e.g. City Center Parking',
-      },
   register: {
     title: 'Create Account',
     subtitle: 'Fill in the form to get started',
@@ -764,6 +733,36 @@ export const en = {
         desc: 'Configure your company name and basic settings.',
         nameLabel: 'Company Name',
         namePlaceholder: 'e.g. My Company Inc.',
+      },
+      company_corporate: {
+        title: 'About your company',
+        desc: 'Give your parking setup a name so everyone knows where they are.',
+        nameLabel: 'Company name',
+        namePlaceholder: 'e.g. Acme Corp',
+      },
+      company_residential: {
+        title: 'About your building',
+        desc: 'Name your building so residents can easily find their parking.',
+        nameLabel: 'Building name',
+        namePlaceholder: 'e.g. Maple Heights',
+      },
+      company_family: {
+        title: 'Name your home',
+        desc: 'A friendly name for your family parking setup.',
+        nameLabel: 'Household name',
+        namePlaceholder: 'e.g. The Smiths',
+      },
+      company_rental: {
+        title: 'About your property',
+        desc: 'Name your rental property for your tenants.',
+        nameLabel: 'Property name',
+        namePlaceholder: 'e.g. Sunset Apartments',
+      },
+      company_public: {
+        title: 'About your facility',
+        desc: 'Name your public parking facility.',
+        nameLabel: 'Facility name',
+        namePlaceholder: 'e.g. City Center Parking',
       },
       dummyData: {
         title: 'Load sample data?',
