@@ -23,9 +23,9 @@ import {
   GithubLogo,
   ArrowsClockwise,
 } from '@phosphor-icons/react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth-hook';
 import { useUpdateStore } from '../stores/updateStore';
-import { useBranding } from '../context/BrandingContext';
+import { useBranding } from '../context/branding-hook';
 import { useTheme, applyTheme } from '../stores/theme';
 import { useTranslation } from 'react-i18next';
 

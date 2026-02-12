@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, ReactNode } from 'react';
 import { SpinnerGap } from '@phosphor-icons/react';
 
 interface SetupContextType {
@@ -6,11 +6,8 @@ interface SetupContextType {
   recheckSetup: () => Promise<void>;
 }
 
-const SetupContext = createContext<SetupContextType>({ setupComplete: null, recheckSetup: async () => {} });
+export const SetupContext = createContext<SetupContextType>({ setupComplete: null, recheckSetup: async () => {} });
 
-export function useSetupStatus() {
-  return useContext(SetupContext);
-}
 
 export function SetupGuard({ children }: { children: ReactNode }) {
   const [setupComplete, setSetupComplete] = useState<boolean | null>(null);

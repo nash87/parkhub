@@ -12,6 +12,12 @@ import { AdminBrandingPage } from './AdminBranding';
 import { AdminPrivacyPage } from './AdminPrivacy';
 import { useTranslation } from 'react-i18next';
 
+declare global {
+  interface Window {
+    __parkhub_token?: string;
+  }
+}
+
 function AdminNav() {
   const { t } = useTranslation();
   const location = useLocation();
@@ -162,11 +168,11 @@ function AdminLots() {
   useEffect(() => { loadLots(); }, []);
   async function loadLots() { try { const res = await api.getLots(); if (res.success && res.data) setLots(res.data); } finally { setLoading(false); } }
   const [deletingLotId, setDeletingLotId] = useState<string | null>(null);
-  async function handleDeleteLot(lotId: string, _lotName: string) {
-    if (!confirm(t('admin.lots.confirmDelete', 'Parkplatz  + lotName +  wirklich löschen? Alle zugehörigen Stellplätze und Buchungen werden ebenfalls gelöscht.'))) return;
+  async function handleDeleteLot(lotId: string, lotName: string) {
+    if (!confirm(t('admin.lots.confirmDelete', `Parkplatz ${lotName} wirklich löschen? Alle zugehörigen Stellplätze und Buchungen werden ebenfalls gelöscht.`))) return;
     setDeletingLotId(lotId);
     try {
-      const token = (window as any).__parkhub_token || localStorage.getItem('parkhub_token');
+      const token = window.__parkhub_token || localStorage.getItem('parkhub_token');
       const res = await fetch('/api/v1/admin/lots/' + lotId, {
         method: 'DELETE',
         headers: { 'Authorization': 'Bearer ' + token },
@@ -235,7 +241,8 @@ function AdminLots() {
           </div>
           <AnimatePresence>{editingLotId === lot.id && editingLayout && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-              <div className="card p-6 mt-2 border-l-4 border-l-primary-500"><LotLayoutEditor initialLayout={editingLayout.layout} lotName={editingLayout.name} onSave={async (layout, _name) => {
+              <div className="card p-6 mt-2 border-l-4 border-l-primary-500"><LotLayoutEditor initialLayout={editingLayout.layout} lotName={editingLayout.name} onSave={async (layout, name) => {
+                    void name;
                     try {
                       const token = localStorage.getItem('parkhub_token');
                       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -291,7 +298,7 @@ function AdminUsers() {
       </div>
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1"><MagnifyingGlass weight="regular" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('admin.users.searchPlaceholder')} className="input pl-11" /></div>
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as any)} className="input w-auto"><option value="all">{t('admin.users.allRoles')}</option><option value="admin">Admin</option><option value="user">User</option></select>
+        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as 'all' | 'admin' | 'user')} className="input w-auto"><option value="all">{t('admin.users.allRoles')}</option><option value="admin">Admin</option><option value="user">User</option></select>
       </div>
       <div className="card overflow-hidden"><div className="overflow-x-auto"><table className="w-full"><thead><tr className="bg-gray-50 dark:bg-gray-800/50">
         <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('admin.users.name')}</th>
@@ -341,8 +348,8 @@ function AdminBookings() {
 
   const lotNames = [...new Set(bookings.map(b => b.lot_name))];
   const filtered = bookings.filter(b => { if (statusFilter !== 'all' && b.status !== statusFilter) return false; if (lotFilter !== 'all' && b.lot_name !== lotFilter) return false; return true; });
-  function toggleSelect(id: string) { setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); }
-  function toggleAll() { selected.size === filtered.length ? setSelected(new Set()) : setSelected(new Set(filtered.map(b => b.id))); }
+  function toggleSelect(id: string) { setSelected(prev => { const next = new Set(prev); if (next.has(id)) { next.delete(id); } else { next.add(id); } return next; }); }
+  function toggleAll() { if (selected.size === filtered.length) { setSelected(new Set()); return; } setSelected(new Set(filtered.map(b => b.id))); }
 
   if (loading) return <div className="flex items-center justify-center h-64"><SpinnerGap weight="bold" className="w-8 h-8 text-primary-600 animate-spin" /></div>;
 
@@ -357,7 +364,7 @@ function AdminBookings() {
           <option value="all">{t('admin.bookings.allLots')}</option>
           {lotNames.map(name => <option key={name} value={name}>{name}</option>)}
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className="input w-auto"><option value="all">{t('admin.bookings.allStatus')}</option><option value="active">{t('bookings.statusActive')}</option><option value="completed">{t('bookings.statusCompleted')}</option><option value="cancelled">{t('bookings.statusCancelled')}</option></select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'completed' | 'cancelled')} className="input w-auto"><option value="all">{t('admin.bookings.allStatus')}</option><option value="active">{t('bookings.statusActive')}</option><option value="completed">{t('bookings.statusCompleted')}</option><option value="cancelled">{t('bookings.statusCancelled')}</option></select>
       </div>
       <div className="card overflow-hidden"><div className="overflow-x-auto"><table className="w-full"><thead><tr className="bg-gray-50 dark:bg-gray-800/50">
         <th className="px-6 py-3 text-left"><input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" /></th>

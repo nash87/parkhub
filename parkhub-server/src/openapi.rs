@@ -44,6 +44,7 @@ use crate::{
     ),
     paths()
 )]
+#[allow(dead_code)]
 pub struct ApiDoc;
 
 #[cfg(test)]

@@ -244,12 +244,14 @@ mod tests {
 
     #[test]
     fn test_config_save_load() {
-        let mut config = ServerConfig::default();
-        config.server_name = "Test Server".to_string();
-        config.port = 9999;
-        config.enable_tls = false;
-        config.organization_name = "Test Org".to_string();
-        config.admin_password_hash = "test_hash_123".to_string();
+        let config = ServerConfig {
+            server_name: "Test Server".to_string(),
+            port: 9999,
+            enable_tls: false,
+            organization_name: "Test Org".to_string(),
+            admin_password_hash: "test_hash_123".to_string(),
+            ..ServerConfig::default()
+        };
 
         // Create a temp file
         let temp_file = NamedTempFile::new().expect("Failed to create temp file");
@@ -311,9 +313,11 @@ mod tests {
         // Test each license plate display mode value
         let modes = [(0, "show"), (1, "blur"), (2, "redact"), (3, "hide")];
 
-        for (mode, _name) in modes.iter() {
-            let mut config = ServerConfig::default();
-            config.license_plate_display = *mode;
+        for (mode, _name) in &modes {
+            let config = ServerConfig {
+                license_plate_display: *mode,
+                ..ServerConfig::default()
+            };
             assert_eq!(config.license_plate_display, *mode);
         }
     }
@@ -328,9 +332,11 @@ mod tests {
             (3, "FirstInitial"),
         ];
 
-        for (style, _name) in styles.iter() {
-            let mut config = ServerConfig::default();
-            config.username_style = *style;
+        for (style, _name) in &styles {
+            let config = ServerConfig {
+                username_style: *style,
+                ..ServerConfig::default()
+            };
             assert_eq!(config.username_style, *style);
         }
     }
