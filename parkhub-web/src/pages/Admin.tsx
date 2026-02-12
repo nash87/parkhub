@@ -165,8 +165,17 @@ function AdminLots() {
   const [editingLayout, setEditingLayout] = useState<ParkingLotDetailed | null>(null);
   const [showNewEditor, setShowNewEditor] = useState(false);
 
-  useEffect(() => { loadLots(); }, []);
-  async function loadLots() { try { const res = await api.getLots(); if (res.success && res.data) setLots(res.data); } finally { setLoading(false); } }
+  useEffect(() => { void loadLots(); }, []);
+  async function loadLots() {
+    try {
+      const res = await api.getLots();
+      if (res.success && res.data) {
+        setLots(res.data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
   const [deletingLotId, setDeletingLotId] = useState<string | null>(null);
   async function handleDeleteLot(lotId: string, lotName: string) {
     if (!confirm(t('admin.lots.confirmDelete', `Parkplatz ${lotName} wirklich löschen? Alle zugehörigen Stellplätze und Buchungen werden ebenfalls gelöscht.`))) return;

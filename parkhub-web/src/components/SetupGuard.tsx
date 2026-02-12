@@ -1,13 +1,6 @@
-import { useState, useEffect, createContext, ReactNode } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { SpinnerGap } from '@phosphor-icons/react';
-
-interface SetupContextType {
-  setupComplete: boolean | null;
-  recheckSetup: () => Promise<void>;
-}
-
-export const SetupContext = createContext<SetupContextType>({ setupComplete: null, recheckSetup: async () => {} });
-
+import { SetupContext } from './setup-context';
 
 export function SetupGuard({ children }: { children: ReactNode }) {
   const [setupComplete, setSetupComplete] = useState<boolean | null>(null);
@@ -27,7 +20,8 @@ export function SetupGuard({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    checkSetup();
+    const timer = setTimeout(() => { void checkSetup(); }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   if (setupComplete === null) {
