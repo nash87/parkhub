@@ -47,6 +47,10 @@ const BRANDING: TableDefinition<&str, &[u8]> = TableDefinition::new("branding");
 const VACATION: TableDefinition<&str, &[u8]> = TableDefinition::new("vacation");
 const ABSENCES: TableDefinition<&str, &[u8]> = TableDefinition::new("absences");
 const ABSENCE_PATTERNS: TableDefinition<&str, &[u8]> = TableDefinition::new("absence_patterns");
+const NOTIFICATIONS: TableDefinition<&str, &[u8]> = TableDefinition::new("notifications");
+const ANNOUNCEMENTS: TableDefinition<&str, &[u8]> = TableDefinition::new("announcements");
+const AUDIT_LOG: TableDefinition<&str, &[u8]> = TableDefinition::new("audit_log");
+const SWAP_REQUESTS: TableDefinition<&str, &[u8]> = TableDefinition::new("swap_requests");
 
 // Settings keys
 const SETTING_SETUP_COMPLETED: &str = "setup_completed";
@@ -203,6 +207,10 @@ impl Database {
             let _ = write_txn.open_table(PUSH_SUBSCRIPTIONS)?;
             let _ = write_txn.open_table(ABSENCES)?;
             let _ = write_txn.open_table(ABSENCE_PATTERNS)?;
+            let _ = write_txn.open_table(NOTIFICATIONS)?;
+            let _ = write_txn.open_table(ANNOUNCEMENTS)?;
+            let _ = write_txn.open_table(AUDIT_LOG)?;
+            let _ = write_txn.open_table(SWAP_REQUESTS)?;
         }
         write_txn.commit()?;
 
@@ -1306,6 +1314,168 @@ impl Database {
         write_txn.commit()?;
         Ok(count)
     }
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NOTIFICATION OPERATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    pub async fn save_notification(&self, notif: &parkhub_common::models::Notification) -> Result<()> {
+        let id = notif.id.to_string();
+        let data = self.serialize(notif)?;
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        {
+            let mut table = write_txn.open_table(NOTIFICATIONS)?;
+            table.insert(id.as_str(), data.as_slice())?;
+        }
+        write_txn.commit()?;
+        Ok(())
+    }
+
+    pub async fn list_notifications_by_user(&self, user_id: &str) -> Result<Vec<parkhub_common::models::Notification>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(NOTIFICATIONS)?;
+        let mut notifs = Vec::new();
+        for item in table.iter()? {
+            let (_k, v) = item?;
+            let n: parkhub_common::models::Notification = self.deserialize(v.value())?;
+            if n.user_id.to_string() == user_id {
+                notifs.push(n);
+            }
+        }
+        notifs.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        Ok(notifs)
+    }
+
+    pub async fn get_notification(&self, id: &str) -> Result<Option<parkhub_common::models::Notification>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(NOTIFICATIONS)?;
+        match table.get(id)? {
+            Some(value) => Ok(Some(self.deserialize(value.value())?)),
+            None => Ok(None),
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ANNOUNCEMENT OPERATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    pub async fn save_announcement(&self, ann: &serde_json::Value) -> Result<()> {
+        let id = ann["id"].as_str().unwrap_or("unknown");
+        let data = serde_json::to_vec(ann)?;
+        let final_data = if let Some(ref enc) = self.encryptor { enc.encrypt(&data)? } else { data };
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        {
+            let mut table = write_txn.open_table(ANNOUNCEMENTS)?;
+            table.insert(id, final_data.as_slice())?;
+        }
+        write_txn.commit()?;
+        Ok(())
+    }
+
+    pub async fn list_announcements(&self) -> Result<Vec<serde_json::Value>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(ANNOUNCEMENTS)?;
+        let mut anns = Vec::new();
+        for item in table.iter()? {
+            let (_k, v) = item?;
+            let val: serde_json::Value = self.deserialize(v.value())?;
+            anns.push(val);
+        }
+        Ok(anns)
+    }
+
+    pub async fn delete_announcement(&self, id: &str) -> Result<bool> {
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        let existed;
+        {
+            let mut table = write_txn.open_table(ANNOUNCEMENTS)?;
+            existed = table.remove(id)?.is_some();
+        }
+        write_txn.commit()?;
+        Ok(existed)
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // AUDIT LOG OPERATIONS (persistent)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    pub async fn save_audit_entry(&self, entry: &serde_json::Value) -> Result<()> {
+        let id = entry["id"].as_str().unwrap_or("unknown");
+        let data = serde_json::to_vec(entry)?;
+        let final_data = if let Some(ref enc) = self.encryptor { enc.encrypt(&data)? } else { data };
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        {
+            let mut table = write_txn.open_table(AUDIT_LOG)?;
+            table.insert(id, final_data.as_slice())?;
+        }
+        write_txn.commit()?;
+        Ok(())
+    }
+
+    pub async fn list_audit_entries(&self) -> Result<Vec<serde_json::Value>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(AUDIT_LOG)?;
+        let mut entries = Vec::new();
+        for item in table.iter()? {
+            let (_k, v) = item?;
+            let val: serde_json::Value = self.deserialize(v.value())?;
+            entries.push(val);
+        }
+        entries.sort_by(|a, b| {
+            let a_ts = a["timestamp"].as_str().unwrap_or("");
+            let b_ts = b["timestamp"].as_str().unwrap_or("");
+            b_ts.cmp(a_ts)
+        });
+        Ok(entries)
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SWAP REQUEST OPERATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    pub async fn save_swap_request(&self, swap: &serde_json::Value) -> Result<()> {
+        let id = swap["id"].as_str().unwrap_or("unknown");
+        let data = serde_json::to_vec(swap)?;
+        let final_data = if let Some(ref enc) = self.encryptor { enc.encrypt(&data)? } else { data };
+        let db = self.inner.write().await;
+        let write_txn = db.begin_write()?;
+        {
+            let mut table = write_txn.open_table(SWAP_REQUESTS)?;
+            table.insert(id, final_data.as_slice())?;
+        }
+        write_txn.commit()?;
+        Ok(())
+    }
+
+    pub async fn get_swap_request(&self, id: &str) -> Result<Option<serde_json::Value>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(SWAP_REQUESTS)?;
+        match table.get(id)? {
+            Some(value) => Ok(Some(self.deserialize(value.value())?)),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn list_swap_requests(&self) -> Result<Vec<serde_json::Value>> {
+        let db = self.inner.read().await;
+        let read_txn = db.begin_read()?;
+        let table = read_txn.open_table(SWAP_REQUESTS)?;
+        let mut entries = Vec::new();
+        for item in table.iter()? {
+            let (_k, v) = item?;
+            entries.push(self.deserialize(v.value())?);
+        }
+        Ok(entries)
+    }
+
 }
 
 #[cfg(test)]

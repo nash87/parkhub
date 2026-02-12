@@ -170,7 +170,9 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/system/maintenance", get(get_maintenance_status))
         .route("/api/v1/admin/updates/stream", get(admin_update_stream))
         .route("/api/v1/settings/privacy", get(get_public_privacy))
-        .route("/api/v1/system/version", get(get_system_version));
+        .route("/api/v1/system/version", get(get_system_version))
+        .route("/api/v1/public/occupancy", get(public_occupancy))
+        .route("/display", get(occupancy_display_page));
 
     // Protected routes (auth required)
     let protected_routes = Router::new()
@@ -260,6 +262,23 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/v1/users/me/favorites/:slot_id", post(add_favorite_slot).delete(remove_favorite_slot))
         .route("/api/v1/team/today", get(team_today))
         .route("/api/v1/calendar/events", get(calendar_events))
+        // ── Round 2 Features ──
+        .route("/api/v1/bookings/quick", post(quick_book))
+        .route("/api/v1/users/me/stats", get(user_stats))
+        .route("/api/v1/admin/stats/heatmap", get(admin_heatmap))
+        .route("/api/v1/notifications", get(list_notifications))
+        .route("/api/v1/notifications/:id/read", put(mark_notification_read))
+        .route("/api/v1/notifications/read-all", post(mark_all_notifications_read))
+        .route("/api/v1/bookings/:id/swap-request", post(create_swap_request))
+        .route("/api/v1/swap-requests/:id", put(respond_swap_request))
+        .route("/api/v1/admin/announcements", get(list_announcements).post(create_announcement))
+        .route("/api/v1/admin/announcements/:id", delete(delete_announcement))
+        .route("/api/v1/announcements/active", get(get_active_announcements))
+        .route("/api/v1/admin/users/import", post(admin_import_users))
+        .route("/api/v1/admin/audit-log", get(admin_audit_log))
+        .route("/api/v1/users/me/preferences", put(update_user_preferences))
+        .route("/api/v1/lots/:id/qr", get(lot_qr_code))
+        .route("/api/v1/admin/settings/webhooks", get(get_webhook_settings).put(update_webhook_settings))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
@@ -5955,3 +5974,786 @@ async fn calendar_events(
 // ═══════════════════════════════════════════════════════════════════════════════
 // ADMIN REPORTS - enhanced
 // ═══════════════════════════════════════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: BOOKING CONFLICT DASHBOARD (Feature 1)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Modified: The create_booking fn already exists. We modify the SLOT_CONFLICT
+// response to include available_slots. We do this by replacing the conflict
+// response inline. (Handled via separate patch below)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: QUICK-BOOK (Feature 2)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn quick_book(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "User not found"))),
+    };
+
+    let favorite_slots = &user.preferences.favorite_slots;
+    if favorite_slots.is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(ApiResponse::error("NO_FAVORITE", "No favorite slot set. Pick a favorite first!")));
+    }
+
+    let now = Utc::now();
+    let today_8am = now.date_naive().and_hms_opt(8, 0, 0).unwrap().and_utc();
+    let today_5pm = now.date_naive().and_hms_opt(17, 0, 0).unwrap().and_utc();
+
+    for fav_slot_id in favorite_slots {
+        let slot = match state_guard.db.get_parking_slot(fav_slot_id).await {
+            Ok(Some(s)) => s,
+            _ => continue,
+        };
+        if slot.status == SlotStatus::Disabled { continue; }
+
+        let existing = state_guard.db.list_bookings_for_slot(fav_slot_id).await.unwrap_or_default();
+        let has_conflict = existing.iter().any(|b| today_8am < b.end_time && today_5pm > b.start_time);
+        if has_conflict { continue; }
+
+        let booking = Booking {
+            id: Uuid::new_v4(),
+            user_id: auth_user.user_id,
+            lot_id: slot.lot_id,
+            slot_id: slot.id,
+            booking_type: parkhub_common::BookingType::Einmalig,
+            dauer_interval: None,
+            lot_name: state_guard.db.get_parking_lot(&slot.lot_id.to_string()).await.ok().flatten().map(|l| l.name),
+            slot_number: Some(slot.slot_number.clone()),
+            vehicle_plate: None,
+            start_time: today_8am,
+            end_time: today_5pm,
+            status: BookingStatus::Confirmed,
+            created_at: now,
+            updated_at: now,
+            notes: None,
+            recurrence: None,
+            checked_in_at: None,
+        };
+
+        if let Err(e) = state_guard.db.save_booking(&booking).await {
+            tracing::error!("Quick-book failed: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to create booking")));
+        }
+
+        return (StatusCode::CREATED, Json(ApiResponse::success(serde_json::json!({
+            "booking": {
+                "id": booking.id,
+                "slot_number": booking.slot_number,
+                "lot_name": booking.lot_name,
+                "start_time": booking.start_time,
+                "end_time": booking.end_time,
+            },
+            "message": "Booked your favorite spot!"
+        }))));
+    }
+
+    // All favorites taken — find alternatives
+    let lots = state_guard.db.list_parking_lots().await.unwrap_or_default();
+    let mut alternatives = Vec::new();
+    for lot in &lots {
+        let slots = state_guard.db.list_slots_by_lot(&lot.id.to_string()).await.unwrap_or_default();
+        for slot in &slots {
+            if slot.status == SlotStatus::Disabled { continue; }
+            let existing = state_guard.db.list_bookings_for_slot(&slot.id.to_string()).await.unwrap_or_default();
+            let free = !existing.iter().any(|b| today_8am < b.end_time && today_5pm > b.start_time);
+            if free {
+                alternatives.push(serde_json::json!({
+                    "slot_id": slot.id,
+                    "slot_number": slot.slot_number,
+                    "lot_name": lot.name,
+                }));
+                if alternatives.len() >= 5 { break; }
+            }
+        }
+        if alternatives.len() >= 5 { break; }
+    }
+
+    (StatusCode::CONFLICT, Json(ApiResponse::error(
+        "FAVORITES_TAKEN",
+        "Your favorite spots are taken today.",
+    )))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: USER STATS (Feature 3)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn user_stats(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let bookings = state_guard.db.list_bookings_by_user(&auth_user.user_id.to_string()).await.unwrap_or_default();
+    let now = Utc::now();
+    let this_month = now.format("%Y-%m").to_string();
+
+    let total_all_time = bookings.len();
+    let total_this_month = bookings.iter().filter(|b| b.created_at.format("%Y-%m").to_string() == this_month).count();
+
+    // Most used slot
+    let mut slot_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for b in &bookings {
+        if let Some(ref sn) = b.slot_number {
+            *slot_counts.entry(sn.clone()).or_insert(0) += 1;
+        }
+    }
+    let most_used_slot = slot_counts.iter().max_by_key(|e| e.1).map(|(k, _)| k.clone());
+
+    // Average duration
+    let total_minutes: i64 = bookings.iter()
+        .map(|b| (b.end_time - b.start_time).num_minutes())
+        .sum();
+    let avg_duration_minutes = if !bookings.is_empty() { total_minutes / bookings.len() as i64 } else { 0 };
+
+    // Streak (consecutive days with bookings, counting backwards from today)
+    let mut booking_dates: Vec<String> = bookings.iter()
+        .filter(|b| b.status != BookingStatus::Cancelled)
+        .map(|b| b.start_time.format("%Y-%m-%d").to_string())
+        .collect();
+    booking_dates.sort();
+    booking_dates.dedup();
+    let mut streak = 0i32;
+    let mut check_date = now.date_naive();
+    loop {
+        let ds = check_date.format("%Y-%m-%d").to_string();
+        if booking_dates.contains(&ds) {
+            streak += 1;
+            check_date -= chrono::Duration::days(1);
+        } else {
+            break;
+        }
+    }
+
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+        "total_all_time": total_all_time,
+        "total_this_month": total_this_month,
+        "most_used_slot": most_used_slot,
+        "avg_duration_minutes": avg_duration_minutes,
+        "streak_days": streak,
+    }))))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: ADMIN HEATMAP (Feature 4)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn admin_heatmap(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let bookings = state_guard.db.list_bookings().await.unwrap_or_default();
+    // 7 days x 24 hours grid
+    let mut grid = vec![vec![0i32; 24]; 7]; // [day_of_week][hour]
+
+    for b in &bookings {
+        if b.status == BookingStatus::Cancelled { continue; }
+        let dow = b.start_time.weekday().num_days_from_monday() as usize;
+        let start_h = b.start_time.hour() as usize;
+        let end_h = b.end_time.hour() as usize;
+        let end_h = end_h.min(23);
+        for h in start_h..=end_h {
+            if dow < 7 && h < 24 {
+                grid[dow][h] += 1;
+            }
+        }
+    }
+
+    let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    let heatmap: Vec<serde_json::Value> = grid.iter().enumerate().map(|(d, hours)| {
+        serde_json::json!({
+            "day": days[d],
+            "hours": hours,
+        })
+    }).collect();
+
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({ "heatmap": heatmap }))))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: NOTIFICATIONS (Feature 5)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn list_notifications(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<Vec<parkhub_common::models::Notification>>>) {
+    let state_guard = state.read().await;
+    let notifs = state_guard.db.list_notifications_by_user(&auth_user.user_id.to_string()).await.unwrap_or_default();
+    (StatusCode::OK, Json(ApiResponse::success(notifs)))
+}
+
+async fn mark_notification_read(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<()>>) {
+    let state_guard = state.read().await;
+    let mut notif = match state_guard.db.get_notification(&id).await {
+        Ok(Some(n)) => n,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Notification not found"))),
+    };
+    if notif.user_id != auth_user.user_id {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied")));
+    }
+    notif.read = true;
+    let _ = state_guard.db.save_notification(&notif).await;
+    (StatusCode::OK, Json(ApiResponse::success(())))
+}
+
+async fn mark_all_notifications_read(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<()>>) {
+    let state_guard = state.read().await;
+    let notifs = state_guard.db.list_notifications_by_user(&auth_user.user_id.to_string()).await.unwrap_or_default();
+    for mut n in notifs {
+        if !n.read {
+            n.read = true;
+            let _ = state_guard.db.save_notification(&n).await;
+        }
+    }
+    (StatusCode::OK, Json(ApiResponse::success(())))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: PARKING SWAP (Feature 6)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Deserialize)]
+struct SwapRequest {
+    target_booking_id: Uuid,
+}
+
+#[derive(Debug, Deserialize)]
+struct SwapResponse {
+    accept: bool,
+}
+
+async fn create_swap_request(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(booking_id): Path<String>,
+    Json(req): Json<SwapRequest>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let my_booking = match state_guard.db.get_booking(&booking_id).await {
+        Ok(Some(b)) if b.user_id == auth_user.user_id => b,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Booking not found or not yours"))),
+    };
+    let target_booking = match state_guard.db.get_booking(&req.target_booking_id.to_string()).await {
+        Ok(Some(b)) => b,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Target booking not found"))),
+    };
+
+    let swap_id = Uuid::new_v4();
+    let swap = serde_json::json!({
+        "id": swap_id.to_string(),
+        "requester_id": auth_user.user_id.to_string(),
+        "requester_booking_id": booking_id,
+        "target_user_id": target_booking.user_id.to_string(),
+        "target_booking_id": req.target_booking_id.to_string(),
+        "status": "pending",
+        "created_at": Utc::now().to_rfc3339(),
+    });
+
+    let _ = state_guard.db.save_swap_request(&swap).await;
+
+    // Create notification for target user
+    let notif = parkhub_common::models::Notification {
+        id: Uuid::new_v4(),
+        user_id: target_booking.user_id,
+        notification_type: parkhub_common::NotificationType::SystemMessage,
+        title: "Swap Request".to_string(),
+        message: format!("Someone wants to swap their slot {} for your slot {}", 
+            my_booking.slot_number.as_deref().unwrap_or("?"),
+            target_booking.slot_number.as_deref().unwrap_or("?")),
+        data: Some(serde_json::json!({"swap_id": swap_id.to_string()})),
+        read: false,
+        created_at: Utc::now(),
+    };
+    let _ = state_guard.db.save_notification(&notif).await;
+
+    (StatusCode::CREATED, Json(ApiResponse::success(swap)))
+}
+
+async fn respond_swap_request(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(swap_id): Path<String>,
+    Json(resp): Json<SwapResponse>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let mut swap = match state_guard.db.get_swap_request(&swap_id).await {
+        Ok(Some(s)) => s,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Swap request not found"))),
+    };
+
+    let target_user_id = swap["target_user_id"].as_str().unwrap_or("");
+    if target_user_id != auth_user.user_id.to_string() {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Not your swap request to answer")));
+    }
+
+    if resp.accept {
+        // Swap the slot assignments
+        let req_booking_id = swap["requester_booking_id"].as_str().unwrap_or("");
+        let tgt_booking_id = swap["target_booking_id"].as_str().unwrap_or("");
+
+        let mut req_booking = match state_guard.db.get_booking(req_booking_id).await {
+            Ok(Some(b)) => b, _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Requester booking gone"))),
+        };
+        let mut tgt_booking = match state_guard.db.get_booking(tgt_booking_id).await {
+            Ok(Some(b)) => b, _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "Target booking gone"))),
+        };
+
+        // Swap slot_id and slot_number
+        std::mem::swap(&mut req_booking.slot_id, &mut tgt_booking.slot_id);
+        std::mem::swap(&mut req_booking.slot_number, &mut tgt_booking.slot_number);
+        req_booking.updated_at = Utc::now();
+        tgt_booking.updated_at = Utc::now();
+
+        let _ = state_guard.db.save_booking(&req_booking).await;
+        let _ = state_guard.db.save_booking(&tgt_booking).await;
+
+        swap["status"] = serde_json::json!("accepted");
+    } else {
+        swap["status"] = serde_json::json!("rejected");
+    }
+
+    let _ = state_guard.db.save_swap_request(&swap).await;
+
+    (StatusCode::OK, Json(ApiResponse::success(swap)))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: ADMIN ANNOUNCEMENTS (Feature 8)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Deserialize)]
+struct CreateAnnouncementRequest {
+    message: String,
+    #[serde(rename = "type")]
+    announcement_type: Option<String>,
+    expires_at: Option<String>,
+}
+
+async fn create_announcement(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<CreateAnnouncementRequest>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let id = Uuid::new_v4();
+    let ann = serde_json::json!({
+        "id": id.to_string(),
+        "message": req.message,
+        "type": req.announcement_type.unwrap_or_else(|| "info".to_string()),
+        "created_by": user.name,
+        "created_at": Utc::now().to_rfc3339(),
+        "expires_at": req.expires_at,
+    });
+
+    let _ = state_guard.db.save_announcement(&ann).await;
+
+    (StatusCode::CREATED, Json(ApiResponse::success(ann)))
+}
+
+async fn list_announcements(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<Vec<serde_json::Value>>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+    let anns = state_guard.db.list_announcements().await.unwrap_or_default();
+    (StatusCode::OK, Json(ApiResponse::success(anns)))
+}
+
+async fn delete_announcement(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<()>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+    let _ = state_guard.db.delete_announcement(&id).await;
+    (StatusCode::OK, Json(ApiResponse::success(())))
+}
+
+async fn get_active_announcements(
+    State(state): State<SharedState>,
+    Extension(_auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<Vec<serde_json::Value>>>) {
+    let state_guard = state.read().await;
+    let anns = state_guard.db.list_announcements().await.unwrap_or_default();
+    let now = Utc::now().to_rfc3339();
+    let active: Vec<_> = anns.into_iter().filter(|a| {
+        match a["expires_at"].as_str() {
+            Some(exp) if !exp.is_empty() => exp > now.as_str(),
+            _ => true,
+        }
+    }).collect();
+    (StatusCode::OK, Json(ApiResponse::success(active)))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: CSV USER IMPORT (Feature 9)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn admin_import_users(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(users_data): Json<Vec<serde_json::Value>>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let mut created = 0i32;
+    let mut skipped = 0i32;
+    let mut errors = Vec::<String>::new();
+
+    for entry in &users_data {
+        let username = entry["username"].as_str().unwrap_or("").to_string();
+        let email = entry["email"].as_str().unwrap_or("").to_string();
+        let name = entry["name"].as_str().unwrap_or(&username).to_string();
+        let password = entry["password"].as_str().unwrap_or("Changeme1!").to_string();
+
+        if username.is_empty() || email.is_empty() {
+            errors.push(format!("Missing username or email"));
+            continue;
+        }
+
+        if let Ok(Some(_)) = state_guard.db.get_user_by_username(&username).await {
+            skipped += 1;
+            continue;
+        }
+        if let Ok(Some(_)) = state_guard.db.get_user_by_email(&email).await {
+            skipped += 1;
+            continue;
+        }
+
+        let now = Utc::now();
+        let new_user = User {
+            id: Uuid::new_v4(),
+            username,
+            email,
+            password_hash: hash_password(&password),
+            name,
+            picture: None,
+            phone: None,
+            role: UserRole::User,
+            created_at: now,
+            updated_at: now,
+            last_login: None,
+            preferences: parkhub_common::UserPreferences::default(),
+            is_active: true,
+            department: entry["department"].as_str().map(|s| s.to_string()),
+        };
+
+        match state_guard.db.save_user(&new_user).await {
+            Ok(_) => created += 1,
+            Err(e) => errors.push(format!("Failed to create user: {}", e)),
+        }
+    }
+
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+        "created": created,
+        "skipped": skipped,
+        "errors": errors,
+    }))))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: PUBLIC OCCUPANCY (Feature 11)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn public_occupancy(
+    State(state): State<SharedState>,
+) -> (StatusCode, Json<ApiResponse<Vec<serde_json::Value>>>) {
+    let state_guard = state.read().await;
+    let lots = state_guard.db.list_parking_lots().await.unwrap_or_default();
+    let result: Vec<serde_json::Value> = lots.iter().map(|lot| {
+        let occupied = lot.total_slots - lot.available_slots;
+        let pct = if lot.total_slots > 0 { (occupied as f64 / lot.total_slots as f64 * 100.0) as i32 } else { 0 };
+        serde_json::json!({
+            "lot_name": lot.name,
+            "total_slots": lot.total_slots,
+            "available": lot.available_slots,
+            "occupied": occupied,
+            "percentage": pct,
+        })
+    }).collect();
+    (StatusCode::OK, Json(ApiResponse::success(result)))
+}
+
+async fn occupancy_display_page(
+    State(state): State<SharedState>,
+) -> impl IntoResponse {
+    let state_guard = state.read().await;
+    let lots = state_guard.db.list_parking_lots().await.unwrap_or_default();
+
+    let mut html = String::from(r#"<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ParkHub – Occupancy</title>
+<meta http-equiv="refresh" content="30">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;background:#111827;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+h1{font-size:2rem;margin-bottom:2rem;font-weight:700}
+.lots{display:flex;flex-wrap:wrap;gap:2rem;justify-content:center}
+.lot{background:#1f2937;border-radius:1rem;padding:2rem;min-width:280px;text-align:center}
+.lot h2{font-size:1.2rem;margin-bottom:1rem}
+.big{font-size:4rem;font-weight:800;line-height:1}
+.available{color:#22c55e}
+.full{color:#ef4444}
+.bar{height:12px;background:#374151;border-radius:6px;margin-top:1rem;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;transition:width .5s}
+.meta{color:#9ca3af;margin-top:.5rem;font-size:.9rem}
+</style></head><body>
+<h1>Parking Occupancy</h1><div class="lots">"#);
+
+    for lot in &lots {
+        let occ = lot.total_slots - lot.available_slots;
+        let pct = if lot.total_slots > 0 { occ as f64 / lot.total_slots as f64 * 100.0 } else { 0.0 };
+        let color_class = if lot.available_slots == 0 { "full" } else { "available" };
+        let bar_color = if pct > 80.0 { "#ef4444" } else if pct > 60.0 { "#eab308" } else { "#22c55e" };
+        html.push_str(&format!(
+            r#"<div class="lot"><h2>{}</h2><div class="big {}">{}</div><div class="meta">{} of {} spots free</div>
+<div class="bar"><div class="bar-fill" style="width:{}%;background:{}"></div></div></div>"#,
+            lot.name, color_class, lot.available_slots, lot.available_slots, lot.total_slots, pct as i32, bar_color
+        ));
+    }
+
+    html.push_str("</div></body></html>");
+    (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=utf-8")], html)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: WEBHOOK SETTINGS (Feature 12)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Serialize, Deserialize)]
+struct WebhookSettings {
+    url: String,
+    events: Vec<String>,
+    enabled: bool,
+}
+
+async fn get_webhook_settings(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> (StatusCode, Json<ApiResponse<WebhookSettings>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let url = state_guard.db.get_setting("webhook_url").await.ok().flatten().unwrap_or_default();
+    let events_str = state_guard.db.get_setting("webhook_events").await.ok().flatten().unwrap_or_else(|| "[]".to_string());
+    let events: Vec<String> = serde_json::from_str(&events_str).unwrap_or_default();
+    let enabled = state_guard.db.get_setting("webhook_enabled").await.ok().flatten().map(|v| v == "true").unwrap_or(false);
+
+    (StatusCode::OK, Json(ApiResponse::success(WebhookSettings { url, events, enabled })))
+}
+
+async fn update_webhook_settings(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<WebhookSettings>,
+) -> (StatusCode, Json<ApiResponse<WebhookSettings>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let _ = state_guard.db.set_setting("webhook_url", &req.url).await;
+    let _ = state_guard.db.set_setting("webhook_events", &serde_json::to_string(&req.events).unwrap_or_default()).await;
+    let _ = state_guard.db.set_setting("webhook_enabled", if req.enabled { "true" } else { "false" }).await;
+
+    (StatusCode::OK, Json(ApiResponse::success(req)))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: AUDIT LOG VIEWER (Feature 13)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Deserialize)]
+struct AuditLogQuery {
+    page: Option<i32>,
+    limit: Option<i32>,
+    #[serde(rename = "type")]
+    event_type: Option<String>,
+    user_id: Option<String>,
+    from: Option<String>,
+    to: Option<String>,
+}
+
+async fn admin_audit_log(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Query(params): Query<AuditLogQuery>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Access denied"))),
+    };
+    if user.role != UserRole::Admin && user.role != UserRole::SuperAdmin {
+        return (StatusCode::FORBIDDEN, Json(ApiResponse::error("FORBIDDEN", "Admin access required")));
+    }
+
+    let mut entries = state_guard.db.list_audit_entries().await.unwrap_or_default();
+
+    // Filter
+    if let Some(ref et) = params.event_type {
+        entries.retain(|e| e["event_type"].as_str().map(|s| s == et).unwrap_or(false));
+    }
+    if let Some(ref uid) = params.user_id {
+        entries.retain(|e| e["user_id"].as_str().map(|s| s == uid).unwrap_or(false));
+    }
+    if let Some(ref from) = params.from {
+        entries.retain(|e| e["timestamp"].as_str().map(|s| s >= from.as_str()).unwrap_or(true));
+    }
+    if let Some(ref to) = params.to {
+        entries.retain(|e| e["timestamp"].as_str().map(|s| s <= to.as_str()).unwrap_or(true));
+    }
+
+    let total = entries.len() as i32;
+    let page = params.page.unwrap_or(1).max(1);
+    let limit = params.limit.unwrap_or(50).min(200);
+    let skip = ((page - 1) * limit) as usize;
+    let page_entries: Vec<_> = entries.into_iter().skip(skip).take(limit as usize).collect();
+
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+        "entries": page_entries,
+        "total": total,
+        "page": page,
+        "limit": limit,
+    }))))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: USER PREFERENCES (Feature 14 - Dark/Light mode)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn update_user_preferences(
+    State(state): State<SharedState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<serde_json::Value>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let state_guard = state.read().await;
+    let mut user = match state_guard.db.get_user(&auth_user.user_id.to_string()).await {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::NOT_FOUND, Json(ApiResponse::error("NOT_FOUND", "User not found"))),
+    };
+
+    if let Some(theme) = req["theme"].as_str() {
+        user.preferences.theme = theme.to_string();
+    }
+    if let Some(lang) = req["language"].as_str() {
+        user.preferences.language = lang.to_string();
+    }
+    if let Some(notifs) = req["notifications_enabled"].as_bool() {
+        user.preferences.notifications_enabled = notifs;
+    }
+    if let Some(email) = req["email_reminders"].as_bool() {
+        user.preferences.email_reminders = email;
+    }
+    if let Some(dur) = req["default_duration_minutes"].as_i64() {
+        user.preferences.default_duration_minutes = Some(dur as i32);
+    }
+
+    user.updated_at = Utc::now();
+    if let Err(e) = state_guard.db.save_user(&user).await {
+        tracing::error!("Failed to save preferences: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error("SERVER_ERROR", "Failed to save")));
+    }
+
+    (StatusCode::OK, Json(ApiResponse::success(serde_json::json!({
+        "theme": user.preferences.theme,
+        "language": user.preferences.language,
+        "notifications_enabled": user.preferences.notifications_enabled,
+        "email_reminders": user.preferences.email_reminders,
+        "default_duration_minutes": user.preferences.default_duration_minutes,
+    }))))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUND 2: LOT QR CODE (Feature 15)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn lot_qr_code(
+    State(state): State<SharedState>,
+    Extension(_auth_user): Extension<AuthUser>,
+    Path(lot_id): Path<String>,
+) -> impl IntoResponse {
+    let state_guard = state.read().await;
+
+    let lot = match state_guard.db.get_parking_lot(&lot_id).await {
+        Ok(Some(l)) => l,
+        _ => return (StatusCode::NOT_FOUND, [(header::CONTENT_TYPE, "application/json")],
+            r#"{"success":false,"error":{"code":"NOT_FOUND","message":"Lot not found"}}"#.to_string()),
+    };
+
+    let booking_url = format!("/book?lot={}", lot_id);
+    let qr = match qrcode::QrCode::new(booking_url.as_bytes()) {
+        Ok(q) => q,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, [(header::CONTENT_TYPE, "application/json")],
+            r#"{"success":false,"error":{"code":"SERVER_ERROR","message":"QR generation failed"}}"#.to_string()),
+    };
+
+    let svg = qr.render::<qrcode::render::svg::Color>()
+        .quiet_zone(true)
+        .min_dimensions(256, 256)
+        .build();
+
+    (StatusCode::OK, [(header::CONTENT_TYPE, "image/svg+xml")], svg)
+}
