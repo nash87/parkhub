@@ -26,7 +26,7 @@ export function ParkHubLogo({ size = "md", showText = true, className = "" }: Pa
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <img src="/logo.png" alt="ParkHub" className={`${sizes[size].icon} object-contain`} />
+      <img src="/icon.svg" alt="ParkHub" className={`${sizes[size].icon} object-contain rounded-xl`} />
       {showText && <span className={`${sizes[size].text} font-bold text-gray-900 dark:text-white`}>{branding.company_name}</span>}
     </div>
   );

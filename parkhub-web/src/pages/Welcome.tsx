@@ -123,7 +123,7 @@ export function WelcomePage() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex flex-col items-center justify-center p-4 sm:p-8">
       {/* Logo */}
       <div className="mb-4">
-        <img src="/logo.png" alt="ParkHub" className="w-20 h-20 mx-auto" />
+        <img src="/icon.svg" alt="ParkHub" className="w-20 h-20 mx-auto rounded-2xl" />
       </div>
 
       {/* Cycling Welcome Text */}
