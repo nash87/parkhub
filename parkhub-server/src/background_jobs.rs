@@ -51,11 +51,19 @@ async fn run_auto_release(
     state: &Arc<RwLock<AppState>>,
     email: &Option<EmailService>,
 ) -> anyhow::Result<()> {
-    let auto_release_minutes: i64 = std::env::var("PARKHUB_AUTO_RELEASE_MINUTES")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(15);
     let sg = state.read().await;
+    // Read from DB settings first, fall back to env var, then default 0 (disabled)
+    let auto_release_minutes: i64 = match sg.db.get_setting("auto_release_minutes").await {
+        Ok(Some(val)) => val.parse().unwrap_or(0),
+        _ => std::env::var("PARKHUB_AUTO_RELEASE_MINUTES")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0),
+    };
+    // If 0, auto-release is disabled
+    if auto_release_minutes <= 0 {
+        return Ok(());
+    }
     let bookings = sg.db.list_bookings().await?;
     let now = Utc::now();
 
