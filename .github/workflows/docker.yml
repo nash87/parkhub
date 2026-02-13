@@ -19,49 +19,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u nash87 --password-stdin
 
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
-
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest
-            type=raw,value=${{ github.ref_name }}
-            type=sha,prefix=
+      - name: Determine tags
+        id: tags
+        run: |
+          TAG="${GITHUB_REF_NAME:-latest}"
+          SHA="$(git rev-parse --short HEAD)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Tags: $TAG, $SHA, latest"
 
       - name: Cache Rust build artifacts
         uses: actions/cache@v4
         with:
-          path: |
-            rust-target-cache
-            rust-registry-cache
+          path: /tmp/rust-cache
           key: rust-build-${{ hashFiles('**/Cargo.lock') }}
-          restore_keys: |
+          restore-keys: |
             rust-build-
 
-      - name: Inject Rust cache into Docker build
-        uses: reproducible-containers/buildkit-cache-dance@v3
-        with:
-          cache-map: |
-            {
-              "rust-target-cache": "/app/target",
-              "rust-registry-cache": "/usr/local/cargo/registry"
-            }
-          skip-extraction: ${{ steps.meta.outputs.tags == '' }}
+      - name: Build image
+        run: |
+          # Restore cache into build context if exists
+          if [ -d /tmp/rust-cache/target ]; then
+            echo "Restoring Rust build cache..."
+            mkdir -p target
+            cp -r /tmp/rust-cache/target/* target/ 2>/dev/null || true
+          fi
+          docker build -t ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.tag }} .
+          docker tag ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.tag }} ghcr.io/${{ env.IMAGE_NAME }}:latest
+          docker tag ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.tag }} ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.sha }}
 
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Push to GHCR
+        run: |
+          docker push ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.tag }}
+          docker push ghcr.io/${{ env.IMAGE_NAME }}:latest
+          docker push ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.sha }}
+
+      - name: Save Rust cache
+        if: always()
+        run: |
+          # Extract target dir from builder stage for caching
+          CONTAINER=$(docker create ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.tag }})
+          mkdir -p /tmp/rust-cache
+          docker cp $CONTAINER:/app/target /tmp/rust-cache/ 2>/dev/null || echo "No target dir to cache"
+          docker rm $CONTAINER

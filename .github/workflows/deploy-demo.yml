@@ -41,20 +41,20 @@ jobs:
             set -euo pipefail
             IMAGE='${IMAGE}'
             echo \"Pulling \$IMAGE...\"
+            echo '${{ secrets.GHCR_TOKEN }}' | sudo podman login ghcr.io -u nash87 --password-stdin
             sudo podman pull \"\$IMAGE\"
-            sudo sed -i \"s|ghcr.io/nash87/parkhub:[^ ]*|\$IMAGE|g\" /etc/systemd/system/parkhub.service
-            sudo systemctl daemon-reload
+            sudo podman tag \"\$IMAGE\" localhost/parkhub-stable:latest
             sudo systemctl restart parkhub
             echo 'Waiting for service...'
             for i in 1 2 3 4 5 6; do
               sleep 3
-              if sudo systemctl is-active --quiet parkhub; then
-                echo 'Service active!'
+              if curl -sf http://127.0.0.1:7878/health > /dev/null 2>&1; then
+                echo 'Health OK!'
                 exit 0
               fi
               echo \"Attempt \$i: still starting...\"
             done
             echo 'Service failed to start'
-            sudo systemctl status parkhub --no-pager
+            sudo journalctl -u parkhub --no-pager -n 20
             exit 1
           "
