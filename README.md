@@ -90,6 +90,28 @@ ParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, *
 | **Rate Limiting** | Built-in request throttling per IP and per user |
 | **Security Hardened** | XSS prevention, input validation, HSTS, security headers |
 
+
+## Two editions — same features
+
+ParkHub comes in two editions. Same frontend, same API, same features — different deployment model:
+
+| | ParkHub Docker | ParkHub PHP |
+|---|---|---|
+| **Backend** | Rust (Axum) | Laravel 12 / PHP 8.2 |
+| **Database** | Embedded (redb) | SQLite or MySQL |
+| **Deployment** | Docker, binary, Kubernetes | Shared hosting, cPanel, VPS |
+| **Dependencies** | None — single binary | PHP 8.2 + web server |
+| **Binary size** | ~30 MB | N/A |
+| **Hosting cost** | Needs VPS / container | Free tier available |
+| **Performance** | Excellent (Rust async) | Good (PHP-FPM) |
+| **API** | ✅ Full | ✅ Full (identical) |
+| **PWA / Mobile** | ✅ | ✅ |
+| **Source** | You are here | [nash87/parkhub-php](https://github.com/nash87/parkhub-php) |
+
+Both editions expose identical API endpoints. You can switch between them at any time.
+
+---
+
 ## Quick Start
 
 ```bash
