@@ -234,14 +234,14 @@ docker run -d \
   --name parkhub \
   -p 7878:7878 \
   -v parkhub-data:/data \
-  ghcr.io/nash87/parkhub-docker-docker:latest
+  ghcr.io/nash87/parkhub-docker:latest
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/nash87/parkhub-docker-docker.git
-cd parkhub
+git clone https://github.com/nash87/parkhub-docker.git
+cd parkhub-docker
 
 # Build frontend
 cd parkhub-web && npm ci && npm run build && cd ..
