@@ -12,7 +12,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
   <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-1.83+-orange.svg?style=for-the-badge&logo=rust" alt="Rust"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"></a>
-  <a href="https://hub.docker.com/r/nash87/parkhub"><img src="https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
+  <a href="https://hub.docker.com/r/nash87/parkhub-docker"><img src="https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
 </p>
 
 <p align="center">
@@ -94,10 +94,10 @@ ParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, *
 
 ```bash
 # Interactive installer (Linux / macOS)
-curl -fsSL https://raw.githubusercontent.com/nash87/parkhub/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nash87/parkhub-docker/main/install.sh | bash
 
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/nash87/parkhub/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/nash87/parkhub-docker/main/install.ps1 | iex
 ```
 
 > **Windows Note:** The binary is not code-signed yet. Windows SmartScreen or antivirus software (e.g. Cortex, Defender) may show a warning on first run. Click **More info** then **Run anyway**, or right-click the exe, go to Properties and check **Unblock**. The install script handles this automatically.
@@ -221,10 +221,10 @@ On first start, a welcome screen lets you choose your language. Then an onboardi
 
 ```bash
 # Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/nash87/parkhub/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nash87/parkhub-docker/main/install.sh | bash
 
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/nash87/parkhub/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/nash87/parkhub-docker/main/install.ps1 | iex
 ```
 
 ### Docker
@@ -234,13 +234,13 @@ docker run -d \
   --name parkhub \
   -p 7878:7878 \
   -v parkhub-data:/data \
-  ghcr.io/nash87/parkhub:latest
+  ghcr.io/nash87/parkhub-docker-docker:latest
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/nash87/parkhub.git
+git clone https://github.com/nash87/parkhub-docker-docker.git
 cd parkhub
 
 # Build frontend

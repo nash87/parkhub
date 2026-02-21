@@ -15,7 +15,7 @@ The installer provides two modes: **Quick Start** and **Custom Installation**.
 ### Linux / macOS
 
 ```bash
-curl -fsSL https://github.com/nash87/parkhub/releases/latest/download/install.sh | bash
+curl -fsSL https://github.com/nash87/parkhub-docker-docker/releases/latest/download/install.sh | bash
 ```
 
 #### Quick Start Mode (default)
@@ -44,7 +44,7 @@ If you prefer to do it manually:
 
 ```bash
 # Linux x86_64
-wget https://github.com/nash87/parkhub/releases/latest/download/parkhub-server-linux-amd64
+wget https://github.com/nash87/parkhub-docker-docker/releases/latest/download/parkhub-server-linux-amd64
 chmod +x parkhub-server-linux-amd64
 sudo mv parkhub-server-linux-amd64 /usr/local/bin/parkhub-server
 ```
@@ -52,10 +52,10 @@ sudo mv parkhub-server-linux-amd64 /usr/local/bin/parkhub-server
 ### Windows
 
 ```powershell
-irm https://github.com/nash87/parkhub/releases/latest/download/install.ps1 | iex
+irm https://github.com/nash87/parkhub-docker-docker/releases/latest/download/install.ps1 | iex
 ```
 
-Or grab `parkhub-server-windows-amd64.exe` from the [releases page](https://github.com/nash87/parkhub/releases).
+Or grab `parkhub-server-windows-amd64.exe` from the [releases page](https://github.com/nash87/parkhub-docker-docker/releases).
 
 ### Running
 
@@ -78,7 +78,7 @@ docker run -d \
   -p 7878:7878 \
   -v parkhub-data:/data \
   -e PARKHUB_DATA_DIR=/data \
-  ghcr.io/nash87/parkhub:latest
+  ghcr.io/nash87/parkhub-docker-docker:latest
 ```
 
 The image is built with a multi-stage Dockerfile: Node 22 Alpine builds the frontend, Rust 1.83 Alpine builds the server with musl for a static binary. Final image is scratch-like, ~20 MB.
@@ -88,7 +88,7 @@ The image is built with a multi-stage Dockerfile: Node 22 Alpine builds the fron
 ```yaml
 services:
   parkhub:
-    image: ghcr.io/nash87/parkhub:latest
+    image: ghcr.io/nash87/parkhub-docker-docker:latest
     ports:
       - "7878:7878"
     volumes:
@@ -114,7 +114,7 @@ You need:
 - On Linux: `musl-dev openssl-dev pkg-config` for static linking
 
 ```bash
-git clone https://github.com/nash87/parkhub.git
+git clone https://github.com/nash87/parkhub-docker-docker.git
 cd parkhub
 
 # Build the React frontend with Vite
@@ -164,7 +164,7 @@ spec:
     spec:
       containers:
         - name: parkhub
-          image: ghcr.io/nash87/parkhub:latest
+          image: ghcr.io/nash87/parkhub-docker-docker:latest
           args: ["--headless"]
           ports:
             - containerPort: 7878
