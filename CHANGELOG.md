@@ -4,6 +4,13 @@ All notable changes to ParkHub are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+- Repository renamed from `parkhub` to `parkhub-docker` to better reflect the Docker-first deployment model
+- Docker image name updated to `ghcr.io/nash87/parkhub-docker`
+- All installation URLs and clone commands updated
+
 ## [1.2.0] — 2026-02-08
 
 ### Added
