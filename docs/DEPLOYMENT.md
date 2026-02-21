@@ -7,7 +7,7 @@ This is the simplest production setup. ParkHub + Caddy for automatic HTTPS.
 ```yaml
 services:
   parkhub:
-    image: ghcr.io/nash87/parkhub:latest
+    image: ghcr.io/nash87/parkhub-docker:latest
     container_name: parkhub
     command: ["--headless", "--data-dir", "/data"]
     volumes:
@@ -54,7 +54,7 @@ If you don't need HTTPS (e.g., behind a VPN), skip Caddy:
 ```yaml
 services:
   parkhub:
-    image: ghcr.io/nash87/parkhub:latest
+    image: ghcr.io/nash87/parkhub-docker:latest
     ports:
       - "7878:7878"
     volumes:

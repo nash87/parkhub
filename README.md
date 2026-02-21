@@ -12,7 +12,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
   <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-1.83+-orange.svg?style=for-the-badge&logo=rust" alt="Rust"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"></a>
-  <a href="https://hub.docker.com/r/nash87/parkhub"><img src="https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
+  <a href="https://hub.docker.com/r/nash87/parkhub-docker"><img src="https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
 </p>
 
 <p align="center">
@@ -90,14 +90,36 @@ ParkHub supports 5 use-case modes: **Corporate**, **Residential**, **Family**, *
 | **Rate Limiting** | Built-in request throttling per IP and per user |
 | **Security Hardened** | XSS prevention, input validation, HSTS, security headers |
 
+
+## Two editions — same features
+
+ParkHub comes in two editions. Same frontend, same API, same features — different deployment model:
+
+| | ParkHub Docker | ParkHub PHP |
+|---|---|---|
+| **Backend** | Rust (Axum) | Laravel 12 / PHP 8.2 |
+| **Database** | Embedded (redb) | SQLite or MySQL |
+| **Deployment** | Docker, binary, Kubernetes | Shared hosting, cPanel, VPS |
+| **Dependencies** | None — single binary | PHP 8.2 + web server |
+| **Binary size** | ~30 MB | N/A |
+| **Hosting cost** | Needs VPS / container | Free tier available |
+| **Performance** | Excellent (Rust async) | Good (PHP-FPM) |
+| **API** | ✅ Full | ✅ Full (identical) |
+| **PWA / Mobile** | ✅ | ✅ |
+| **Source** | You are here | [nash87/parkhub-php](https://github.com/nash87/parkhub-php) |
+
+Both editions expose identical API endpoints. You can switch between them at any time.
+
+---
+
 ## Quick Start
 
 ```bash
 # Interactive installer (Linux / macOS)
-curl -fsSL https://raw.githubusercontent.com/nash87/parkhub/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nash87/parkhub-docker/main/install.sh | bash
 
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/nash87/parkhub/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/nash87/parkhub-docker/main/install.ps1 | iex
 ```
 
 > **Windows Note:** The binary is not code-signed yet. Windows SmartScreen or antivirus software (e.g. Cortex, Defender) may show a warning on first run. Click **More info** then **Run anyway**, or right-click the exe, go to Properties and check **Unblock**. The install script handles this automatically.
@@ -221,10 +243,10 @@ On first start, a welcome screen lets you choose your language. Then an onboardi
 
 ```bash
 # Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/nash87/parkhub/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nash87/parkhub-docker/main/install.sh | bash
 
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/nash87/parkhub/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/nash87/parkhub-docker/main/install.ps1 | iex
 ```
 
 ### Docker
@@ -234,14 +256,14 @@ docker run -d \
   --name parkhub \
   -p 7878:7878 \
   -v parkhub-data:/data \
-  ghcr.io/nash87/parkhub:latest
+  ghcr.io/nash87/parkhub-docker:latest
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/nash87/parkhub.git
-cd parkhub
+git clone https://github.com/nash87/parkhub-docker.git
+cd parkhub-docker
 
 # Build frontend
 cd parkhub-web && npm ci && npm run build && cd ..

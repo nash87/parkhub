@@ -3,7 +3,7 @@
 
 services:
   parkhub:
-    image: ghcr.io/nash87/parkhub:latest
+    image: ghcr.io/nash87/parkhub-docker-docker:latest
     container_name: parkhub
     ports:
       - "7878:7878"
